@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Factory, Package, ShoppingCart, Megaphone,
   Calculator, Truck, Settings, Users, ChevronLeft, ChevronRight,
-  Bell, Search, LogOut, Building2, CreditCard, Palette,
+  Bell, Search, LogOut, Building2, CreditCard, Palette, Rocket,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
