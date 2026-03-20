@@ -29,7 +29,7 @@ const settingsItems = [
 export default function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { profile, tenant } = useAuth();
+  const { profile, tenant, role } = useAuth();
 
   return (
     <motion.aside
@@ -96,6 +96,28 @@ export default function AppSidebar() {
           );
         })}
 
+        {/* Reseller section */}
+        {role === 'reseller' && (
+          <>
+            <div className="my-4 border-t border-sidebar-border" />
+            <p className={cn("text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-2", collapsed ? "px-2" : "px-3")}>
+              {collapsed ? '—' : 'Reseller'}
+            </p>
+            <Link
+              to="/reseller"
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150",
+                location.pathname === '/reseller'
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <Building2 className="w-5 h-5 shrink-0" />
+              {!collapsed && <span className="text-sm font-medium whitespace-nowrap">Client Tenants</span>}
+            </Link>
+          </>
+        )}
+
         <div className="my-4 border-t border-sidebar-border" />
         
         <p className={cn("text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-2", collapsed ? "px-2" : "px-3")}>
@@ -130,7 +152,7 @@ export default function AppSidebar() {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{profile?.full_name}</p>
-              <p className="text-xs text-sidebar-foreground truncate capitalize">{profile?.role}</p>
+              <p className="text-xs text-sidebar-foreground truncate capitalize">{role}</p>
             </div>
           )}
         </div>
