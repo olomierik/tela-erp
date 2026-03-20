@@ -1,7 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { ShoppingCart, DollarSign, Users, TrendingUp, Trash2 } from 'lucide-react';
+import { ShoppingCart, DollarSign, Users, TrendingUp, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
@@ -9,6 +9,7 @@ import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onSalesOrderCreated } from '@/hooks/use-cross-module';
+import { generatePDFReport } from '@/lib/pdf-reports';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   pending: { label: 'Pending', variant: 'default' },
@@ -50,7 +51,6 @@ export default function Sales() {
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
   const customers = new Set(orders.map((o: any) => o.customer_email)).size;
 
-  // Build daily chart from real data
   const salesChart = isDemo ? demoSalesData : (() => {
     const days: Record<string, number> = {};
     orders.forEach((o: any) => {
@@ -64,7 +64,6 @@ export default function Sales() {
   const handleCreate = async (row: Record<string, any>) => {
     insertMutation.mutate(row, {
       onSuccess: (data: any) => {
-        // Trigger cross-module automation
         if (tenant?.id) {
           onSalesOrderCreated(tenant.id, {
             order_number: data.order_number || row.order_number,
@@ -119,7 +118,27 @@ export default function Sales() {
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Sales Orders</h3>
-        {!isDemo && <CreateDialog title="New Sales Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertMutation.isPending} />}
+        <div className="flex items-center gap-2">
+          {!isDemo && (
+            <>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => generatePDFReport({
+                title: 'Sales Report',
+                subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
+                tenantName: tenant?.name,
+                headers: ['Order #', 'Customer', 'Email', 'Amount', 'Status', 'Date'],
+                rows: orders.map((o: any) => [o.order_number, o.customer_name, o.customer_email, `$${Number(o.total_amount).toLocaleString()}`, o.status, new Date(o.created_at).toLocaleDateString()]),
+                stats: [
+                  { label: 'Revenue', value: `$${totalRevenue.toLocaleString()}` },
+                  { label: 'Orders', value: String(orders.length) },
+                  { label: 'Customers', value: String(customers) },
+                ],
+              })} disabled={orders.length === 0}>
+                <FileDown className="w-4 h-4" /> Export PDF
+              </Button>
+              <CreateDialog title="New Sales Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertMutation.isPending} />
+            </>
+          )}
+        </div>
       </div>
       {isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
