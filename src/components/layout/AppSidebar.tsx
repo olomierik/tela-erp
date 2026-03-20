@@ -29,7 +29,7 @@ const settingsItems = [
 export default function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const { profile, tenant } = useAuth();
+  const { profile, tenant, role } = useAuth();
 
   return (
     <motion.aside
