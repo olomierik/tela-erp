@@ -1,52 +1,86 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
-import { Factory, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { CreateDialog } from '@/components/erp/CreateDialog';
+import { Factory, Clock, CheckCircle, AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
-const prodData = [
-  { week: 'W1', planned: 120, actual: 115 },
-  { week: 'W2', planned: 135, actual: 128 },
-  { week: 'W3', planned: 110, actual: 112 },
-  { week: 'W4', planned: 145, actual: 130 },
+const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'default' | 'warning' }> = {
+  draft: { label: 'Draft', variant: 'default' },
+  in_progress: { label: 'In Progress', variant: 'info' },
+  completed: { label: 'Completed', variant: 'success' },
+  cancelled: { label: 'Cancelled', variant: 'warning' },
+};
+
+const demoData = [
+  ['#PRD-401', 'Steel Components A', '500', <StatusBadge status="In Progress" variant="info" />, 'Mar 12', 'Mar 25', null],
+  ['#PRD-400', 'Aluminum Frame B', '300', <StatusBadge status="Completed" variant="success" />, 'Mar 5', 'Mar 18', null],
 ];
 
-const orders = [
-  ['#PRD-401', 'Steel Components A', '500', <StatusBadge status="In Progress" variant="info" />, 'Mar 12', 'Mar 25'],
-  ['#PRD-400', 'Aluminum Frame B', '300', <StatusBadge status="Completed" variant="success" />, 'Mar 5', 'Mar 18'],
-  ['#PRD-399', 'Circuit Board X', '1,200', <StatusBadge status="Draft" variant="default" />, '—', '—'],
-  ['#PRD-398', 'Plastic Housing C', '800', <StatusBadge status="In Progress" variant="info" />, 'Mar 10', 'Mar 30'],
+const fields = [
+  { name: 'order_number', label: 'Order #', required: true },
+  { name: 'product_name', label: 'Product Name', required: true },
+  { name: 'quantity', label: 'Quantity', type: 'number' as const, required: true },
+  { name: 'status', label: 'Status', type: 'select' as const, defaultValue: 'draft', options: [
+    { label: 'Draft', value: 'draft' }, { label: 'In Progress', value: 'in_progress' },
+    { label: 'Completed', value: 'completed' }, { label: 'Cancelled', value: 'cancelled' },
+  ]},
+  { name: 'start_date', label: 'Start Date', type: 'date' as const },
+  { name: 'end_date', label: 'End Date', type: 'date' as const },
 ];
 
 export default function Production() {
+  const { isDemo } = useAuth();
+  const { data, isLoading } = useTenantQuery('production_orders');
+  const insert = useTenantInsert('production_orders');
+  const remove = useTenantDelete('production_orders');
+
+  const rows = isDemo ? demoData : (data ?? []).map((o: any) => {
+    const s = statusMap[o.status] || statusMap.draft;
+    return [
+      o.order_number,
+      o.product_name,
+      o.quantity.toLocaleString(),
+      <StatusBadge status={s.label} variant={s.variant} />,
+      o.start_date || '—',
+      o.end_date || '—',
+      <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
+    ];
+  });
+
+  const stats = isDemo
+    ? { active: 14, inProgress: 8, completed: 23, delayed: 2 }
+    : {
+        active: (data ?? []).filter((o: any) => o.status !== 'cancelled').length,
+        inProgress: (data ?? []).filter((o: any) => o.status === 'in_progress').length,
+        completed: (data ?? []).filter((o: any) => o.status === 'completed').length,
+        delayed: 0,
+      };
+
   return (
     <AppLayout title="Production" subtitle="Manufacturing orders and tracking">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Active Orders" value="14" change={5} icon={Factory} />
-        <StatCard title="In Progress" value="8" change={12} icon={Clock} />
-        <StatCard title="Completed (MTD)" value="23" change={8} icon={CheckCircle} />
-        <StatCard title="Delayed" value="2" change={-50} icon={AlertTriangle} />
-      </div>
-
-      <div className="bg-card rounded-xl border border-border p-5 mb-6">
-        <h3 className="font-semibold text-card-foreground mb-4">Production Output vs Plan</h3>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={prodData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-            <XAxis dataKey="week" stroke="hsl(215, 16%, 47%)" />
-            <YAxis stroke="hsl(215, 16%, 47%)" />
-            <Tooltip />
-            <Bar dataKey="planned" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="actual" fill="hsl(262, 83%, 58%)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <StatCard title="Active Orders" value={String(stats.active)} change={5} icon={Factory} />
+        <StatCard title="In Progress" value={String(stats.inProgress)} change={12} icon={Clock} />
+        <StatCard title="Completed" value={String(stats.completed)} change={8} icon={CheckCircle} />
+        <StatCard title="Delayed" value={String(stats.delayed)} change={0} icon={AlertTriangle} />
       </div>
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Production Orders</h3>
-        <Button size="sm">+ New Order</Button>
+        {!isDemo && <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
       </div>
-      <DataTable headers={['Order #', 'Product', 'Qty', 'Status', 'Start', 'End']} rows={orders} />
+      {isLoading && !isDemo ? (
+        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+      ) : (
+        <DataTable
+          headers={['Order #', 'Product', 'Qty', 'Status', 'Start', 'End', ...(isDemo ? [] : [''])]}
+          rows={rows}
+        />
+      )}
     </AppLayout>
   );
 }
