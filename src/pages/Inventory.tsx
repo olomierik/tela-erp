@@ -3,7 +3,9 @@ import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedCompone
 import { CreateDialog } from '@/components/erp/CreateDialog';
 import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -19,6 +21,7 @@ const fields = [
   { name: 'quantity', label: 'Quantity', type: 'number' as const, required: true },
   { name: 'unit_cost', label: 'Unit Cost', type: 'number' as const, required: true },
   { name: 'reorder_level', label: 'Reorder Level', type: 'number' as const, defaultValue: '10' },
+  { name: 'warehouse_location', label: 'Warehouse Location' },
 ];
 
 function getStockStatus(qty: number, reorder: number) {
@@ -32,6 +35,7 @@ export default function Inventory() {
   const { data, isLoading } = useTenantQuery('inventory_items');
   const insert = useTenantInsert('inventory_items');
   const remove = useTenantDelete('inventory_items');
+  useRealtimeSync('inventory_items');
 
   const items = data ?? [];
   const rows = isDemo ? demoRows : items.map((i: any) => {
@@ -47,15 +51,43 @@ export default function Inventory() {
 
   const totalValue = items.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
   const lowStock = items.filter((i: any) => i.quantity <= i.reorder_level).length;
+  const critical = items.filter((i: any) => i.quantity <= i.reorder_level * 0.5).length;
+
+  // Category breakdown chart
+  const categoryMap: Record<string, number> = {};
+  items.forEach((i: any) => {
+    categoryMap[i.category || 'Uncategorized'] = (categoryMap[i.category || 'Uncategorized'] || 0) + i.quantity * Number(i.unit_cost);
+  });
+  const categoryChart = Object.entries(categoryMap).map(([name, value]) => ({ name, value: Math.round(value) }));
+  const catColors = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(262, 83%, 58%)', 'hsl(199, 89%, 48%)'];
 
   return (
-    <AppLayout title="Inventory" subtitle="Stock management and tracking">
+    <AppLayout title="Inventory" subtitle="Stock levels, batches & warehouse tracking">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard title="Total Items" value={isDemo ? '1,247' : String(items.length)} change={3.2} icon={Package} />
-        <StatCard title="Low Stock Alerts" value={isDemo ? '8' : String(lowStock)} change={-20} icon={AlertTriangle} />
+        <StatCard title="Low Stock Alerts" value={isDemo ? '8' : String(lowStock)} change={lowStock > 0 ? -20 : 0} icon={AlertTriangle} />
         <StatCard title="Stock Value" value={isDemo ? '$124,500' : `$${totalValue.toLocaleString()}`} change={5.1} icon={TrendingDown} />
-        <StatCard title="Warehouses" value="3" change={0} icon={Warehouse} />
+        <StatCard title="Critical Items" value={isDemo ? '2' : String(critical)} change={critical > 0 ? -50 : 0} icon={Warehouse} />
       </div>
+
+      {categoryChart.length > 0 && !isDemo && (
+        <div className="bg-card rounded-xl border border-border p-5 mb-6">
+          <h3 className="font-semibold text-card-foreground mb-4">Stock Value by Category</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={categoryChart} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
+              <XAxis type="number" stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <YAxis dataKey="name" type="category" stroke="hsl(215, 16%, 47%)" width={100} />
+              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                {categoryChart.map((_, i) => (
+                  <Cell key={i} fill={catColors[i % catColors.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Inventory Items</h3>
