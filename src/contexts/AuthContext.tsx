@@ -21,6 +21,7 @@ interface AuthContextType {
   tenant: Tenant | null;
   role: UserRole | null;
   loading: boolean;
+  isDemo: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string, companyName?: string, role?: UserRole) => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<void>;
@@ -32,6 +33,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const DEMO_PROFILE: Profile = {
+  id: 'demo-user',
+  user_id: 'demo-user',
+  tenant_id: 'demo-tenant',
+  email: 'admin@tela-erp.com',
+  full_name: 'Alex Morgan',
+  is_active: true,
+  created_at: new Date().toISOString(),
+};
+
+const DEMO_TENANT: Tenant = {
+  id: 'demo-tenant',
+  name: 'TELA Industries',
+  slug: 'tela-industries',
+  primary_color: '#3B82F6',
+  subscription_tier: 'pro',
+  is_active: true,
+  created_at: new Date().toISOString(),
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -39,10 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
@@ -51,55 +72,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (profileData) {
         setProfile(profileData);
-
-        // Fetch tenant
         const { data: tenantData } = await supabase
           .from('tenants')
           .select('*')
           .eq('id', profileData.tenant_id)
           .single();
-
         if (tenantData) setTenant(tenantData as Tenant);
       }
 
-      // Fetch role
       const { data: roleData } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .single();
-
       if (roleData) setRole(roleData.role as UserRole);
     } catch (err) {
       console.error('Error fetching user data:', err);
     }
   };
 
+  const enableDemoMode = () => {
+    setIsDemo(true);
+    setProfile(DEMO_PROFILE);
+    setTenant(DEMO_TENANT);
+    setRole('admin');
+    setUser({ id: 'demo', email: 'admin@tela-erp.com' } as any);
+  };
+
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
-          // Use setTimeout to avoid Supabase client deadlock
+          setIsDemo(false);
           setTimeout(() => fetchUserData(currentSession.user.id), 0);
-        } else {
-          setProfile(null);
-          setTenant(null);
-          setRole(null);
+        } else if (!isDemo) {
+          // No real user — enable demo mode for preview
+          enableDemoMode();
         }
         setLoading(false);
       }
     );
 
-    // THEN check existing session
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
         fetchUserData(existingSession.user.id);
+      } else {
+        enableDemoMode();
       }
       setLoading(false);
     });
@@ -110,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setIsDemo(false);
   };
 
   const signUp = async (email: string, password: string, fullName: string, companyName?: string, signUpRole?: UserRole) => {
@@ -150,20 +174,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUser(null);
     setSession(null);
-    setProfile(null);
-    setTenant(null);
-    setRole(null);
+    enableDemoMode();
   };
 
   const refreshProfile = async () => {
-    if (user) await fetchUserData(user.id);
+    if (user && !isDemo) await fetchUserData(user.id);
   };
 
   return (
     <AuthContext.Provider value={{
-      user, session, profile, tenant, role, loading,
+      user, session, profile, tenant, role, loading, isDemo,
       signIn, signUp, signInWithMagicLink, resetPassword, updatePassword, signOut, refreshProfile,
     }}>
       {children}
