@@ -5,8 +5,10 @@ import { ShoppingCart, DollarSign, Users, TrendingUp, Trash2 } from 'lucide-reac
 import { Button } from '@/components/ui/button';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { onSalesOrderCreated } from '@/hooks/use-cross-module';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   pending: { label: 'Pending', variant: 'default' },
@@ -38,14 +40,41 @@ const fields = [
 ];
 
 export default function Sales() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('sales_orders');
-  const insert = useTenantInsert('sales_orders');
+  const insertMutation = useTenantInsert('sales_orders');
   const remove = useTenantDelete('sales_orders');
+  useRealtimeSync('sales_orders');
 
   const orders = data ?? [];
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
   const customers = new Set(orders.map((o: any) => o.customer_email)).size;
+
+  // Build daily chart from real data
+  const salesChart = isDemo ? demoSalesData : (() => {
+    const days: Record<string, number> = {};
+    orders.forEach((o: any) => {
+      const d = new Date(o.created_at);
+      const key = d.toLocaleDateString('en-US', { weekday: 'short' });
+      days[key] = (days[key] || 0) + Number(o.total_amount);
+    });
+    return Object.entries(days).map(([day, sales]) => ({ day, sales }));
+  })();
+
+  const handleCreate = async (row: Record<string, any>) => {
+    insertMutation.mutate(row, {
+      onSuccess: (data: any) => {
+        // Trigger cross-module automation
+        if (tenant?.id) {
+          onSalesOrderCreated(tenant.id, {
+            order_number: data.order_number || row.order_number,
+            customer_name: data.customer_name || row.customer_name,
+            total_amount: Number(data.total_amount || row.total_amount),
+          });
+        }
+      },
+    });
+  };
 
   const rows = isDemo ? demoRows : orders.map((o: any) => {
     const s = statusMap[o.status] || statusMap.pending;
@@ -59,7 +88,7 @@ export default function Sales() {
   });
 
   return (
-    <AppLayout title="Sales" subtitle="Orders, customers, and revenue">
+    <AppLayout title="Sales" subtitle="Orders, POS, and revenue tracking">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard title="Revenue (MTD)" value={isDemo ? '$89,400' : `$${totalRevenue.toLocaleString()}`} change={12.5} icon={DollarSign} />
         <StatCard title="Orders" value={isDemo ? '142' : String(orders.length)} change={8.2} icon={ShoppingCart} />
@@ -67,11 +96,11 @@ export default function Sales() {
         <StatCard title="Avg Order" value={isDemo ? '$630' : orders.length ? `$${Math.round(totalRevenue / orders.length)}` : '$0'} change={4.1} icon={TrendingUp} />
       </div>
 
-      {isDemo && (
+      {salesChart.length > 0 && (
         <div className="bg-card rounded-xl border border-border p-5 mb-6">
-          <h3 className="font-semibold text-card-foreground mb-4">Weekly Sales</h3>
+          <h3 className="font-semibold text-card-foreground mb-4">Sales Trend</h3>
           <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={demoSalesData}>
+            <AreaChart data={salesChart}>
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
@@ -90,7 +119,7 @@ export default function Sales() {
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Sales Orders</h3>
-        {!isDemo && <CreateDialog title="New Sales Order" buttonLabel="+ New Order" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
+        {!isDemo && <CreateDialog title="New Sales Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertMutation.isPending} />}
       </div>
       {isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
