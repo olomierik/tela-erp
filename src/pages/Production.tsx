@@ -1,13 +1,14 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Factory, Clock, CheckCircle, AlertTriangle, Trash2 } from 'lucide-react';
+import { Factory, Clock, CheckCircle, AlertTriangle, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { generatePDFReport } from '@/lib/pdf-reports';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'default' | 'warning' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -41,7 +42,7 @@ const fields = [
 ];
 
 export default function Production() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('production_orders');
   const insert = useTenantInsert('production_orders');
   const remove = useTenantDelete('production_orders');
@@ -72,7 +73,6 @@ export default function Production() {
         delayed: orders.filter((o: any) => o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress').length,
       };
 
-  // Build chart data from real orders
   const chartData = isDemo ? demoChartData : (() => {
     const weeks: Record<string, { completed: number; in_progress: number }> = {};
     orders.forEach((o: any) => {
@@ -112,7 +112,28 @@ export default function Production() {
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Production Orders</h3>
-        {!isDemo && <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
+        <div className="flex items-center gap-2">
+          {!isDemo && (
+            <>
+              <Button variant="outline" size="sm" className="gap-2" onClick={() => generatePDFReport({
+                title: 'Production Report',
+                subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
+                tenantName: tenant?.name,
+                headers: ['Order #', 'Product', 'Qty', 'Status', 'Start', 'End'],
+                rows: orders.map((o: any) => [o.order_number, o.product_name, o.quantity, o.status, o.start_date || '—', o.end_date || '—']),
+                stats: [
+                  { label: 'Active', value: String(stats.active) },
+                  { label: 'In Progress', value: String(stats.inProgress) },
+                  { label: 'Completed', value: String(stats.completed) },
+                  { label: 'Delayed', value: String(stats.delayed) },
+                ],
+              })} disabled={orders.length === 0}>
+                <FileDown className="w-4 h-4" /> Export PDF
+              </Button>
+              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
+            </>
+          )}
+        </div>
       </div>
       {isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
