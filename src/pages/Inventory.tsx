@@ -1,13 +1,19 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2 } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { generatePDFReport } from '@/lib/pdf-reports';
+import { BulkUpload } from '@/components/erp/BulkUpload';
+import { ParsedInventoryRow } from '@/lib/excel-utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 const demoRows = [
   ['SKU-001', 'Raw Steel Sheet', 'Raw Materials', '2,450', '$12.50', '$30,625', <StatusBadge status="In Stock" variant="success" />, null],
@@ -31,10 +37,11 @@ function getStockStatus(qty: number, reorder: number) {
 }
 
 export default function Inventory() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('inventory_items');
   const insert = useTenantInsert('inventory_items');
   const remove = useTenantDelete('inventory_items');
+  const qc = useQueryClient();
   useRealtimeSync('inventory_items');
 
   const items = data ?? [];
@@ -53,13 +60,43 @@ export default function Inventory() {
   const lowStock = items.filter((i: any) => i.quantity <= i.reorder_level).length;
   const critical = items.filter((i: any) => i.quantity <= i.reorder_level * 0.5).length;
 
-  // Category breakdown chart
   const categoryMap: Record<string, number> = {};
   items.forEach((i: any) => {
     categoryMap[i.category || 'Uncategorized'] = (categoryMap[i.category || 'Uncategorized'] || 0) + i.quantity * Number(i.unit_cost);
   });
   const categoryChart = Object.entries(categoryMap).map(([name, value]) => ({ name, value: Math.round(value) }));
   const catColors = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(262, 83%, 58%)', 'hsl(199, 89%, 48%)'];
+
+  const handleExportPDF = () => {
+    generatePDFReport({
+      title: 'Inventory Report',
+      subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
+      tenantName: tenant?.name,
+      headers: ['SKU', 'Name', 'Category', 'Qty', 'Unit Cost', 'Total Value', 'Status'],
+      rows: items.map((i: any) => {
+        const s = getStockStatus(i.quantity, i.reorder_level);
+        return [i.sku, i.name, i.category, i.quantity, `$${Number(i.unit_cost).toFixed(2)}`, `$${(i.quantity * Number(i.unit_cost)).toFixed(2)}`, s.status];
+      }),
+      stats: [
+        { label: 'Total Items', value: String(items.length) },
+        { label: 'Stock Value', value: `$${totalValue.toLocaleString()}` },
+        { label: 'Low Stock', value: String(lowStock) },
+        { label: 'Critical', value: String(critical) },
+      ],
+    });
+  };
+
+  const handleBulkUpload = async (parsed: ParsedInventoryRow[]) => {
+    if (!tenant?.id) return;
+    const payload = parsed.map(r => ({ ...r, tenant_id: tenant.id }));
+    const { error } = await (supabase.from('inventory_items') as any).insert(payload);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`${parsed.length} items imported`);
+      qc.invalidateQueries({ queryKey: ['inventory_items'] });
+    }
+  };
 
   return (
     <AppLayout title="Inventory" subtitle="Stock levels, batches & warehouse tracking">
@@ -91,7 +128,17 @@ export default function Inventory() {
 
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-foreground">Inventory Items</h3>
-        {!isDemo && <CreateDialog title="Add Inventory Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
+        <div className="flex items-center gap-2">
+          {!isDemo && (
+            <>
+              <Button variant="outline" size="sm" className="gap-2" onClick={handleExportPDF} disabled={items.length === 0}>
+                <FileDown className="w-4 h-4" /> Export PDF
+              </Button>
+              <BulkUpload onUpload={handleBulkUpload} />
+              <CreateDialog title="Add Inventory Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
+            </>
+          )}
+        </div>
       </div>
       {isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
