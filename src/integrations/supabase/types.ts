@@ -19,6 +19,7 @@ export type Database = {
           budget: number
           channel: string
           created_at: string
+          custom_fields: Json | null
           end_date: string | null
           id: string
           leads_generated: number
@@ -33,6 +34,7 @@ export type Database = {
           budget?: number
           channel?: string
           created_at?: string
+          custom_fields?: Json | null
           end_date?: string | null
           id?: string
           leads_generated?: number
@@ -47,6 +49,7 @@ export type Database = {
           budget?: number
           channel?: string
           created_at?: string
+          custom_fields?: Json | null
           end_date?: string | null
           id?: string
           leads_generated?: number
@@ -71,6 +74,7 @@ export type Database = {
         Row: {
           category: string
           created_at: string
+          custom_fields: Json | null
           id: string
           name: string
           quantity: number
@@ -84,6 +88,7 @@ export type Database = {
         Insert: {
           category?: string
           created_at?: string
+          custom_fields?: Json | null
           id?: string
           name: string
           quantity?: number
@@ -97,6 +102,7 @@ export type Database = {
         Update: {
           category?: string
           created_at?: string
+          custom_fields?: Json | null
           id?: string
           name?: string
           quantity?: number
@@ -120,6 +126,7 @@ export type Database = {
       production_orders: {
         Row: {
           created_at: string
+          custom_fields: Json | null
           end_date: string | null
           id: string
           order_number: string
@@ -132,6 +139,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_fields?: Json | null
           end_date?: string | null
           id?: string
           order_number: string
@@ -144,6 +152,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_fields?: Json | null
           end_date?: string | null
           id?: string
           order_number?: string
@@ -211,6 +220,7 @@ export type Database = {
       purchase_orders: {
         Row: {
           created_at: string
+          custom_fields: Json | null
           expected_delivery: string | null
           id: string
           order_date: string | null
@@ -223,6 +233,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_fields?: Json | null
           expected_delivery?: string | null
           id?: string
           order_date?: string | null
@@ -235,6 +246,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_fields?: Json | null
           expected_delivery?: string | null
           id?: string
           order_date?: string | null
@@ -258,6 +270,7 @@ export type Database = {
       sales_orders: {
         Row: {
           created_at: string
+          custom_fields: Json | null
           customer_email: string
           customer_name: string
           id: string
@@ -269,6 +282,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          custom_fields?: Json | null
           customer_email?: string
           customer_name: string
           id?: string
@@ -280,6 +294,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          custom_fields?: Json | null
           customer_email?: string
           customer_name?: string
           id?: string
@@ -363,6 +378,7 @@ export type Database = {
           amount: number
           category: string
           created_at: string
+          custom_fields: Json | null
           date: string
           description: string
           id: string
@@ -375,6 +391,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          custom_fields?: Json | null
           date?: string
           description?: string
           id?: string
@@ -387,6 +404,7 @@ export type Database = {
           amount?: number
           category?: string
           created_at?: string
+          custom_fields?: Json | null
           date?: string
           description?: string
           id?: string
