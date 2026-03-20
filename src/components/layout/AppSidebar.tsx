@@ -130,7 +130,7 @@ export default function AppSidebar() {
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{profile?.full_name}</p>
-              <p className="text-xs text-sidebar-foreground truncate capitalize">{profile?.role}</p>
+              <p className="text-xs text-sidebar-foreground truncate capitalize">{role}</p>
             </div>
           )}
         </div>
