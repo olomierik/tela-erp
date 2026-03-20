@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Factory, Package, ShoppingCart, Megaphone,
   Calculator, Truck, Settings, Users, ChevronLeft, ChevronRight,
-  Bell, Search, LogOut, Building2, CreditCard, Palette,
+  Bell, Search, LogOut, Building2, CreditCard, Palette, Rocket,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ const settingsItems = [
   { label: 'Team', icon: Users, path: '/settings/team' },
   { label: 'Billing', icon: CreditCard, path: '/settings/billing' },
   { label: 'White Label', icon: Palette, path: '/settings/white-label' },
+  { label: 'Readiness', icon: Rocket, path: '/settings/readiness' },
   { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
