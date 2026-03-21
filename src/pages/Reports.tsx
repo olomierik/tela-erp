@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/erp/SharedComponents';
 import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useStore } from '@/contexts/StoreContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { cn } from '@/lib/utils';
 
