@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
+import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Factory, Clock, CheckCircle, AlertTriangle, Trash2, FileDown } from 'lucide-react';
+import { Factory, Clock, CheckCircle, AlertTriangle, Trash2, FileDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
+import { cn } from '@/lib/utils';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'default' | 'warning' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -17,18 +22,6 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'info' | '
   completed: { label: 'Completed', variant: 'success' },
   cancelled: { label: 'Cancelled', variant: 'warning' },
 };
-
-const demoData = [
-  ['#PRD-401', 'Steel Components A', '500', <StatusBadge status="In Progress" variant="info" />, 'Mar 12', 'Mar 25', null],
-  ['#PRD-400', 'Aluminum Frame B', '300', <StatusBadge status="Completed" variant="success" />, 'Mar 5', 'Mar 18', null],
-];
-
-const demoChartData = [
-  { week: 'W1', completed: 8, in_progress: 5 },
-  { week: 'W2', completed: 12, in_progress: 3 },
-  { week: 'W3', completed: 6, in_progress: 7 },
-  { week: 'W4', completed: 15, in_progress: 4 },
-];
 
 const fields = [
   { name: 'order_number', label: 'Order #', required: true },
@@ -50,42 +43,10 @@ export default function Production() {
   useRealtimeSync('production_orders');
   useRealtimeSync('inventory_items');
 
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('all');
+
   const orders = data ?? [];
-
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    // DB trigger handles inventory + accounting automation on 'completed'
-    updateMutation.mutate({ id: orderId, status: newStatus });
-  };
-
-  const rows = isDemo ? demoData : orders.map((o: any) => {
-    const s = statusMap[o.status] || statusMap.draft;
-    const autoTag = o.custom_fields?.reason ? ' 🤖' : '';
-    const canUpdate = o.status !== 'completed' && o.status !== 'cancelled';
-    return [
-      o.order_number + autoTag,
-      o.product_name,
-      o.quantity.toLocaleString(),
-      <StatusBadge status={s.label} variant={s.variant} />,
-      o.start_date || '—',
-      o.end_date || '—',
-      <div className="flex items-center gap-1">
-        {canUpdate && (
-          <Select onValueChange={(v) => handleStatusChange(o.id, v)}>
-            <SelectTrigger className="h-7 w-28 text-xs">
-              <SelectValue placeholder="Action" />
-            </SelectTrigger>
-            <SelectContent>
-              {o.status === 'draft' && <SelectItem value="in_progress">Start</SelectItem>}
-              <SelectItem value="completed">Complete ✓</SelectItem>
-              <SelectItem value="cancelled">Cancel</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-        <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-      </div>,
-    ];
-  });
-
   const stats = isDemo
     ? { active: 14, inProgress: 8, completed: 23, delayed: 2 }
     : {
@@ -95,75 +56,106 @@ export default function Production() {
         delayed: orders.filter((o: any) => o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress').length,
       };
 
-  const chartData = isDemo ? demoChartData : (() => {
-    const weeks: Record<string, { completed: number; in_progress: number }> = {};
-    orders.forEach((o: any) => {
-      const d = new Date(o.created_at);
-      const wk = `W${Math.ceil(d.getDate() / 7)}`;
-      if (!weeks[wk]) weeks[wk] = { completed: 0, in_progress: 0 };
-      if (o.status === 'completed') weeks[wk].completed++;
-      else if (o.status === 'in_progress') weeks[wk].in_progress++;
-    });
-    return Object.entries(weeks).map(([week, v]) => ({ week, ...v }));
-  })();
+  const filtered = orders.filter((o: any) => {
+    if (search && !o.order_number.toLowerCase().includes(search.toLowerCase()) && !o.product_name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (tab === 'in_progress') return o.status === 'in_progress';
+    if (tab === 'completed') return o.status === 'completed';
+    if (tab === 'delayed') return o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress';
+    return true;
+  });
 
   return (
-    <AppLayout title="Production" subtitle="Manufacturing orders, schedules & BOMs">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Active Orders" value={String(stats.active)} change={5} icon={Factory} />
-        <StatCard title="In Progress" value={String(stats.inProgress)} change={12} icon={Clock} />
-        <StatCard title="Completed" value={String(stats.completed)} change={8} icon={CheckCircle} />
-        <StatCard title="Delayed" value={String(stats.delayed)} change={stats.delayed > 0 ? -100 : 0} icon={AlertTriangle} />
+    <AppLayout title="Production" subtitle="Manufacturing orders & schedules">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Active Orders</p><p className="text-lg font-bold text-foreground">{stats.active}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">In Progress</p><p className="text-lg font-bold text-foreground">{stats.inProgress}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Completed</p><p className="text-lg font-bold text-foreground">{stats.completed}</p></div>
+        <div className={cn("rounded-lg border bg-card px-4 py-3", stats.delayed > 0 ? "border-warning/40" : "border-border")}><p className="text-xs text-muted-foreground">Delayed</p><p className={cn("text-lg font-bold", stats.delayed > 0 ? "text-warning" : "text-foreground")}>{stats.delayed}</p></div>
       </div>
 
-      {chartData.length > 0 && (
-        <div className="bg-card rounded-xl border border-border p-5 mb-6">
-          <h3 className="font-semibold text-card-foreground mb-4">Production Throughput</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-              <XAxis dataKey="week" stroke="hsl(215, 16%, 47%)" />
-              <YAxis stroke="hsl(215, 16%, 47%)" />
-              <Tooltip />
-              <Bar dataKey="completed" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Completed" />
-              <Bar dataKey="in_progress" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} name="In Progress" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Search orders..." className="pl-8 h-8 text-xs" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isDemo && (
+                <>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => generatePDFReport({
+                    title: 'Production Report', subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`, tenantName: tenant?.name,
+                    headers: ['Order #', 'Product', 'Qty', 'Status', 'Start', 'End'],
+                    rows: orders.map((o: any) => [o.order_number, o.product_name, o.quantity, o.status, o.start_date || '—', o.end_date || '—']),
+                    stats: [{ label: 'Active', value: String(stats.active) }, { label: 'Completed', value: String(stats.completed) }],
+                  })} disabled={orders.length === 0}><FileDown className="w-3.5 h-3.5" /> PDF</Button>
+                  <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insertBase.mutate} isPending={insertBase.isPending} />
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-foreground">Production Orders</h3>
-        <div className="flex items-center gap-2">
-          {!isDemo && (
-            <>
-              <Button variant="outline" size="sm" className="gap-2" onClick={() => generatePDFReport({
-                title: 'Production Report',
-                subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
-                tenantName: tenant?.name,
-                headers: ['Order #', 'Product', 'Qty', 'Status', 'Start', 'End'],
-                rows: orders.map((o: any) => [o.order_number, o.product_name, o.quantity, o.status, o.start_date || '—', o.end_date || '—']),
-                stats: [
-                  { label: 'Active', value: String(stats.active) },
-                  { label: 'In Progress', value: String(stats.inProgress) },
-                  { label: 'Completed', value: String(stats.completed) },
-                  { label: 'Delayed', value: String(stats.delayed) },
-                ],
-              })} disabled={orders.length === 0}>
-                <FileDown className="w-4 h-4" /> Export PDF
-              </Button>
-              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insertBase.mutate} isPending={insertBase.isPending} />
-            </>
-          )}
-        </div>
-      </div>
+      <Tabs value={tab} onValueChange={setTab} className="mb-4">
+        <TabsList className="h-8">
+          <TabsTrigger value="all" className="text-xs h-7">All <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{orders.length}</Badge></TabsTrigger>
+          <TabsTrigger value="in_progress" className="text-xs h-7">In Progress <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{stats.inProgress}</Badge></TabsTrigger>
+          <TabsTrigger value="completed" className="text-xs h-7">Completed <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{stats.completed}</Badge></TabsTrigger>
+          <TabsTrigger value="delayed" className="text-xs h-7">Delayed <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{stats.delayed}</Badge></TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {isLoading && !isDemo ? (
-        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
-        <DataTable
-          headers={['Order #', 'Product', 'Qty', 'Status', 'Start', 'End', ...(isDemo ? [] : ['Actions'])]}
-          rows={rows}
-        />
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/40">
+                {['Order #', 'Product', 'Qty', 'Status', 'Start', 'End', ...(!isDemo ? ['Actions'] : [])].map((h, i) => (
+                  <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {filtered.map((o: any) => {
+                  const s = statusMap[o.status] || statusMap.draft;
+                  const canUpdate = o.status !== 'completed' && o.status !== 'cancelled';
+                  return (
+                    <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{o.order_number}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{o.product_name}</td>
+                      <td className="px-4 py-2.5 font-medium">{o.quantity.toLocaleString()}</td>
+                      <td className="px-4 py-2.5"><StatusBadge status={s.label} variant={s.variant} /></td>
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs">{o.start_date || '—'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs">{o.end_date || '—'}</td>
+                      {!isDemo && (
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1">
+                            {canUpdate && (
+                              <Select onValueChange={(v) => updateMutation.mutate({ id: o.id, status: v })}>
+                                <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue placeholder="Action" /></SelectTrigger>
+                                <SelectContent>
+                                  {o.status === 'draft' && <SelectItem value="in_progress">Start</SelectItem>}
+                                  <SelectItem value="completed">Complete ✓</SelectItem>
+                                  <SelectItem value="cancelled">Cancel</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(o.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No production orders found</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </AppLayout>
   );

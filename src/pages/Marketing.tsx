@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
+import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Megaphone, MousePointerClick, Users, DollarSign, Trash2 } from 'lucide-react';
+import { Megaphone, MousePointerClick, Users, DollarSign, Trash2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,12 +29,9 @@ const fields = [
   ]},
   { name: 'budget', label: 'Budget', type: 'number' as const, required: true },
   { name: 'status', label: 'Status', type: 'select' as const, defaultValue: 'draft', options: [
-    { label: 'Draft', value: 'draft' }, { label: 'Active', value: 'active' },
-    { label: 'Paused', value: 'paused' },
+    { label: 'Draft', value: 'draft' }, { label: 'Active', value: 'active' }, { label: 'Paused', value: 'paused' },
   ]},
 ];
-
-const COLORS = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(262, 83%, 58%)'];
 
 export default function Marketing() {
   const { isDemo } = useAuth();
@@ -40,74 +41,83 @@ export default function Marketing() {
   const remove = useTenantDelete('campaigns');
   useRealtimeSync('campaigns');
 
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const campaigns = data ?? [];
   const active = campaigns.filter((c: any) => c.status === 'active').length;
   const totalLeads = campaigns.reduce((s: number, c: any) => s + c.leads_generated, 0);
   const totalSpent = campaigns.reduce((s: number, c: any) => s + Number(c.spent), 0);
-  const totalBudget = campaigns.reduce((s: number, c: any) => s + Number(c.budget), 0);
 
-  const channelMap: Record<string, number> = {};
-  campaigns.forEach((c: any) => { channelMap[c.channel] = (channelMap[c.channel] || 0) + Number(c.budget); });
-  const channelChart = Object.entries(channelMap).map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
-
-  const demoRows = [
-    ['Spring Launch', <StatusBadge status="Active" variant="success" />, 'Email', formatMoney(5000), formatMoney(3240), '842', '16.8%', null],
-    ['Product Webinar', <StatusBadge status="Active" variant="success" />, 'Content', formatMoney(2000), formatMoney(1100), '215', '10.8%', null],
-  ];
-
-  const rows = isDemo ? demoRows : campaigns.map((c: any) => {
-    const s = statusMap[c.status] || statusMap.draft;
-    const roi = Number(c.budget) > 0 ? ((Number(c.spent) / Number(c.budget)) * 100).toFixed(1) + '%' : '0%';
-    return [
-      c.name, <StatusBadge status={s.label} variant={s.variant} />,
-      c.channel.charAt(0).toUpperCase() + c.channel.slice(1),
-      formatMoney(Number(c.budget)), formatMoney(Number(c.spent)),
-      c.leads_generated.toLocaleString(), roi,
-      <Button variant="ghost" size="icon" onClick={() => remove.mutate(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
-    ];
+  const filtered = campaigns.filter((c: any) => {
+    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+    return true;
   });
 
   return (
-    <AppLayout title="Marketing" subtitle="Campaigns, leads, and analytics">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Active Campaigns" value={isDemo ? '12' : String(active)} change={15} icon={Megaphone} />
-        <StatCard title="Leads Generated" value={isDemo ? '3,477' : totalLeads.toLocaleString()} change={22} icon={Users} />
-        <StatCard title="Conversion Rate" value={totalBudget > 0 ? `${((totalLeads / (totalBudget / 100)) * 100).toFixed(1)}%` : '4.2%'} change={0.8} icon={MousePointerClick} />
-        <StatCard title="Budget Spent" value={isDemo ? formatMoney(14840) : formatMoney(totalSpent)} change={-5} icon={DollarSign} />
+    <AppLayout title="Marketing" subtitle="Campaigns, leads & analytics">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Active Campaigns</p><p className="text-lg font-bold text-foreground">{isDemo ? '12' : active}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Leads Generated</p><p className="text-lg font-bold text-foreground">{isDemo ? '3,477' : totalLeads.toLocaleString()}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Conversion Rate</p><p className="text-lg font-bold text-foreground">4.2%</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Budget Spent</p><p className="text-lg font-bold text-foreground">{isDemo ? formatMoney(14840) : formatMoney(totalSpent)}</p></div>
       </div>
 
-      {channelChart.length > 0 && !isDemo && (
-        <div className="bg-card rounded-xl border border-border p-5 mb-6">
-          <h3 className="font-semibold text-card-foreground mb-4">Budget by Channel</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie data={channelChart} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                {channelChart.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex flex-wrap gap-4 justify-center mt-2">
-            {channelChart.map((item, i) => (
-              <div key={item.name} className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                <span className="text-card-foreground">{item.name}</span>
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Search campaigns..." className="pl-8 h-8 text-xs" value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-            ))}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {Object.entries(statusMap).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {!isDemo && <CreateDialog title="New Campaign" buttonLabel="+ New Campaign" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-foreground">Campaigns</h3>
-        {!isDemo && <CreateDialog title="New Campaign" buttonLabel="+ New Campaign" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />}
-      </div>
       {isLoading && !isDemo ? (
-        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
-        <DataTable headers={['Name', 'Status', 'Channel', 'Budget', 'Spent', 'Leads', 'ROI', ...(isDemo ? [] : [''])]} rows={rows} />
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/40">
+                {['Name', 'Status', 'Channel', 'Budget', 'Spent', 'Leads', 'ROI', ...(!isDemo ? [''] : [])].map((h, i) => (
+                  <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {filtered.map((c: any) => {
+                  const s = statusMap[c.status] || statusMap.draft;
+                  const roi = Number(c.budget) > 0 ? ((Number(c.spent) / Number(c.budget)) * 100).toFixed(1) + '%' : '0%';
+                  return (
+                    <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
+                      <td className="px-4 py-2.5"><StatusBadge status={s.label} variant={s.variant} /></td>
+                      <td className="px-4 py-2.5 text-muted-foreground capitalize">{c.channel}</td>
+                      <td className="px-4 py-2.5">{formatMoney(Number(c.budget))}</td>
+                      <td className="px-4 py-2.5">{formatMoney(Number(c.spent))}</td>
+                      <td className="px-4 py-2.5">{c.leads_generated.toLocaleString()}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{roi}</td>
+                      {!isDemo && <td className="px-4 py-2.5"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(c.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button></td>}
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">No campaigns found</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </AppLayout>
   );

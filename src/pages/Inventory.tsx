@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
+import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +21,8 @@ import { ParsedInventoryRow } from '@/lib/excel-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const fields = [
   { name: 'sku', label: 'SKU', required: true },
@@ -33,6 +40,15 @@ function getStockStatus(qty: number, reorder: number) {
   return { status: 'In Stock', variant: 'success' as const };
 }
 
+function MiniStat({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
+  return (
+    <div className={cn("rounded-lg border border-border bg-card px-4 py-3", alert && "border-warning/40")}>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className={cn("text-lg font-bold", alert ? "text-warning" : "text-foreground")}>{value}</p>
+    </div>
+  );
+}
+
 export default function Inventory() {
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
@@ -42,50 +58,43 @@ export default function Inventory() {
   const qc = useQueryClient();
   useRealtimeSync('inventory_items');
 
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [tab, setTab] = useState('all');
+
   const items = data ?? [];
 
-  const demoRows = [
-    ['SKU-001', 'Raw Steel Sheet', 'Raw Materials', '2,450', formatMoney(12.5), formatMoney(30625), <StatusBadge status="In Stock" variant="success" />, null],
-    ['SKU-002', 'Copper Wire 2mm', 'Raw Materials', '180', formatMoney(8.75), formatMoney(1575), <StatusBadge status="Low Stock" variant="warning" />, null],
-  ];
-
-  const rows = isDemo ? demoRows : items.map((i: any) => {
-    const s = getStockStatus(i.quantity, i.reorder_level);
-    return [
-      i.sku, i.name, i.category, i.quantity.toLocaleString(),
-      formatMoney(Number(i.unit_cost)),
-      formatMoney(i.quantity * Number(i.unit_cost)),
-      <StatusBadge status={i.status === 'good' ? s.status : (i.status || 'good').charAt(0).toUpperCase() + (i.status || 'good').slice(1)} variant={i.status === 'good' ? s.variant : 'destructive'} />,
-      <Button variant="ghost" size="icon" onClick={() => remove.mutate(i.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
-    ];
-  });
-
   const totalValue = items.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
-  const lowStock = items.filter((i: any) => i.quantity <= i.reorder_level).length;
-  const critical = items.filter((i: any) => i.quantity <= i.reorder_level * 0.5).length;
+  const lowStock = items.filter((i: any) => i.quantity <= i.reorder_level);
+  const damagedItems = items.filter((i: any) => i.status === 'damaged');
+  const expiredItems = items.filter((i: any) => i.status === 'expired');
+  const categories = [...new Set(items.map((i: any) => i.category || 'Uncategorized'))];
 
-  const categoryMap: Record<string, number> = {};
-  items.forEach((i: any) => {
-    categoryMap[i.category || 'Uncategorized'] = (categoryMap[i.category || 'Uncategorized'] || 0) + i.quantity * Number(i.unit_cost);
+  const filtered = items.filter((i: any) => {
+    if (search && !i.name.toLowerCase().includes(search.toLowerCase()) && !i.sku.toLowerCase().includes(search.toLowerCase())) return false;
+    if (categoryFilter !== 'all' && i.category !== categoryFilter) return false;
+    if (statusFilter !== 'all' && i.status !== statusFilter) return false;
+    if (tab === 'low_stock') return i.quantity <= i.reorder_level;
+    if (tab === 'expired') return i.status === 'expired';
+    if (tab === 'damaged') return i.status === 'damaged';
+    return true;
   });
-  const categoryChart = Object.entries(categoryMap).map(([name, value]) => ({ name, value: Math.round(value) }));
-  const catColors = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(262, 83%, 58%)', 'hsl(199, 89%, 48%)'];
 
   const handleExportPDF = () => {
     generatePDFReport({
       title: 'Inventory Report',
       subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
       tenantName: tenant?.name,
-      headers: ['SKU', 'Name', 'Category', 'Qty', 'Unit Cost', 'Total Value', 'Status'],
-      rows: items.map((i: any) => {
+      headers: ['SKU', 'Name', 'Category', 'Qty', 'Unit Cost', 'Value', 'Status'],
+      rows: filtered.map((i: any) => {
         const s = getStockStatus(i.quantity, i.reorder_level);
-        return [i.sku, i.name, i.category, i.quantity, formatMoney(Number(i.unit_cost)), formatMoney(i.quantity * Number(i.unit_cost)), s.status];
+        return [i.sku, i.name, i.category, i.quantity, formatMoney(Number(i.unit_cost)), formatMoney(i.quantity * Number(i.unit_cost)), i.status === 'good' ? s.status : i.status];
       }),
       stats: [
         { label: 'Total Items', value: String(items.length) },
         { label: 'Stock Value', value: formatMoney(totalValue) },
-        { label: 'Low Stock', value: String(lowStock) },
-        { label: 'Critical', value: String(critical) },
+        { label: 'Low Stock', value: String(lowStock.length) },
       ],
     });
   };
@@ -94,61 +103,118 @@ export default function Inventory() {
     if (!tenant?.id) return;
     const payload = parsed.map(r => ({ ...r, tenant_id: tenant.id }));
     const { error } = await (supabase.from('inventory_items') as any).insert(payload);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success(`${parsed.length} items imported`);
-      qc.invalidateQueries({ queryKey: ['inventory_items'] });
-    }
+    if (error) toast.error(error.message);
+    else { toast.success(`${parsed.length} items imported`); qc.invalidateQueries({ queryKey: ['inventory_items'] }); }
   };
 
   return (
-    <AppLayout title="Inventory" subtitle="Stock levels, batches & warehouse tracking">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Items" value={isDemo ? '1,247' : String(items.length)} change={3.2} icon={Package} />
-        <StatCard title="Low Stock Alerts" value={isDemo ? '8' : String(lowStock)} change={lowStock > 0 ? -20 : 0} icon={AlertTriangle} />
-        <StatCard title="Stock Value" value={isDemo ? formatMoney(124500) : formatMoney(totalValue)} change={5.1} icon={TrendingDown} />
-        <StatCard title="Critical Items" value={isDemo ? '2' : String(critical)} change={critical > 0 ? -50 : 0} icon={Warehouse} />
+    <AppLayout title="Inventory" subtitle="Stock levels & warehouse tracking">
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <MiniStat label="Total Items" value={isDemo ? '1,247' : String(items.length)} />
+        <MiniStat label="Stock Value" value={isDemo ? formatMoney(124500) : formatMoney(totalValue)} />
+        <MiniStat label="Low Stock" value={isDemo ? '8' : String(lowStock.length)} alert={lowStock.length > 0} />
+        <MiniStat label="Damaged / Expired" value={isDemo ? '2' : String(damagedItems.length + expiredItems.length)} alert={damagedItems.length + expiredItems.length > 0} />
       </div>
 
-      {categoryChart.length > 0 && !isDemo && (
-        <div className="bg-card rounded-xl border border-border p-5 mb-6">
-          <h3 className="font-semibold text-card-foreground mb-4">Stock Value by Category</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={categoryChart} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-              <XAxis type="number" stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
-              <YAxis dataKey="name" type="category" stroke="hsl(215, 16%, 47%)" width={100} />
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                {categoryChart.map((_, i) => (
-                  <Cell key={i} fill={catColors[i % catColors.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* Header Bar */}
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Search by name or SKU..." className="pl-8 h-8 text-xs" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Category" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="good">Good</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="not_sellable">Not Sellable</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isDemo && (
+                <>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={handleExportPDF} disabled={filtered.length === 0}>
+                    <FileDown className="w-3.5 h-3.5" /> PDF
+                  </Button>
+                  <BulkUpload onUpload={handleBulkUpload} />
+                  <InventoryAdjustmentDialog items={items} />
+                  <CreateDialog title="Add Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-foreground">Inventory Items</h3>
-        <div className="flex items-center gap-2">
-          {!isDemo && (
-            <>
-              <Button variant="outline" size="sm" className="gap-2" onClick={handleExportPDF} disabled={items.length === 0}>
-                <FileDown className="w-4 h-4" /> Export PDF
-              </Button>
-              <BulkUpload onUpload={handleBulkUpload} />
-              <InventoryAdjustmentDialog items={items} />
-              <CreateDialog title="Add Inventory Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
-            </>
-          )}
-        </div>
-      </div>
+      {/* Tabs */}
+      <Tabs value={tab} onValueChange={setTab} className="mb-4">
+        <TabsList className="h-8">
+          <TabsTrigger value="all" className="text-xs h-7">All <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{items.length}</Badge></TabsTrigger>
+          <TabsTrigger value="low_stock" className="text-xs h-7">Low Stock <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{lowStock.length}</Badge></TabsTrigger>
+          <TabsTrigger value="expired" className="text-xs h-7">Expired <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{expiredItems.length}</Badge></TabsTrigger>
+          <TabsTrigger value="damaged" className="text-xs h-7">Damaged <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{damagedItems.length}</Badge></TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Table */}
       {isLoading && !isDemo ? (
-        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
-        <DataTable headers={['SKU', 'Name', 'Category', 'Qty', 'Unit Cost', 'Total', 'Status', ...(isDemo ? [] : [''])]} rows={rows} />
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/40">
+                  {['Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Value', 'Status', ...(!isDemo ? [''] : [])].map((h, i) => (
+                    <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((i: any) => {
+                  const s = getStockStatus(i.quantity, i.reorder_level);
+                  const displayStatus = i.status === 'good' ? s.status : (i.status || 'good').charAt(0).toUpperCase() + (i.status || 'good').slice(1);
+                  const displayVariant = i.status === 'good' ? s.variant : 'destructive';
+                  return (
+                    <tr key={i.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{i.name}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{i.sku}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{i.category || '—'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{i.warehouse_location || '—'}</td>
+                      <td className="px-4 py-2.5 font-medium">{i.quantity.toLocaleString()}</td>
+                      <td className="px-4 py-2.5">{formatMoney(i.quantity * Number(i.unit_cost))}</td>
+                      <td className="px-4 py-2.5"><StatusBadge status={displayStatus} variant={displayVariant} /></td>
+                      {!isDemo && (
+                        <td className="px-4 py-2.5">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(i.id)}>
+                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                          </Button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">No items found</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </AppLayout>
   );
