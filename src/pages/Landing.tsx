@@ -4,13 +4,14 @@ import {
   Building2, Package, ShoppingCart, Truck, Factory, Calculator,
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
-  CreditCard, Menu, X,
+  CreditCard, Menu, X, Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import heroImg from '@/assets/hero-dashboard.png';
+import paymentQr from '@/assets/payment-qr.jpeg';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
