@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
+import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Truck, Clock, CheckCircle, FileText, Trash2 } from 'lucide-react';
+import { Truck, Clock, CheckCircle, FileText, Trash2, Search, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onProcurementReceived } from '@/hooks/use-cross-module';
+import { cn } from '@/lib/utils';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -39,82 +44,100 @@ export default function Procurement() {
   const remove = useTenantDelete('purchase_orders');
   useRealtimeSync('purchase_orders');
 
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
   const pos = data ?? [];
   const open = pos.filter((p: any) => !['received', 'cancelled'].includes(p.status)).length;
   const pending = pos.filter((p: any) => ['submitted', 'approved'].includes(p.status)).length;
   const received = pos.filter((p: any) => p.status === 'received').length;
   const totalSpend = pos.reduce((s: number, p: any) => s + Number(p.total_amount), 0);
 
-  const supplierMap: Record<string, number> = {};
-  pos.forEach((p: any) => { supplierMap[p.supplier_name] = (supplierMap[p.supplier_name] || 0) + Number(p.total_amount); });
-  const supplierChart = Object.entries(supplierMap)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([name, value]) => ({ name, value }));
+  const filtered = pos.filter((p: any) => {
+    if (search && !p.po_number.toLowerCase().includes(search.toLowerCase()) && !p.supplier_name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+    return true;
+  });
 
   const handleCreate = (row: Record<string, any>) => {
     insertBase.mutate(row, {
       onSuccess: (data: any) => {
         if (data.status === 'received' && tenant?.id) {
-          onProcurementReceived(tenant.id, {
-            po_number: data.po_number,
-            supplier_name: data.supplier_name,
-            total_amount: Number(data.total_amount),
-          });
+          onProcurementReceived(tenant.id, { po_number: data.po_number, supplier_name: data.supplier_name, total_amount: Number(data.total_amount) });
         }
       },
     });
   };
 
-  const demoRows = [
-    ['#PO-501', 'SteelMax Inc', formatMoney(24500), <StatusBadge status="Received" variant="success" />, 'Mar 10', 'Mar 18', null],
-    ['#PO-500', 'ElectroParts Co', formatMoney(8900), <StatusBadge status="Approved" variant="info" />, 'Mar 8', 'Mar 22', null],
-  ];
-
-  const rows = isDemo ? demoRows : pos.map((p: any) => {
-    const s = statusMap[p.status] || statusMap.draft;
-    const autoTag = (p.custom_fields as any)?.reason ? ' 🤖' : '';
-    return [
-      p.po_number + autoTag, p.supplier_name,
-      formatMoney(Number(p.total_amount)),
-      <StatusBadge status={s.label} variant={s.variant} />,
-      p.order_date || '—', p.expected_delivery || '—',
-      <Button variant="ghost" size="icon" onClick={() => remove.mutate(p.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
-    ];
-  });
-
   return (
-    <AppLayout title="Procurement" subtitle="Purchase orders, suppliers & spend tracking">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Open POs" value={isDemo ? '18' : String(open)} change={10} icon={FileText} />
-        <StatCard title="Pending Delivery" value={isDemo ? '7' : String(pending)} change={-15} icon={Clock} />
-        <StatCard title="Received (MTD)" value={isDemo ? '12' : String(received)} change={20} icon={CheckCircle} />
-        <StatCard title="Total Spend (MTD)" value={isDemo ? formatMoney(55650) : formatMoney(totalSpend)} change={5} icon={Truck} />
+    <AppLayout title="Purchases" subtitle="Purchase orders & suppliers">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Open POs</p><p className="text-lg font-bold text-foreground">{isDemo ? '18' : open}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Pending Delivery</p><p className="text-lg font-bold text-foreground">{isDemo ? '7' : pending}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Received (MTD)</p><p className="text-lg font-bold text-foreground">{isDemo ? '12' : received}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Total Spend</p><p className="text-lg font-bold text-foreground">{isDemo ? formatMoney(55650) : formatMoney(totalSpend)}</p></div>
       </div>
 
-      {supplierChart.length > 0 && !isDemo && (
-        <div className="bg-card rounded-xl border border-border p-5 mb-6">
-          <h3 className="font-semibold text-card-foreground mb-4">Spend by Supplier</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={supplierChart} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-              <XAxis type="number" stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
-              <YAxis dataKey="name" type="category" stroke="hsl(215, 16%, 47%)" width={120} />
-              <Tooltip formatter={(v: number) => formatMoney(v)} />
-              <Bar dataKey="value" fill="hsl(262, 83%, 58%)" radius={[0, 4, 4, 0]} name="Spend" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      <Card className="mb-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input placeholder="Search POs or suppliers..." className="pl-8 h-8 text-xs" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {Object.entries(statusMap).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              {!isDemo && (
+                <>
+                  <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5"><Bot className="w-3.5 h-3.5" /> Smart Order</Button>
+                  <CreateDialog title="New Purchase Order" buttonLabel="+ New PO" fields={fields} onSubmit={handleCreate} isPending={insertBase.isPending} />
+                </>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-foreground">Purchase Orders</h3>
-        {!isDemo && <CreateDialog title="New Purchase Order" buttonLabel="+ New PO" fields={fields} onSubmit={handleCreate} isPending={insertBase.isPending} />}
-      </div>
       {isLoading && !isDemo ? (
-        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+        <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
-        <DataTable headers={['PO #', 'Supplier', 'Amount', 'Status', 'Ordered', 'Expected', ...(isDemo ? [] : [''])]} rows={rows} />
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border bg-muted/40">
+                {['PO #', 'Supplier', 'Amount', 'Status', 'Ordered', 'Expected', ...(!isDemo ? [''] : [])].map((h, i) => (
+                  <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {filtered.map((p: any) => {
+                  const s = statusMap[p.status] || statusMap.draft;
+                  const autoTag = (p.custom_fields as any)?.reason ? ' 🤖' : '';
+                  return (
+                    <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-medium text-foreground">{p.po_number}{autoTag}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{p.supplier_name}</td>
+                      <td className="px-4 py-2.5 font-medium">{formatMoney(Number(p.total_amount))}</td>
+                      <td className="px-4 py-2.5"><StatusBadge status={s.label} variant={s.variant} /></td>
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs">{p.order_date || '—'}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs">{p.expected_delivery || '—'}</td>
+                      {!isDemo && <td className="px-4 py-2.5"><Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(p.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button></td>}
+                    </tr>
+                  );
+                })}
+                {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No purchase orders found</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </AppLayout>
   );
