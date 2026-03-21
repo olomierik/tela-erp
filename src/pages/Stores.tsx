@@ -64,22 +64,19 @@ export default function Stores() {
   const handleInviteUser = async () => {
     if (!inviteEmail.trim() || !inviteOpen || isDemo) return;
     try {
-      // Find user by email in profiles
-      const { data: profile } = await (supabase.from('profiles') as any)
-        .select('user_id')
-        .eq('email', inviteEmail.trim())
-        .eq('tenant_id', tenant!.id)
-        .single();
+      const { data, error } = await supabase.functions.invoke('invite-store-user', {
+        body: {
+          email: inviteEmail.trim(),
+          store_id: inviteOpen,
+          role: inviteRole,
+          full_name: '',
+        },
+      });
 
-      if (!profile) {
-        toast.error('User not found in this tenant. They must sign up first.');
-        return;
-      }
-
-      const { error } = await (supabase.from('user_store_assignments') as any)
-        .insert({ user_id: profile.user_id, store_id: inviteOpen, tenant_id: tenant!.id, role: inviteRole });
       if (error) throw error;
-      toast.success('User assigned to store');
+      if (data?.error) throw new Error(data.error);
+
+      toast.success(data?.message || 'Invitation sent!');
       setInviteEmail('');
       setInviteOpen(null);
       qc.invalidateQueries({ queryKey: ['user_store_assignments'] });
