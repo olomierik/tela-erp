@@ -1,14 +1,24 @@
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
-import { DollarSign, ShoppingCart, Package, Megaphone, TrendingUp, Activity, Factory, AlertTriangle, Sparkles, BarChart3, Percent } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
+import { StatusBadge } from '@/components/erp/SharedComponents';
+import {
+  DollarSign, ShoppingCart, Package, TrendingUp, TrendingDown,
+  AlertTriangle, Bot, Plus, Truck, ArrowRight, Calendar, Activity,
+} from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, BarChart, Bar, Cell,
+} from 'recharts';
 import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { useRealtimeSyncAll } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const COLORS = ['hsl(217, 91%, 60%)', 'hsl(262, 83%, 58%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(199, 89%, 48%)'];
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   pending: { label: 'Pending', variant: 'default' },
@@ -18,188 +28,338 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'info' | '
   cancelled: { label: 'Cancelled', variant: 'default' },
 };
 
+function KpiCard({ title, value, change, icon: Icon, alert }: {
+  title: string; value: string; change?: number; icon: any; alert?: boolean;
+}) {
+  const isPositive = (change ?? 0) >= 0;
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className={cn("hover:shadow-md transition-shadow", alert && "border-warning/40")}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between mb-2">
+            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center",
+              alert ? "bg-warning/10" : "bg-primary/10"
+            )}>
+              <Icon className={cn("w-4 h-4", alert ? "text-warning" : "text-primary")} />
+            </div>
+            {change !== undefined && (
+              <div className={cn("flex items-center gap-0.5 text-xs font-medium rounded-full px-1.5 py-0.5",
+                isPositive ? "text-success bg-success/10" : "text-destructive bg-destructive/10"
+              )}>
+                {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {isPositive ? '+' : ''}{change}%
+              </div>
+            )}
+          </div>
+          <p className="text-xl font-bold text-card-foreground">{value}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{title}</p>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export default function Dashboard() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { formatMoney, displayCurrency } = useCurrency();
+  const navigate = useNavigate();
   useRealtimeSyncAll();
 
   const { data: salesData, isLoading: salesLoading } = useTenantQuery('sales_orders');
   const { data: inventoryData } = useTenantQuery('inventory_items');
   const { data: productionData } = useTenantQuery('production_orders');
-  const { data: campaignData } = useTenantQuery('campaigns');
   const { data: transactionData } = useTenantQuery('transactions');
-  const { data: procurementData } = useTenantQuery('purchase_orders');
 
   const sales = salesData ?? [];
   const inventory = inventoryData ?? [];
-  const production = productionData ?? [];
-  const campaigns = campaignData ?? [];
   const transactions = transactionData ?? [];
-  const procurement = procurementData ?? [];
 
-  const totalRevenue = isDemo ? 358200 : transactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const totalExpenses = isDemo ? 0 : transactions.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const totalCogs = isDemo ? 0 : transactions.filter((t: any) => t.category === 'Cost of Goods Sold').reduce((s: number, t: any) => s + Number(t.amount), 0);
-  const totalOrders = isDemo ? 2847 : sales.length;
-  const inventoryValue = isDemo ? 124500 : inventory.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
-  const activeCampaigns = isDemo ? 12 : campaigns.filter((c: any) => c.status === 'active').length;
-  const lowStockCount = isDemo ? 0 : inventory.filter((i: any) => i.quantity <= i.reorder_level).length;
-  const productionDelays = isDemo ? 0 : production.filter((o: any) => o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress').length;
-  const completedProduction = production.filter((o: any) => o.status === 'completed').length;
-  const totalProduction = production.filter((o: any) => o.status !== 'cancelled').length;
-  const productionEfficiency = totalProduction > 0 ? Math.round((completedProduction / totalProduction) * 100) : 0;
-  const cogsMargin = totalRevenue > 0 ? Math.round(((totalRevenue - totalCogs) / totalRevenue) * 100) : 0;
+  const today = new Date().toISOString().slice(0, 10);
 
-  const demoRevenueData = [
-    { month: 'Jan', revenue: 42000 }, { month: 'Feb', revenue: 48000 }, { month: 'Mar', revenue: 55000 },
-    { month: 'Apr', revenue: 51000 }, { month: 'May', revenue: 63000 }, { month: 'Jun', revenue: 71000 },
-  ];
+  const todaySales = isDemo ? 48500 : sales
+    .filter((s: any) => s.created_at?.slice(0, 10) === today)
+    .reduce((s: number, o: any) => s + Number(o.total_amount), 0);
 
-  const revenueChart = isDemo ? demoRevenueData : (() => {
-    const months: Record<string, { revenue: number }> = {};
-    transactions.filter((t: any) => t.type === 'income').forEach((t: any) => {
-      const m = new Date(t.date).toLocaleDateString('en-US', { month: 'short' });
-      if (!months[m]) months[m] = { revenue: 0 };
-      months[m].revenue += Number(t.amount);
-    });
-    return Object.entries(months).map(([month, v]) => ({ month, ...v }));
-  })();
+  const todayOrders = isDemo ? 34 : sales.filter((s: any) => s.created_at?.slice(0, 10) === today).length;
 
-  const moduleData = isDemo
-    ? [{ name: 'Sales', value: 35 }, { name: 'Production', value: 25 }, { name: 'Inventory', value: 20 }, { name: 'Procurement', value: 12 }, { name: 'Marketing', value: 8 }]
-    : [
-        { name: 'Sales', value: sales.length }, { name: 'Production', value: production.length },
-        { name: 'Inventory', value: inventory.length }, { name: 'Procurement', value: procurement.length },
-        { name: 'Marketing', value: campaigns.length },
-      ].filter((m) => m.value > 0);
+  const totalRevenue = isDemo ? 358200 : transactions
+    .filter((t: any) => t.type === 'income')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
 
-  const recentOrders = isDemo
+  const totalExpenses = isDemo ? 142800 : transactions
+    .filter((t: any) => t.type === 'expense')
+    .reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+  const cashFlow = totalRevenue - totalExpenses;
+
+  const inventoryValue = isDemo ? 124500 : inventory
+    .reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
+
+  const lowStockItems = isDemo ? [] : inventory.filter((i: any) => i.quantity <= i.reorder_level);
+  const lowStockCount = isDemo ? 3 : lowStockItems.length;
+
+  const overdueInvoices = isDemo ? 5 : sales.filter((s: any) =>
+    s.status === 'pending' && new Date(s.created_at) < new Date(Date.now() - 30 * 86400000)
+  ).length;
+
+  // Sales trend (last 7 days)
+  const salesTrend = isDemo
     ? [
-        ['#ORD-2847', 'Acme Corp', formatMoney(12450), <StatusBadge status="Delivered" variant="success" />, 'Mar 18, 2026'],
-        ['#ORD-2846', 'TechStart Inc', formatMoney(8200), <StatusBadge status="Shipped" variant="info" />, 'Mar 17, 2026'],
-        ['#ORD-2845', 'Global Ltd', formatMoney(23100), <StatusBadge status="Confirmed" variant="warning" />, 'Mar 16, 2026'],
+        { day: 'Mon', amount: 6200 }, { day: 'Tue', amount: 7800 },
+        { day: 'Wed', amount: 5400 }, { day: 'Thu', amount: 9100 },
+        { day: 'Fri', amount: 11200 }, { day: 'Sat', amount: 8600 },
+        { day: 'Sun', amount: 4500 },
       ]
-    : sales.slice(0, 5).map((o: any) => {
-        const s = statusMap[o.status] || statusMap.pending;
-        return [
-          o.order_number, o.customer_name, formatMoney(Number(o.total_amount)),
-          <StatusBadge status={s.label} variant={s.variant} />,
-          new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        ];
-      });
+    : (() => {
+        const days: Record<string, number> = {};
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 86400000);
+          days[dayNames[d.getDay()]] = 0;
+        }
+        sales.forEach((s: any) => {
+          const d = new Date(s.created_at);
+          const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+          if (diff < 7) {
+            const name = dayNames[d.getDay()];
+            if (name in days) days[name] += Number(s.total_amount);
+          }
+        });
+        return Object.entries(days).map(([day, amount]) => ({ day, amount }));
+      })();
 
-  const insights = isDemo
+  // Top selling products
+  const topProducts = isDemo
     ? [
-        'Revenue is up 12.5% month-over-month — driven by 3 large enterprise deals.',
-        '8 inventory items are below reorder level. Consider restocking SKU-002 and SKU-007.',
-        'Marketing email campaigns show 16.8% ROI — highest performing channel.',
+        { name: 'Premium Widget A', sold: 142, revenue: 28400 },
+        { name: 'Steel Components', sold: 98, revenue: 19600 },
+        { name: 'Circuit Board Pro', sold: 76, revenue: 15200 },
+        { name: 'Packaging Kit', sold: 54, revenue: 5400 },
       ]
-    : [
-        totalRevenue > 0 ? `Total revenue: ${formatMoney(totalRevenue)} with ${cogsMargin}% gross margin.` : 'No revenue yet — create your first sales order.',
-        lowStockCount > 0 ? `⚠️ ${lowStockCount} item(s) below reorder level — check Inventory.` : 'All inventory above reorder levels.',
-        productionDelays > 0 ? `⚠️ ${productionDelays} production order(s) past due.` : `Production efficiency: ${productionEfficiency}% completion rate.`,
-      ];
+    : (() => {
+        const map: Record<string, { name: string; sold: number; revenue: number }> = {};
+        sales.forEach((s: any) => {
+          const key = s.item_id || s.order_number;
+          if (!map[key]) map[key] = { name: s.customer_name, sold: 0, revenue: 0 };
+          map[key].sold += s.quantity || 1;
+          map[key].revenue += Number(s.total_amount);
+        });
+        return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+      })();
 
+  const recentOrders = (isDemo
+    ? [
+        { order_number: '#ORD-2847', customer_name: 'Acme Corp', total_amount: 12450, status: 'delivered', created_at: '2026-03-18' },
+        { order_number: '#ORD-2846', customer_name: 'TechStart Inc', total_amount: 8200, status: 'shipped', created_at: '2026-03-17' },
+        { order_number: '#ORD-2845', customer_name: 'Global Ltd', total_amount: 23100, status: 'confirmed', created_at: '2026-03-16' },
+        { order_number: '#ORD-2844', customer_name: 'Safari Goods', total_amount: 4800, status: 'pending', created_at: '2026-03-15' },
+      ]
+    : sales.slice(0, 5)
+  ) as any[];
+
+  const CHART_COLORS = ['hsl(152, 69%, 38%)', 'hsl(152, 69%, 48%)', 'hsl(152, 69%, 58%)', 'hsl(152, 69%, 68%)', 'hsl(199, 89%, 48%)'];
   const isLoading = salesLoading && !isDemo;
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   return (
-    <AppLayout title="Dashboard" subtitle={`Live overview · ${displayCurrency}`}>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Revenue" value={formatMoney(totalRevenue)} change={12.5} icon={DollarSign} iconColor="gradient-primary" />
-        <StatCard title="Total Orders" value={totalOrders.toLocaleString()} change={8.2} icon={ShoppingCart} />
-        <StatCard title="Inventory Value" value={formatMoney(inventoryValue)} change={-3.1} icon={Package} />
-        <StatCard title="Active Campaigns" value={String(activeCampaigns)} change={15.0} icon={Megaphone} />
+    <AppLayout title="Dashboard" subtitle={displayCurrency}>
+      {/* Welcome */}
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">
+          Welcome back to {tenant?.name || 'TELA-ERP'} 👋
+        </h1>
+        <div className="flex items-center gap-2 mt-1">
+          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">{dateStr}</p>
+        </div>
       </div>
 
-      {!isDemo && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <StatCard title="Net Cash Flow" value={formatMoney(totalRevenue - totalExpenses)} change={totalRevenue > totalExpenses ? 10 : -10} icon={TrendingUp} />
-          <StatCard title="Gross Margin" value={`${cogsMargin}%`} change={cogsMargin > 50 ? 5 : -5} icon={Percent} />
-          <StatCard title="Low Stock Alerts" value={String(lowStockCount)} change={lowStockCount > 0 ? -25 : 0} icon={AlertTriangle} />
-          <StatCard title="Production Efficiency" value={`${productionEfficiency}%`} change={productionEfficiency > 70 ? 8 : -10} icon={Factory} />
-        </div>
-      )}
-
-      <div className="bg-card rounded-xl border border-border p-5 mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold text-card-foreground">AI Insights</h3>
-          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Beta</span>
-        </div>
-        <ul className="space-y-2">
-          {insights.map((insight, i) => (
-            <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-              <Activity className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              {insight}
-            </li>
-          ))}
-        </ul>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
+        <KpiCard title="Today's Sales" value={formatMoney(todaySales)} change={12.5} icon={DollarSign} />
+        <KpiCard title="Stock Value" value={formatMoney(inventoryValue)} change={-3.1} icon={Package} />
+        <KpiCard title="Low Stock Items" value={String(lowStockCount)} icon={AlertTriangle} alert={lowStockCount > 0} />
+        <KpiCard title="Overdue Invoices" value={String(overdueInvoices)} icon={DollarSign} alert={overdueInvoices > 0} />
+        <KpiCard title="Today's Orders" value={String(todayOrders)} change={8.2} icon={ShoppingCart} />
+        <KpiCard title="Cash Flow" value={formatMoney(cashFlow)} change={cashFlow > 0 ? 10 : -5} icon={TrendingUp} />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        <div className="xl:col-span-2 bg-card rounded-xl border border-border p-5">
-          <h3 className="font-semibold text-card-foreground mb-1">Revenue Trend</h3>
-          <p className="text-sm text-muted-foreground mb-4">Monthly revenue overview</p>
-          {isLoading ? (
-            <Skeleton className="h-[280px] w-full" />
-          ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={revenueChart}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
-                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
-                <Tooltip formatter={(v: number) => [formatMoney(v), 'Revenue']} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(217, 91%, 60%)" strokeWidth={2} fill="url(#colorRevenue)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        <div className="bg-card rounded-xl border border-border p-5">
-          <h3 className="font-semibold text-card-foreground mb-1">Module Activity</h3>
-          <p className="text-sm text-muted-foreground mb-4">Records by module</p>
-          {moduleData.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={moduleData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value">
-                    {moduleData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-2 mt-2">
-                {moduleData.map((item, i) => (
-                  <div key={item.name} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                      <span className="text-card-foreground">{item.name}</span>
-                    </div>
-                    <span className="text-muted-foreground font-medium">{item.value}</span>
-                  </div>
-                ))}
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+        {/* Sales Trend */}
+        <Card className="xl:col-span-2">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold">Sales Trend</CardTitle>
+                <p className="text-xs text-muted-foreground">Last 7 days</p>
               </div>
-            </>
-          ) : (
-            <div className="text-center text-muted-foreground text-sm py-8">No data yet</div>
-          )}
-        </div>
+              <Badge variant="secondary" className="text-xs">{formatMoney(todaySales)} today</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pb-4">
+            {isLoading ? <Skeleton className="h-[220px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={salesTrend}>
+                  <defs>
+                    <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(152, 69%, 38%)" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="hsl(152, 69%, 38%)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(148, 16%, 90%)" />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} stroke="hsl(160, 10%, 45%)" />
+                  <YAxis tick={{ fontSize: 11 }} stroke="hsl(160, 10%, 45%)" tickFormatter={(v) => formatMoney(v)} />
+                  <Tooltip formatter={(v: number) => [formatMoney(v), 'Sales']} />
+                  <Area type="monotone" dataKey="amount" stroke="hsl(152, 69%, 38%)" strokeWidth={2} fill="url(#salesGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Products */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold">Top Selling Products</CardTitle>
+            <p className="text-xs text-muted-foreground">By revenue</p>
+          </CardHeader>
+          <CardContent className="pb-4">
+            {isLoading ? <Skeleton className="h-[220px] w-full" /> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={topProducts} layout="vertical" margin={{ left: 0 }}>
+                  <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(160, 10%, 45%)" tickFormatter={(v) => formatMoney(v)} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={90} stroke="hsl(160, 10%, 45%)" />
+                  <Tooltip formatter={(v: number) => [formatMoney(v), 'Revenue']} />
+                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
+                    {topProducts.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <h3 className="font-semibold text-foreground mb-3">Recent Orders</h3>
-      {isLoading ? (
-        <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
-      ) : (
-        <DataTable headers={['Order', 'Customer', 'Amount', 'Status', 'Date']} rows={recentOrders} />
-      )}
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        {/* Recent Orders */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Recent Orders</CardTitle>
+              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => navigate('/sales')}>
+                View all <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/40">
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Order</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Customer</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Amount</th>
+                    <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentOrders.map((o: any, i: number) => {
+                    const s = statusMap[o.status] || statusMap.pending;
+                    return (
+                      <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/20">
+                        <td className="px-4 py-2.5 font-medium text-foreground">{o.order_number}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">{o.customer_name}</td>
+                        <td className="px-4 py-2.5 font-medium">{formatMoney(Number(o.total_amount))}</td>
+                        <td className="px-4 py-2.5"><StatusBadge status={s.label} variant={s.variant} /></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right column */}
+        <div className="space-y-4">
+          {/* Stock Alerts */}
+          <Card className={cn(lowStockCount > 0 && "border-warning/30")}>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={cn("w-4 h-4", lowStockCount > 0 ? "text-warning" : "text-muted-foreground")} />
+                <CardTitle className="text-sm font-semibold">Stock Alerts</CardTitle>
+                {lowStockCount > 0 && <Badge variant="destructive" className="text-[10px] h-5">{lowStockCount}</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {lowStockCount === 0 ? (
+                <p className="text-xs text-muted-foreground">All items are above reorder levels ✓</p>
+              ) : isDemo ? (
+                <ul className="space-y-2">
+                  {['Steel Bolts (5 left)', 'Circuit Boards (2 left)', 'Packaging Film (8 left)'].map((item, i) => (
+                    <li key={i} className="text-xs flex items-center gap-2 text-muted-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="space-y-2">
+                  {lowStockItems.slice(0, 5).map((item: any) => (
+                    <li key={item.id} className="text-xs flex items-center gap-2 text-muted-foreground">
+                      <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
+                      {item.name} ({item.quantity} left)
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button size="sm" className="w-full justify-start h-8 text-xs" onClick={() => navigate('/sales')}>
+                <Plus className="w-3.5 h-3.5 mr-2" /> New Sale
+              </Button>
+              <Button size="sm" variant="outline" className="w-full justify-start h-8 text-xs" onClick={() => navigate('/procurement')}>
+                <Truck className="w-3.5 h-3.5 mr-2" /> New Purchase
+              </Button>
+              <Button size="sm" variant="secondary" className="w-full justify-start h-8 text-xs">
+                <Bot className="w-3.5 h-3.5 mr-2" /> Ask Tela AI
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Tela AI Teaser */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
+                  <Bot className="w-4 h-4 text-primary-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Tela AI</p>
+                  <p className="text-[10px] text-muted-foreground">Powered by AI</p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                Chat with Tela for business insights, stock predictions, and automated reports.
+              </p>
+              <Button size="sm" className="w-full h-7 text-xs">
+                <Activity className="w-3 h-3 mr-1" /> Open Chat
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </AppLayout>
   );
 }
