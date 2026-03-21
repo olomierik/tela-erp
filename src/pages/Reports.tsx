@@ -80,7 +80,7 @@ export default function Reports() {
 
     generatePDFReport({
       title: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
-      subtitle: `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'}`,
+      subtitle: `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'} · Store: ${selectedStore?.name || 'All Stores'}`,
       tenantName: tenant?.name,
       headers: data.headers,
       rows: allRows,
