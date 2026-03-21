@@ -268,7 +268,10 @@ export default function Landing() {
                   )}
                   <CardContent className="p-6 pt-8 flex flex-col h-full">
                     <h3 className="font-bold text-lg">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 mb-4">{plan.desc}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
+                    <div className="flex items-center gap-2 mt-2 mb-4">
+                      <Badge variant="outline" className="text-xs"><Store className="w-3 h-3 mr-1" />{plan.stores}</Badge>
+                    </div>
                     <div className="mb-6">
                       <span className="text-4xl font-extrabold">{plan.price}</span>
                       <span className="text-muted-foreground">{plan.period}</span>
@@ -289,6 +292,18 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+
+          {/* Payment QR Code */}
+          <motion.div className="mt-14 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+            <Card className="max-w-sm mx-auto border-2 border-primary/20">
+              <CardContent className="p-6">
+                <h3 className="font-bold text-lg mb-2">Pay via Mobile Money / Bank</h3>
+                <p className="text-sm text-muted-foreground mb-4">Scan the QR code below to make payment directly</p>
+                <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP payment" className="w-full rounded-lg border border-border" />
+                <p className="text-xs text-muted-foreground mt-3">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 
