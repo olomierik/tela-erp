@@ -52,7 +52,6 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
 
               {/* Protected routes */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/production" element={<ProtectedRoute><Production /></ProtectedRoute>} />
               <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
