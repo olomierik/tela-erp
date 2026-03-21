@@ -1,7 +1,7 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
-import { DollarSign, ShoppingCart, Package, Megaphone, TrendingUp, Activity, Factory, AlertTriangle, Sparkles } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { DollarSign, ShoppingCart, Package, Megaphone, TrendingUp, Activity, Factory, AlertTriangle, Sparkles, BarChart3, Percent } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { useRealtimeSyncAll } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,12 +38,17 @@ export default function Dashboard() {
   const procurement = procurementData ?? [];
 
   const totalRevenue = isDemo ? 358200 : transactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const totalExpenses = isDemo ? 0 : transactions.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
+  const totalCogs = isDemo ? 0 : transactions.filter((t: any) => t.category === 'Cost of Goods Sold').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const totalOrders = isDemo ? 2847 : sales.length;
   const inventoryValue = isDemo ? 124500 : inventory.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
   const activeCampaigns = isDemo ? 12 : campaigns.filter((c: any) => c.status === 'active').length;
-  const totalExpenses = isDemo ? 0 : transactions.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const lowStockCount = isDemo ? 0 : inventory.filter((i: any) => i.quantity <= i.reorder_level).length;
   const productionDelays = isDemo ? 0 : production.filter((o: any) => o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress').length;
+  const completedProduction = production.filter((o: any) => o.status === 'completed').length;
+  const totalProduction = production.filter((o: any) => o.status !== 'cancelled').length;
+  const productionEfficiency = totalProduction > 0 ? Math.round((completedProduction / totalProduction) * 100) : 0;
+  const cogsMargin = totalRevenue > 0 ? Math.round(((totalRevenue - totalCogs) / totalRevenue) * 100) : 0;
 
   const demoRevenueData = [
     { month: 'Jan', revenue: 42000 }, { month: 'Feb', revenue: 48000 }, { month: 'Mar', revenue: 55000 },
@@ -60,31 +65,28 @@ export default function Dashboard() {
     return Object.entries(months).map(([month, v]) => ({ month, ...v }));
   })();
 
-  const demoModuleData = [
-    { name: 'Sales', value: 35 }, { name: 'Production', value: 25 },
-    { name: 'Inventory', value: 20 }, { name: 'Procurement', value: 12 }, { name: 'Marketing', value: 8 },
-  ];
+  const moduleData = isDemo
+    ? [{ name: 'Sales', value: 35 }, { name: 'Production', value: 25 }, { name: 'Inventory', value: 20 }, { name: 'Procurement', value: 12 }, { name: 'Marketing', value: 8 }]
+    : [
+        { name: 'Sales', value: sales.length }, { name: 'Production', value: production.length },
+        { name: 'Inventory', value: inventory.length }, { name: 'Procurement', value: procurement.length },
+        { name: 'Marketing', value: campaigns.length },
+      ].filter((m) => m.value > 0);
 
-  const moduleData = isDemo ? demoModuleData : [
-    { name: 'Sales', value: sales.length }, { name: 'Production', value: production.length },
-    { name: 'Inventory', value: inventory.length }, { name: 'Procurement', value: procurement.length },
-    { name: 'Marketing', value: campaigns.length },
-  ].filter((m) => m.value > 0);
-
-  const demoOrders = [
-    ['#ORD-2847', 'Acme Corp', formatMoney(12450), <StatusBadge status="Delivered" variant="success" />, 'Mar 18, 2026'],
-    ['#ORD-2846', 'TechStart Inc', formatMoney(8200), <StatusBadge status="Shipped" variant="info" />, 'Mar 17, 2026'],
-    ['#ORD-2845', 'Global Ltd', formatMoney(23100), <StatusBadge status="Confirmed" variant="warning" />, 'Mar 16, 2026'],
-  ];
-
-  const recentOrders = isDemo ? demoOrders : sales.slice(0, 5).map((o: any) => {
-    const s = statusMap[o.status] || statusMap.pending;
-    return [
-      o.order_number, o.customer_name, formatMoney(Number(o.total_amount)),
-      <StatusBadge status={s.label} variant={s.variant} />,
-      new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-    ];
-  });
+  const recentOrders = isDemo
+    ? [
+        ['#ORD-2847', 'Acme Corp', formatMoney(12450), <StatusBadge status="Delivered" variant="success" />, 'Mar 18, 2026'],
+        ['#ORD-2846', 'TechStart Inc', formatMoney(8200), <StatusBadge status="Shipped" variant="info" />, 'Mar 17, 2026'],
+        ['#ORD-2845', 'Global Ltd', formatMoney(23100), <StatusBadge status="Confirmed" variant="warning" />, 'Mar 16, 2026'],
+      ]
+    : sales.slice(0, 5).map((o: any) => {
+        const s = statusMap[o.status] || statusMap.pending;
+        return [
+          o.order_number, o.customer_name, formatMoney(Number(o.total_amount)),
+          <StatusBadge status={s.label} variant={s.variant} />,
+          new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        ];
+      });
 
   const insights = isDemo
     ? [
@@ -93,9 +95,9 @@ export default function Dashboard() {
         'Marketing email campaigns show 16.8% ROI — highest performing channel.',
       ]
     : [
-        totalRevenue > 0 ? `Total revenue: ${formatMoney(totalRevenue)} across ${sales.length} orders.` : 'No revenue yet — create your first sales order.',
-        lowStockCount > 0 ? `${lowStockCount} item(s) below reorder level.` : 'All inventory above reorder levels.',
-        productionDelays > 0 ? `${productionDelays} production order(s) past due.` : 'All production on schedule.',
+        totalRevenue > 0 ? `Total revenue: ${formatMoney(totalRevenue)} with ${cogsMargin}% gross margin.` : 'No revenue yet — create your first sales order.',
+        lowStockCount > 0 ? `⚠️ ${lowStockCount} item(s) below reorder level — check Inventory.` : 'All inventory above reorder levels.',
+        productionDelays > 0 ? `⚠️ ${productionDelays} production order(s) past due.` : `Production efficiency: ${productionEfficiency}% completion rate.`,
       ];
 
   const isLoading = salesLoading && !isDemo;
@@ -110,10 +112,11 @@ export default function Dashboard() {
       </div>
 
       {!isDemo && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <StatCard title="Net Cash Flow" value={formatMoney(totalRevenue - totalExpenses)} change={totalRevenue > totalExpenses ? 10 : -10} icon={TrendingUp} />
+          <StatCard title="Gross Margin" value={`${cogsMargin}%`} change={cogsMargin > 50 ? 5 : -5} icon={Percent} />
           <StatCard title="Low Stock Alerts" value={String(lowStockCount)} change={lowStockCount > 0 ? -25 : 0} icon={AlertTriangle} />
-          <StatCard title="Production Delays" value={String(productionDelays)} change={productionDelays > 0 ? -50 : 0} icon={Factory} />
+          <StatCard title="Production Efficiency" value={`${productionEfficiency}%`} change={productionEfficiency > 70 ? 8 : -10} icon={Factory} />
         </div>
       )}
 

@@ -3,13 +3,13 @@ import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedCompone
 import { CreateDialog } from '@/components/erp/CreateDialog';
 import { Factory, Clock, CheckCircle, AlertTriangle, Trash2, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
-import { onProductionCompleted } from '@/hooks/use-cross-module';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'default' | 'warning' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -36,7 +36,6 @@ const fields = [
   { name: 'quantity', label: 'Quantity', type: 'number' as const, required: true },
   { name: 'status', label: 'Status', type: 'select' as const, defaultValue: 'draft', options: [
     { label: 'Draft', value: 'draft' }, { label: 'In Progress', value: 'in_progress' },
-    { label: 'Completed', value: 'completed' }, { label: 'Cancelled', value: 'cancelled' },
   ]},
   { name: 'start_date', label: 'Start Date', type: 'date' as const },
   { name: 'end_date', label: 'End Date', type: 'date' as const },
@@ -46,29 +45,22 @@ export default function Production() {
   const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('production_orders');
   const insertBase = useTenantInsert('production_orders');
+  const updateMutation = useTenantUpdate('production_orders');
   const remove = useTenantDelete('production_orders');
   useRealtimeSync('production_orders');
+  useRealtimeSync('inventory_items');
 
   const orders = data ?? [];
 
-  const handleCreate = (row: Record<string, any>) => {
-    insertBase.mutate(row, {
-      onSuccess: (data: any) => {
-        // If created as 'completed', trigger inventory + accounting automation
-        if (data.status === 'completed' && tenant?.id) {
-          onProductionCompleted(tenant.id, {
-            order_number: data.order_number,
-            product_name: data.product_name,
-            quantity: data.quantity,
-          });
-        }
-      },
-    });
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    // DB trigger handles inventory + accounting automation on 'completed'
+    updateMutation.mutate({ id: orderId, status: newStatus });
   };
 
   const rows = isDemo ? demoData : orders.map((o: any) => {
     const s = statusMap[o.status] || statusMap.draft;
     const autoTag = o.custom_fields?.reason ? ' 🤖' : '';
+    const canUpdate = o.status !== 'completed' && o.status !== 'cancelled';
     return [
       o.order_number + autoTag,
       o.product_name,
@@ -76,7 +68,21 @@ export default function Production() {
       <StatusBadge status={s.label} variant={s.variant} />,
       o.start_date || '—',
       o.end_date || '—',
-      <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
+      <div className="flex items-center gap-1">
+        {canUpdate && (
+          <Select onValueChange={(v) => handleStatusChange(o.id, v)}>
+            <SelectTrigger className="h-7 w-28 text-xs">
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              {o.status === 'draft' && <SelectItem value="in_progress">Start</SelectItem>}
+              <SelectItem value="completed">Complete ✓</SelectItem>
+              <SelectItem value="cancelled">Cancel</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+      </div>,
     ];
   });
 
@@ -146,7 +152,7 @@ export default function Production() {
               })} disabled={orders.length === 0}>
                 <FileDown className="w-4 h-4" /> Export PDF
               </Button>
-              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertBase.isPending} />
+              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insertBase.mutate} isPending={insertBase.isPending} />
             </>
           )}
         </div>
@@ -155,7 +161,7 @@ export default function Production() {
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
         <DataTable
-          headers={['Order #', 'Product', 'Qty', 'Status', 'Start', 'End', ...(isDemo ? [] : [''])]}
+          headers={['Order #', 'Product', 'Qty', 'Status', 'Start', 'End', ...(isDemo ? [] : ['Actions'])]}
           rows={rows}
         />
       )}
