@@ -65,6 +65,7 @@ export type Database = {
           spent: number
           start_date: string | null
           status: string
+          store_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -80,6 +81,7 @@ export type Database = {
           spent?: number
           start_date?: string | null
           status?: string
+          store_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -95,10 +97,18 @@ export type Database = {
           spent?: number
           start_date?: string | null
           status?: string
+          store_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaigns_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "campaigns_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -227,6 +237,7 @@ export type Database = {
           reorder_level: number
           sku: string
           status: Database["public"]["Enums"]["inventory_status"]
+          store_id: string | null
           tenant_id: string
           unit_cost: number
           updated_at: string
@@ -243,6 +254,7 @@ export type Database = {
           reorder_level?: number
           sku: string
           status?: Database["public"]["Enums"]["inventory_status"]
+          store_id?: string | null
           tenant_id: string
           unit_cost?: number
           updated_at?: string
@@ -259,6 +271,7 @@ export type Database = {
           reorder_level?: number
           sku?: string
           status?: Database["public"]["Enums"]["inventory_status"]
+          store_id?: string | null
           tenant_id?: string
           unit_cost?: number
           updated_at?: string
@@ -270,6 +283,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -395,6 +415,7 @@ export type Database = {
           quantity: number
           start_date: string | null
           status: string
+          store_id: string | null
           tenant_id: string
           updated_at: string
         }
@@ -408,6 +429,7 @@ export type Database = {
           quantity?: number
           start_date?: string | null
           status?: string
+          store_id?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -421,10 +443,18 @@ export type Database = {
           quantity?: number
           start_date?: string | null
           status?: string
+          store_id?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "production_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "production_orders_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -487,6 +517,7 @@ export type Database = {
           order_date: string | null
           po_number: string
           status: string
+          store_id: string | null
           supplier_name: string
           tenant_id: string
           total_amount: number
@@ -500,6 +531,7 @@ export type Database = {
           order_date?: string | null
           po_number: string
           status?: string
+          store_id?: string | null
           supplier_name: string
           tenant_id: string
           total_amount?: number
@@ -513,12 +545,20 @@ export type Database = {
           order_date?: string | null
           po_number?: string
           status?: string
+          store_id?: string | null
           supplier_name?: string
           tenant_id?: string
           total_amount?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -539,6 +579,7 @@ export type Database = {
           order_number: string
           quantity: number | null
           status: string
+          store_id: string | null
           tenant_id: string
           total_amount: number
           updated_at: string
@@ -553,6 +594,7 @@ export type Database = {
           order_number: string
           quantity?: number | null
           status?: string
+          store_id?: string | null
           tenant_id: string
           total_amount?: number
           updated_at?: string
@@ -567,6 +609,7 @@ export type Database = {
           order_number?: string
           quantity?: number | null
           status?: string
+          store_id?: string | null
           tenant_id?: string
           total_amount?: number
           updated_at?: string
@@ -580,7 +623,52 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_orders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          tenant_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -660,6 +748,7 @@ export type Database = {
           description: string
           id: string
           reference_number: string | null
+          store_id: string | null
           tenant_id: string
           type: string
           updated_at: string
@@ -673,6 +762,7 @@ export type Database = {
           description?: string
           id?: string
           reference_number?: string | null
+          store_id?: string | null
           tenant_id: string
           type?: string
           updated_at?: string
@@ -686,11 +776,19 @@ export type Database = {
           description?: string
           id?: string
           reference_number?: string | null
+          store_id?: string | null
           tenant_id?: string
           type?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -718,6 +816,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_store_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["store_role"]
+          store_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["store_role"]
+          store_id: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["store_role"]
+          store_id?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_store_assignments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_store_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -727,6 +867,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_user_store_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -735,10 +876,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_store_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "reseller" | "admin" | "user"
       inventory_status: "good" | "damaged" | "expired" | "not_sellable"
+      store_role: "store_admin" | "user" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -868,6 +1011,7 @@ export const Constants = {
     Enums: {
       app_role: ["reseller", "admin", "user"],
       inventory_status: ["good", "damaged", "expired", "not_sellable"],
+      store_role: ["store_admin", "user", "viewer"],
     },
   },
 } as const

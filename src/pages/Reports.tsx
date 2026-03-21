@@ -11,6 +11,7 @@ import { StatusBadge } from '@/components/erp/SharedComponents';
 import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useStore } from '@/contexts/StoreContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ type ReportType = 'sales' | 'inventory' | 'production' | 'accounting';
 export default function Reports() {
   const { tenant, isDemo } = useAuth();
   const { formatMoney } = useCurrency();
+  const { selectedStore } = useStore();
   const [reportType, setReportType] = useState<ReportType>('sales');
   const [startDate, setStartDate] = useState<Date>(new Date(Date.now() - 30 * 86400000));
   const [endDate, setEndDate] = useState<Date>(new Date());
@@ -78,7 +80,7 @@ export default function Reports() {
 
     generatePDFReport({
       title: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
-      subtitle: `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'}`,
+      subtitle: `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'} · Store: ${selectedStore?.name || 'All Stores'}`,
       tenantName: tenant?.name,
       headers: data.headers,
       rows: allRows,

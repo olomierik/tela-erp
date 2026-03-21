@@ -19,6 +19,7 @@ const mainNav = [
   { label: 'Marketing', icon: Megaphone, path: '/marketing' },
   { label: 'Accounting', icon: Calculator, path: '/accounting' },
   { label: 'Reports', icon: FileBarChart, path: '/reports' },
+  { label: 'Stores', icon: Building2, path: '/stores' },
 ];
 
 const bottomNav = [

@@ -1,21 +1,31 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useStore } from '@/contexts/StoreContext';
 import { toast } from 'sonner';
 
 type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'campaigns' | 'transactions' | 'purchase_orders' | 'inventory_transactions' | 'inventory_reservations' | 'audit_log' | 'inventory_adjustments' | 'categories';
 
+const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders'];
+
 export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at') {
   const { tenant, isDemo } = useAuth();
+  const { selectedStoreId } = useStore();
 
   return useQuery<T[]>({
-    queryKey: [table, tenant?.id],
+    queryKey: [table, tenant?.id, selectedStoreId],
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
-      const { data, error } = await (supabase.from(table) as any)
+      let query = (supabase.from(table) as any)
         .select('*')
-        .eq('tenant_id', tenant.id)
-        .order(orderBy, { ascending: false });
+        .eq('tenant_id', tenant.id);
+
+      // Apply store filter for store-scoped tables
+      if (selectedStoreId && STORE_SCOPED_TABLES.includes(table)) {
+        query = query.eq('store_id', selectedStoreId);
+      }
+
+      const { data, error } = await query.order(orderBy, { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
@@ -25,12 +35,18 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
 
 export function useTenantInsert(table: TableName) {
   const { tenant } = useAuth();
+  const { selectedStoreId } = useStore();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
+      const insertData: Record<string, any> = { ...row, tenant_id: tenant!.id };
+      // Auto-attach store_id for store-scoped tables
+      if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
+        insertData.store_id = selectedStoreId;
+      }
       const { data, error } = await (supabase.from(table) as any)
-        .insert({ ...row, tenant_id: tenant!.id })
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
