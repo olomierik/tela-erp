@@ -20,6 +20,7 @@ type ReportType = 'sales' | 'inventory' | 'production' | 'accounting';
 export default function Reports() {
   const { tenant, isDemo } = useAuth();
   const { formatMoney } = useCurrency();
+  const { selectedStore } = useStore();
   const [reportType, setReportType] = useState<ReportType>('sales');
   const [startDate, setStartDate] = useState<Date>(new Date(Date.now() - 30 * 86400000));
   const [endDate, setEndDate] = useState<Date>(new Date());
