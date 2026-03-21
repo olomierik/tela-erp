@@ -108,6 +108,38 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exchange_rates: {
         Row: {
           base_currency: string
@@ -132,9 +164,61 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_adjustments: {
+        Row: {
+          adjusted_by_user_id: string | null
+          created_at: string
+          id: string
+          item_id: string
+          notes: string | null
+          quantity: number
+          reason: string
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          adjusted_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          item_id: string
+          notes?: string | null
+          quantity: number
+          reason?: string
+          tenant_id: string
+          type?: string
+        }
+        Update: {
+          adjusted_by_user_id?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+          quantity?: number
+          reason?: string
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_adjustments_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_adjustments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           category: string
+          category_id: string | null
           created_at: string
           custom_fields: Json | null
           id: string
@@ -142,6 +226,7 @@ export type Database = {
           quantity: number
           reorder_level: number
           sku: string
+          status: Database["public"]["Enums"]["inventory_status"]
           tenant_id: string
           unit_cost: number
           updated_at: string
@@ -149,6 +234,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          category_id?: string | null
           created_at?: string
           custom_fields?: Json | null
           id?: string
@@ -156,6 +242,7 @@ export type Database = {
           quantity?: number
           reorder_level?: number
           sku: string
+          status?: Database["public"]["Enums"]["inventory_status"]
           tenant_id: string
           unit_cost?: number
           updated_at?: string
@@ -163,6 +250,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          category_id?: string | null
           created_at?: string
           custom_fields?: Json | null
           id?: string
@@ -170,12 +258,20 @@ export type Database = {
           quantity?: number
           reorder_level?: number
           sku?: string
+          status?: Database["public"]["Enums"]["inventory_status"]
           tenant_id?: string
           unit_cost?: number
           updated_at?: string
           warehouse_location?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inventory_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inventory_items_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -642,6 +738,7 @@ export type Database = {
     }
     Enums: {
       app_role: "reseller" | "admin" | "user"
+      inventory_status: "good" | "damaged" | "expired" | "not_sellable"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -770,6 +867,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["reseller", "admin", "user"],
+      inventory_status: ["good", "damaged", "expired", "not_sellable"],
     },
   },
 } as const
