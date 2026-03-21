@@ -11,6 +11,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { BulkUpload } from '@/components/erp/BulkUpload';
+import { InventoryAdjustmentDialog } from '@/components/erp/InventoryAdjustmentDialog';
 import { ParsedInventoryRow } from '@/lib/excel-utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
