@@ -110,13 +110,13 @@ function CreateSalesOrderDialog({ inventoryItems, onCreated, isPending }: {
             <Select value={form.item_id} onValueChange={handleItemChange}>
               <SelectTrigger><SelectValue placeholder="Select item from inventory..." /></SelectTrigger>
               <SelectContent>
-                {inventoryItems.filter((i: any) => i.quantity > 0).map((item: any) => (
+                {inventoryItems.filter((i: any) => i.quantity > 0 && (i.status === 'good' || !i.status)).map((item: any) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.name} ({item.sku}) — {item.quantity} in stock
                   </SelectItem>
                 ))}
-                {inventoryItems.filter((i: any) => i.quantity > 0).length === 0 && (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">No items in stock</div>
+                {inventoryItems.filter((i: any) => i.quantity > 0 && (i.status === 'good' || !i.status)).length === 0 && (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">No sellable items in stock</div>
                 )}
               </SelectContent>
             </Select>

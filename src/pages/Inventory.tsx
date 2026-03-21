@@ -139,6 +139,7 @@ export default function Inventory() {
                 <FileDown className="w-4 h-4" /> Export PDF
               </Button>
               <BulkUpload onUpload={handleBulkUpload} />
+              <InventoryAdjustmentDialog items={items} />
               <CreateDialog title="Add Inventory Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
             </>
           )}
