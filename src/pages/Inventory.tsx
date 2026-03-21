@@ -55,7 +55,7 @@ export default function Inventory() {
       i.sku, i.name, i.category, i.quantity.toLocaleString(),
       formatMoney(Number(i.unit_cost)),
       formatMoney(i.quantity * Number(i.unit_cost)),
-      <StatusBadge status={s.status} variant={s.variant} />,
+      <StatusBadge status={i.status === 'good' ? s.status : (i.status || 'good').charAt(0).toUpperCase() + (i.status || 'good').slice(1)} variant={i.status === 'good' ? s.variant : 'destructive'} />,
       <Button variant="ghost" size="icon" onClick={() => remove.mutate(i.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
     ];
   });
