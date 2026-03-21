@@ -4,13 +4,14 @@ import {
   Building2, Package, ShoppingCart, Truck, Factory, Calculator,
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
-  CreditCard, Menu, X,
+  CreditCard, Menu, X, Store,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import heroImg from '@/assets/hero-dashboard.png';
+import paymentQr from '@/assets/payment-qr.jpeg';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -46,7 +47,8 @@ const pricing = [
     price: '$60',
     period: '/mo',
     desc: 'For small businesses getting started',
-    features: ['Up to 5 client tenants', 'All 6 ERP modules', 'Basic reports & PDF export', 'Email support', 'Multi-currency'],
+    stores: '1 Store',
+    features: ['Up to 5 client tenants', 'All 6 ERP modules', 'Basic reports & PDF export', 'Email support', 'Multi-currency', '1 store/location'],
     cta: 'Get Started',
     popular: false,
   },
@@ -55,7 +57,8 @@ const pricing = [
     price: '$180',
     period: '/mo',
     desc: 'For growing businesses with more clients',
-    features: ['Up to 50 client tenants', 'Everything in Starter', 'White-label branding', 'Tela AI insights', 'Priority support', 'Custom domain'],
+    stores: 'Up to 5 Stores',
+    features: ['Up to 50 client tenants', 'Everything in Starter', 'White-label branding', 'Tela AI insights', 'Priority support', 'Custom domain', 'Up to 5 stores/locations'],
     cta: 'Get Started',
     popular: true,
   },
@@ -64,7 +67,8 @@ const pricing = [
     price: '$400',
     period: '/mo',
     desc: 'Unlimited scale for large operations',
-    features: ['Unlimited client tenants', 'Everything in Pro', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'Audit & compliance'],
+    stores: 'Unlimited Stores',
+    features: ['Unlimited client tenants', 'Everything in Pro', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'Audit & compliance', 'Unlimited stores/locations'],
     cta: 'Contact Sales',
     popular: false,
   },
@@ -264,7 +268,10 @@ export default function Landing() {
                   )}
                   <CardContent className="p-6 pt-8 flex flex-col h-full">
                     <h3 className="font-bold text-lg">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1 mb-4">{plan.desc}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
+                    <div className="flex items-center gap-2 mt-2 mb-4">
+                      <Badge variant="outline" className="text-xs"><Store className="w-3 h-3 mr-1" />{plan.stores}</Badge>
+                    </div>
                     <div className="mb-6">
                       <span className="text-4xl font-extrabold">{plan.price}</span>
                       <span className="text-muted-foreground">{plan.period}</span>
@@ -285,6 +292,18 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
+
+          {/* Payment QR Code */}
+          <motion.div className="mt-14 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+            <Card className="max-w-sm mx-auto border-2 border-primary/20">
+              <CardContent className="p-6">
+                <h3 className="font-bold text-lg mb-2">Pay via Mobile Money / Bank</h3>
+                <p className="text-sm text-muted-foreground mb-4">Scan the QR code below to make payment directly</p>
+                <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP payment" className="w-full rounded-lg border border-border" />
+                <p className="text-xs text-muted-foreground mt-3">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </section>
 
