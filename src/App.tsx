@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { StoreProvider } from "@/contexts/StoreContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
@@ -20,6 +21,7 @@ import Sales from "./pages/Sales";
 import Marketing from "./pages/Marketing";
 import Accounting from "./pages/Accounting";
 import Procurement from "./pages/Procurement";
+import Stores from "./pages/Stores";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import WhiteLabel from "./pages/WhiteLabel";
 import Billing from "./pages/Billing";
@@ -40,6 +42,7 @@ const App = () => (
       <AuthProvider>
         <ThemeProvider>
           <CurrencyProvider>
+          <StoreProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -60,6 +63,7 @@ const App = () => (
               <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
@@ -74,6 +78,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </StoreProvider>
           </CurrencyProvider>
         </ThemeProvider>
       </AuthProvider>

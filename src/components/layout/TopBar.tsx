@@ -1,9 +1,9 @@
-import { Bell, Search, Bot } from 'lucide-react';
+import { Bell, Search, Bot, Store } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { Badge } from '@/components/ui/badge';
+import { useStore } from '@/contexts/StoreContext';
 
 interface TopBarProps {
   title: string;
@@ -12,6 +12,7 @@ interface TopBarProps {
 
 export default function TopBar({ title, subtitle }: TopBarProps) {
   const { displayCurrency, setDisplayCurrency, popularCurrencies, currencySymbol } = useCurrency();
+  const { stores, selectedStoreId, setSelectedStoreId, isStoreAdmin } = useStore();
 
   return (
     <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
@@ -21,6 +22,22 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Store Switcher */}
+        {stores.length > 0 && (
+          <Select value={selectedStoreId ?? 'all'} onValueChange={v => setSelectedStoreId(v === 'all' ? null : v)}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <Store className="w-3 h-3 mr-1.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {isStoreAdmin && <SelectItem value="all">All Stores</SelectItem>}
+              {stores.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
           <SelectTrigger className="w-[90px] h-8 text-xs">
             <SelectValue />
