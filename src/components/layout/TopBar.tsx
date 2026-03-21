@@ -1,8 +1,9 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Bot } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { Badge } from '@/components/ui/badge';
 
 interface TopBarProps {
   title: string;
@@ -13,14 +14,15 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   const { displayCurrency, setDisplayCurrency, popularCurrencies, currencySymbol } = useCurrency();
 
   return (
-    <header className="h-16 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-6 sticky top-0 z-40">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+    <header className="h-14 border-b border-border bg-card/80 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+      <div className="min-w-0">
+        <h2 className="text-base font-semibold text-foreground truncate">{title}</h2>
+        {subtitle && <p className="text-xs text-muted-foreground truncate">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-3">
+
+      <div className="flex items-center gap-2">
         <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-          <SelectTrigger className="w-[100px] h-9 text-sm">
+          <SelectTrigger className="w-[90px] h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -31,16 +33,22 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             ))}
           </SelectContent>
         </Select>
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+        <div className="relative hidden lg:block">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search..."
-            className="pl-9 w-64 bg-background border-border h-9 text-sm"
+            placeholder="Search products, orders..."
+            className="pl-8 w-56 bg-background border-border h-8 text-xs"
           />
         </div>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
+
+        <Button variant="ghost" size="icon" className="relative h-8 w-8">
+          <Bell className="w-4 h-4" />
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-destructive" />
+        </Button>
+
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary">
+          <Bot className="w-4 h-4" />
         </Button>
       </div>
     </header>
