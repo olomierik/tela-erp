@@ -1,16 +1,21 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
-import { CreateDialog } from '@/components/erp/CreateDialog';
-import { ShoppingCart, DollarSign, Users, TrendingUp, Trash2, FileDown } from 'lucide-react';
+import { ShoppingCart, DollarSign, Users, TrendingUp, Trash2, FileDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onSalesOrderCreated } from '@/hooks/use-cross-module';
 import { generatePDFReport } from '@/lib/pdf-reports';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   pending: { label: 'Pending', variant: 'default' },
@@ -25,26 +30,140 @@ const demoSalesData = [
   { day: 'Thu', sales: 15600 }, { day: 'Fri', sales: 11200 }, { day: 'Sat', sales: 7800 }, { day: 'Sun', sales: 4500 },
 ];
 
-const fields = [
-  { name: 'order_number', label: 'Order #', required: true },
-  { name: 'customer_name', label: 'Customer Name', required: true },
-  { name: 'customer_email', label: 'Customer Email', required: true },
-  { name: 'total_amount', label: 'Amount', type: 'number' as const, required: true },
-  { name: 'status', label: 'Status', type: 'select' as const, defaultValue: 'pending', options: [
-    { label: 'Pending', value: 'pending' }, { label: 'Confirmed', value: 'confirmed' },
-    { label: 'Shipped', value: 'shipped' }, { label: 'Delivered', value: 'delivered' },
-  ]},
-];
+function CreateSalesOrderDialog({ inventoryItems, onCreated, isPending }: {
+  inventoryItems: any[];
+  onCreated: (row: Record<string, any>) => void;
+  isPending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    order_number: '', customer_name: '', customer_email: '',
+    item_id: '', quantity: '1', status: 'pending',
+  });
+  const [stockError, setStockError] = useState('');
+
+  const selectedItem = inventoryItems.find((i: any) => i.id === form.item_id);
+  const unitPrice = selectedItem ? Number(selectedItem.unit_cost) : 0;
+  const totalAmount = unitPrice * (parseInt(form.quantity) || 0);
+
+  const handleItemChange = (itemId: string) => {
+    setForm(prev => ({ ...prev, item_id: itemId }));
+    setStockError('');
+  };
+
+  const handleQuantityChange = (qty: string) => {
+    setForm(prev => ({ ...prev, quantity: qty }));
+    const q = parseInt(qty) || 0;
+    if (selectedItem && q > selectedItem.quantity) {
+      setStockError(`Insufficient stock for ${selectedItem.name}. Available: ${selectedItem.quantity}`);
+    } else {
+      setStockError('');
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedItem) { toast.error('Select an inventory item'); return; }
+    const qty = parseInt(form.quantity) || 1;
+    if (qty > selectedItem.quantity) {
+      setStockError(`Insufficient stock for ${selectedItem.name}. Available: ${selectedItem.quantity}`);
+      return;
+    }
+    onCreated({
+      order_number: form.order_number,
+      customer_name: form.customer_name,
+      customer_email: form.customer_email,
+      item_id: form.item_id,
+      quantity: qty,
+      total_amount: totalAmount,
+      status: form.status,
+    });
+    setOpen(false);
+    setForm({ order_number: '', customer_name: '', customer_email: '', item_id: '', quantity: '1', status: 'pending' });
+    setStockError('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">+ New Order</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>New Sales Order</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label>Order #</Label>
+            <Input required value={form.order_number} onChange={e => setForm(p => ({ ...p, order_number: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Customer Name</Label>
+              <Input required value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Customer Email</Label>
+              <Input type="email" required value={form.customer_email} onChange={e => setForm(p => ({ ...p, customer_email: e.target.value }))} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Inventory Item</Label>
+            <Select value={form.item_id} onValueChange={handleItemChange}>
+              <SelectTrigger><SelectValue placeholder="Select item from inventory..." /></SelectTrigger>
+              <SelectContent>
+                {inventoryItems.filter((i: any) => i.quantity > 0).map((item: any) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} ({item.sku}) — {item.quantity} in stock
+                  </SelectItem>
+                ))}
+                {inventoryItems.filter((i: any) => i.quantity > 0).length === 0 && (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">No items in stock</div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Quantity</Label>
+              <Input type="number" min="1" max={selectedItem?.quantity || 99999} required
+                value={form.quantity} onChange={e => handleQuantityChange(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Total Amount</Label>
+              <Input type="number" value={totalAmount.toFixed(2)} disabled className="bg-muted" />
+            </div>
+          </div>
+          {stockError && (
+            <div className="bg-destructive/10 text-destructive text-sm px-3 py-2 rounded-md border border-destructive/20">
+              ⚠️ {stockError}
+            </div>
+          )}
+          {selectedItem && !stockError && (
+            <div className="bg-primary/5 text-primary text-sm px-3 py-2 rounded-md border border-primary/20">
+              ✓ {selectedItem.quantity} units available · Unit price: {unitPrice.toFixed(2)}
+            </div>
+          )}
+          <Button type="submit" className="w-full" disabled={isPending || !!stockError}>
+            {isPending ? 'Creating...' : 'Create Order'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Sales() {
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('sales_orders');
+  const { data: inventoryData } = useTenantQuery('inventory_items');
   const insertMutation = useTenantInsert('sales_orders');
+  const updateMutation = useTenantUpdate('sales_orders');
   const remove = useTenantDelete('sales_orders');
   useRealtimeSync('sales_orders');
+  useRealtimeSync('inventory_items');
 
   const orders = data ?? [];
+  const inventoryItems = inventoryData ?? [];
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
   const customers = new Set(orders.map((o: any) => o.customer_email)).size;
 
@@ -58,18 +177,26 @@ export default function Sales() {
     return Object.entries(days).map(([day, sales]) => ({ day, sales }));
   })();
 
-  const handleCreate = async (row: Record<string, any>) => {
+  const handleCreate = (row: Record<string, any>) => {
     insertMutation.mutate(row, {
-      onSuccess: (data: any) => {
-        if (tenant?.id) {
-          onSalesOrderCreated(tenant.id, {
-            order_number: data.order_number || row.order_number,
-            customer_name: data.customer_name || row.customer_name,
-            total_amount: Number(data.total_amount || row.total_amount),
-          });
+      onSuccess: () => {
+        // Reservation is handled by the insert — no client-side cross-module needed
+        // The DB triggers handle fulfillment automation on status change
+        if (row.item_id && tenant?.id) {
+          (supabase.from('inventory_reservations') as any).insert({
+            tenant_id: tenant.id,
+            item_id: row.item_id,
+            sales_order_id: undefined, // will be filled by the insert return
+            quantity: row.quantity || 1,
+            status: 'reserved',
+          }).then(() => {});
         }
       },
     });
+  };
+
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    updateMutation.mutate({ id: orderId, status: newStatus });
   };
 
   const demoRows = [
@@ -79,12 +206,28 @@ export default function Sales() {
 
   const rows = isDemo ? demoRows : orders.map((o: any) => {
     const s = statusMap[o.status] || statusMap.pending;
+    const canFulfill = o.status === 'pending' || o.status === 'confirmed';
     return [
       o.order_number, o.customer_name, o.customer_email,
       formatMoney(Number(o.total_amount)),
       <StatusBadge status={s.label} variant={s.variant} />,
       new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
+      <div className="flex items-center gap-1">
+        {canFulfill && (
+          <Select onValueChange={(v) => handleStatusChange(o.id, v)}>
+            <SelectTrigger className="h-7 w-24 text-xs">
+              <SelectValue placeholder="Action" />
+            </SelectTrigger>
+            <SelectContent>
+              {o.status === 'pending' && <SelectItem value="confirmed">Confirm</SelectItem>}
+              <SelectItem value="shipped">Ship</SelectItem>
+              <SelectItem value="delivered">Deliver</SelectItem>
+              <SelectItem value="cancelled">Cancel</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+        <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
+      </div>,
     ];
   });
 
@@ -137,7 +280,11 @@ export default function Sales() {
               })} disabled={orders.length === 0}>
                 <FileDown className="w-4 h-4" /> Export PDF
               </Button>
-              <CreateDialog title="New Sales Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertMutation.isPending} />
+              <CreateSalesOrderDialog
+                inventoryItems={inventoryItems}
+                onCreated={handleCreate}
+                isPending={insertMutation.isPending}
+              />
             </>
           )}
         </div>
@@ -145,7 +292,7 @@ export default function Sales() {
       {isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
-        <DataTable headers={['Order #', 'Customer', 'Email', 'Amount', 'Status', 'Date', ...(isDemo ? [] : [''])]} rows={rows} />
+        <DataTable headers={['Order #', 'Customer', 'Email', 'Amount', 'Status', 'Date', ...(isDemo ? [] : ['Actions'])]} rows={rows} />
       )}
     </AppLayout>
   );
