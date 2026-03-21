@@ -7,6 +7,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const demoFinData = [
@@ -19,11 +20,6 @@ const demoCashFlow = [
   { month: 'Jan', cashflow: 14000 },
   { month: 'Feb', cashflow: 17000 },
   { month: 'Mar', cashflow: 20000 },
-];
-
-const demoRows = [
-  ['Mar 18', 'INV-2847 Payment', 'Income', 'Sales', '$12,450', <StatusBadge status="Income" variant="success" />, null],
-  ['Mar 17', 'Office Supplies', 'Expense', 'Operations', '$340', <StatusBadge status="Expense" variant="destructive" />, null],
 ];
 
 const fields = [
@@ -39,6 +35,7 @@ const fields = [
 
 export default function Accounting() {
   const { isDemo } = useAuth();
+  const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('transactions');
   const insert = useTenantInsert('transactions');
   const remove = useTenantDelete('transactions');
@@ -49,7 +46,6 @@ export default function Accounting() {
   const expenses = txns.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const netProfit = income - expenses;
 
-  // Build monthly P&L from real data
   const monthlyData = isDemo ? demoFinData : (() => {
     const months: Record<string, { income: number; expenses: number }> = {};
     txns.forEach((t: any) => {
@@ -61,17 +57,22 @@ export default function Accounting() {
     return Object.entries(months).map(([month, v]) => ({ month, ...v }));
   })();
 
-  // Cash flow trend
   const cashFlowData = isDemo ? demoCashFlow : monthlyData.map((m) => ({ month: m.month, cashflow: m.income - m.expenses }));
 
+  const demoRows = [
+    ['Mar 18', 'INV-2847 Payment', 'Income', 'Sales', formatMoney(12450), <StatusBadge status="Income" variant="success" />, null],
+    ['Mar 17', 'Office Supplies', 'Expense', 'Operations', formatMoney(340), <StatusBadge status="Expense" variant="destructive" />, null],
+  ];
+
   const rows = isDemo ? demoRows : txns.map((t: any) => {
-    const autoTag = t.reference_number?.startsWith('#') ? '' : (t.custom_fields?.auto ? ' 🤖' : '');
+    const autoTag = (t.custom_fields as any)?.auto ? ' 🤖' : '';
+    const journalTag = (t.custom_fields as any)?.journal ? ` [${(t.custom_fields as any).journal}]` : '';
     return [
       new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       t.description + autoTag,
       t.type.charAt(0).toUpperCase() + t.type.slice(1),
       t.category,
-      `$${Number(t.amount).toLocaleString()}`,
+      formatMoney(Number(t.amount)),
       <StatusBadge status={t.type === 'income' ? 'Income' : 'Expense'} variant={t.type === 'income' ? 'success' : 'destructive'} />,
       <Button variant="ghost" size="icon" onClick={() => remove.mutate(t.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
     ];
@@ -80,10 +81,10 @@ export default function Accounting() {
   return (
     <AppLayout title="Accounting" subtitle="Invoices, expenses, and cash-flow">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Revenue (MTD)" value={isDemo ? '$89,400' : `$${income.toLocaleString()}`} change={12.5} icon={TrendingUp} />
-        <StatCard title="Expenses (MTD)" value={isDemo ? '$52,300' : `$${expenses.toLocaleString()}`} change={8} icon={TrendingDown} />
-        <StatCard title="Net Profit" value={isDemo ? '$37,100' : `$${netProfit.toLocaleString()}`} change={18.2} icon={Calculator} />
-        <StatCard title="Cash Balance" value={isDemo ? '$142,800' : `$${netProfit.toLocaleString()}`} change={5.4} icon={Wallet} />
+        <StatCard title="Revenue (MTD)" value={isDemo ? formatMoney(89400) : formatMoney(income)} change={12.5} icon={TrendingUp} />
+        <StatCard title="Expenses (MTD)" value={isDemo ? formatMoney(52300) : formatMoney(expenses)} change={8} icon={TrendingDown} />
+        <StatCard title="Net Profit" value={isDemo ? formatMoney(37100) : formatMoney(netProfit)} change={18.2} icon={Calculator} />
+        <StatCard title="Cash Balance" value={isDemo ? formatMoney(142800) : formatMoney(netProfit)} change={5.4} icon={Wallet} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
@@ -93,8 +94,8 @@ export default function Accounting() {
             <BarChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
               <XAxis dataKey="month" stroke="hsl(215, 16%, 47%)" />
-              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `$${v / 1000}k`} />
-              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
+              <Tooltip formatter={(v: number) => formatMoney(v)} />
               <Bar dataKey="income" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>
@@ -112,8 +113,8 @@ export default function Accounting() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
               <XAxis dataKey="month" stroke="hsl(215, 16%, 47%)" />
-              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `$${v / 1000}k`} />
-              <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Cash Flow']} />
+              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
+              <Tooltip formatter={(v: number) => [formatMoney(v), 'Cash Flow']} />
               <Area type="monotone" dataKey="cashflow" stroke="hsl(217, 91%, 60%)" strokeWidth={2} fill="url(#cfGrad)" />
             </AreaChart>
           </ResponsiveContainer>

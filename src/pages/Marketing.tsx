@@ -7,6 +7,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'warning' | 'info' | 'default' }> = {
@@ -15,11 +16,6 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'warning' 
   paused: { label: 'Paused', variant: 'warning' },
   completed: { label: 'Completed', variant: 'info' },
 };
-
-const demoRows = [
-  ['Spring Launch', <StatusBadge status="Active" variant="success" />, 'Email', '$5,000', '$3,240', '842', '16.8%', null],
-  ['Product Webinar', <StatusBadge status="Active" variant="success" />, 'Content', '$2,000', '$1,100', '215', '10.8%', null],
-];
 
 const fields = [
   { name: 'name', label: 'Campaign Name', required: true },
@@ -38,6 +34,7 @@ const COLORS = ['hsl(217, 91%, 60%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)',
 
 export default function Marketing() {
   const { isDemo } = useAuth();
+  const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('campaigns');
   const insert = useTenantInsert('campaigns');
   const remove = useTenantDelete('campaigns');
@@ -49,10 +46,14 @@ export default function Marketing() {
   const totalSpent = campaigns.reduce((s: number, c: any) => s + Number(c.spent), 0);
   const totalBudget = campaigns.reduce((s: number, c: any) => s + Number(c.budget), 0);
 
-  // Channel breakdown for chart
   const channelMap: Record<string, number> = {};
   campaigns.forEach((c: any) => { channelMap[c.channel] = (channelMap[c.channel] || 0) + Number(c.budget); });
   const channelChart = Object.entries(channelMap).map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }));
+
+  const demoRows = [
+    ['Spring Launch', <StatusBadge status="Active" variant="success" />, 'Email', formatMoney(5000), formatMoney(3240), '842', '16.8%', null],
+    ['Product Webinar', <StatusBadge status="Active" variant="success" />, 'Content', formatMoney(2000), formatMoney(1100), '215', '10.8%', null],
+  ];
 
   const rows = isDemo ? demoRows : campaigns.map((c: any) => {
     const s = statusMap[c.status] || statusMap.draft;
@@ -60,7 +61,7 @@ export default function Marketing() {
     return [
       c.name, <StatusBadge status={s.label} variant={s.variant} />,
       c.channel.charAt(0).toUpperCase() + c.channel.slice(1),
-      `$${Number(c.budget).toLocaleString()}`, `$${Number(c.spent).toLocaleString()}`,
+      formatMoney(Number(c.budget)), formatMoney(Number(c.spent)),
       c.leads_generated.toLocaleString(), roi,
       <Button variant="ghost" size="icon" onClick={() => remove.mutate(c.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
     ];
@@ -72,7 +73,7 @@ export default function Marketing() {
         <StatCard title="Active Campaigns" value={isDemo ? '12' : String(active)} change={15} icon={Megaphone} />
         <StatCard title="Leads Generated" value={isDemo ? '3,477' : totalLeads.toLocaleString()} change={22} icon={Users} />
         <StatCard title="Conversion Rate" value={totalBudget > 0 ? `${((totalLeads / (totalBudget / 100)) * 100).toFixed(1)}%` : '4.2%'} change={0.8} icon={MousePointerClick} />
-        <StatCard title="Budget Spent" value={isDemo ? '$14,840' : `$${totalSpent.toLocaleString()}`} change={-5} icon={DollarSign} />
+        <StatCard title="Budget Spent" value={isDemo ? formatMoney(14840) : formatMoney(totalSpent)} change={-5} icon={DollarSign} />
       </div>
 
       {channelChart.length > 0 && !isDemo && (
@@ -85,7 +86,7 @@ export default function Marketing() {
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+              <Tooltip formatter={(v: number) => formatMoney(v)} />
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-4 justify-center mt-2">

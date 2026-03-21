@@ -9,6 +9,7 @@ import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
+import { onProductionCompleted } from '@/hooks/use-cross-module';
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'default' | 'warning' }> = {
   draft: { label: 'Draft', variant: 'default' },
@@ -44,11 +45,26 @@ const fields = [
 export default function Production() {
   const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('production_orders');
-  const insert = useTenantInsert('production_orders');
+  const insertBase = useTenantInsert('production_orders');
   const remove = useTenantDelete('production_orders');
   useRealtimeSync('production_orders');
 
   const orders = data ?? [];
+
+  const handleCreate = (row: Record<string, any>) => {
+    insertBase.mutate(row, {
+      onSuccess: (data: any) => {
+        // If created as 'completed', trigger inventory + accounting automation
+        if (data.status === 'completed' && tenant?.id) {
+          onProductionCompleted(tenant.id, {
+            order_number: data.order_number,
+            product_name: data.product_name,
+            quantity: data.quantity,
+          });
+        }
+      },
+    });
+  };
 
   const rows = isDemo ? demoData : orders.map((o: any) => {
     const s = statusMap[o.status] || statusMap.draft;
@@ -130,7 +146,7 @@ export default function Production() {
               })} disabled={orders.length === 0}>
                 <FileDown className="w-4 h-4" /> Export PDF
               </Button>
-              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
+              <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={handleCreate} isPending={insertBase.isPending} />
             </>
           )}
         </div>
