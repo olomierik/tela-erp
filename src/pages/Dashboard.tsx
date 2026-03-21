@@ -1,39 +1,14 @@
 import AppLayout from '@/components/layout/AppLayout';
 import { StatCard, DataTable, StatusBadge } from '@/components/erp/SharedComponents';
 import { DollarSign, ShoppingCart, Package, Megaphone, TrendingUp, Activity, Factory, AlertTriangle, Sparkles } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { useRealtimeSyncAll } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const demoRevenueData = [
-  { month: 'Jan', revenue: 42000, orders: 320 },
-  { month: 'Feb', revenue: 48000, orders: 380 },
-  { month: 'Mar', revenue: 55000, orders: 410 },
-  { month: 'Apr', revenue: 51000, orders: 390 },
-  { month: 'May', revenue: 63000, orders: 470 },
-  { month: 'Jun', revenue: 71000, orders: 520 },
-  { month: 'Jul', revenue: 68000, orders: 490 },
-];
-
-const demoModuleData = [
-  { name: 'Sales', value: 35 },
-  { name: 'Production', value: 25 },
-  { name: 'Inventory', value: 20 },
-  { name: 'Procurement', value: 12 },
-  { name: 'Marketing', value: 8 },
-];
-
 const COLORS = ['hsl(217, 91%, 60%)', 'hsl(262, 83%, 58%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)', 'hsl(199, 89%, 48%)'];
-
-const demoOrders = [
-  ['#ORD-2847', 'Acme Corp', '$12,450', <StatusBadge status="Delivered" variant="success" />, 'Mar 18, 2026'],
-  ['#ORD-2846', 'TechStart Inc', '$8,200', <StatusBadge status="Shipped" variant="info" />, 'Mar 17, 2026'],
-  ['#ORD-2845', 'Global Ltd', '$23,100', <StatusBadge status="Confirmed" variant="warning" />, 'Mar 16, 2026'],
-  ['#ORD-2844', 'BuildRight Co', '$5,780', <StatusBadge status="Pending" variant="default" />, 'Mar 15, 2026'],
-  ['#ORD-2843', 'CloudNine SaaS', '$15,900', <StatusBadge status="Delivered" variant="success" />, 'Mar 14, 2026'],
-];
 
 const statusMap: Record<string, { label: string; variant: 'success' | 'info' | 'warning' | 'default' }> = {
   pending: { label: 'Pending', variant: 'default' },
@@ -45,6 +20,7 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'info' | '
 
 export default function Dashboard() {
   const { isDemo } = useAuth();
+  const { formatMoney, displayCurrency } = useCurrency();
   useRealtimeSyncAll();
 
   const { data: salesData, isLoading: salesLoading } = useTenantQuery('sales_orders');
@@ -61,7 +37,6 @@ export default function Dashboard() {
   const transactions = transactionData ?? [];
   const procurement = procurementData ?? [];
 
-  // Live KPIs
   const totalRevenue = isDemo ? 358200 : transactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
   const totalOrders = isDemo ? 2847 : sales.length;
   const inventoryValue = isDemo ? 124500 : inventory.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
@@ -70,44 +45,47 @@ export default function Dashboard() {
   const lowStockCount = isDemo ? 0 : inventory.filter((i: any) => i.quantity <= i.reorder_level).length;
   const productionDelays = isDemo ? 0 : production.filter((o: any) => o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress').length;
 
-  // Revenue chart from transactions
+  const demoRevenueData = [
+    { month: 'Jan', revenue: 42000 }, { month: 'Feb', revenue: 48000 }, { month: 'Mar', revenue: 55000 },
+    { month: 'Apr', revenue: 51000 }, { month: 'May', revenue: 63000 }, { month: 'Jun', revenue: 71000 },
+  ];
+
   const revenueChart = isDemo ? demoRevenueData : (() => {
-    const months: Record<string, { revenue: number; orders: number }> = {};
+    const months: Record<string, { revenue: number }> = {};
     transactions.filter((t: any) => t.type === 'income').forEach((t: any) => {
       const m = new Date(t.date).toLocaleDateString('en-US', { month: 'short' });
-      if (!months[m]) months[m] = { revenue: 0, orders: 0 };
+      if (!months[m]) months[m] = { revenue: 0 };
       months[m].revenue += Number(t.amount);
-    });
-    sales.forEach((s: any) => {
-      const m = new Date(s.created_at).toLocaleDateString('en-US', { month: 'short' });
-      if (!months[m]) months[m] = { revenue: 0, orders: 0 };
-      months[m].orders++;
     });
     return Object.entries(months).map(([month, v]) => ({ month, ...v }));
   })();
 
-  // Module activity from real counts
+  const demoModuleData = [
+    { name: 'Sales', value: 35 }, { name: 'Production', value: 25 },
+    { name: 'Inventory', value: 20 }, { name: 'Procurement', value: 12 }, { name: 'Marketing', value: 8 },
+  ];
+
   const moduleData = isDemo ? demoModuleData : [
-    { name: 'Sales', value: sales.length },
-    { name: 'Production', value: production.length },
-    { name: 'Inventory', value: inventory.length },
-    { name: 'Procurement', value: procurement.length },
+    { name: 'Sales', value: sales.length }, { name: 'Production', value: production.length },
+    { name: 'Inventory', value: inventory.length }, { name: 'Procurement', value: procurement.length },
     { name: 'Marketing', value: campaigns.length },
   ].filter((m) => m.value > 0);
 
-  // Recent orders table
+  const demoOrders = [
+    ['#ORD-2847', 'Acme Corp', formatMoney(12450), <StatusBadge status="Delivered" variant="success" />, 'Mar 18, 2026'],
+    ['#ORD-2846', 'TechStart Inc', formatMoney(8200), <StatusBadge status="Shipped" variant="info" />, 'Mar 17, 2026'],
+    ['#ORD-2845', 'Global Ltd', formatMoney(23100), <StatusBadge status="Confirmed" variant="warning" />, 'Mar 16, 2026'],
+  ];
+
   const recentOrders = isDemo ? demoOrders : sales.slice(0, 5).map((o: any) => {
     const s = statusMap[o.status] || statusMap.pending;
     return [
-      o.order_number,
-      o.customer_name,
-      `$${Number(o.total_amount).toLocaleString()}`,
+      o.order_number, o.customer_name, formatMoney(Number(o.total_amount)),
       <StatusBadge status={s.label} variant={s.variant} />,
       new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     ];
   });
 
-  // AI insights stub
   const insights = isDemo
     ? [
         'Revenue is up 12.5% month-over-month — driven by 3 large enterprise deals.',
@@ -115,33 +93,30 @@ export default function Dashboard() {
         'Marketing email campaigns show 16.8% ROI — highest performing channel.',
       ]
     : [
-        totalRevenue > 0 ? `Total revenue stands at $${totalRevenue.toLocaleString()}, with ${sales.length} orders processed.` : 'No revenue recorded yet — create your first sales order to get started.',
-        lowStockCount > 0 ? `${lowStockCount} inventory item(s) are below reorder level and may need restocking.` : 'All inventory items are above reorder levels.',
-        productionDelays > 0 ? `${productionDelays} production order(s) are past their end date — review for delays.` : 'All production orders are on schedule.',
+        totalRevenue > 0 ? `Total revenue: ${formatMoney(totalRevenue)} across ${sales.length} orders.` : 'No revenue yet — create your first sales order.',
+        lowStockCount > 0 ? `${lowStockCount} item(s) below reorder level.` : 'All inventory above reorder levels.',
+        productionDelays > 0 ? `${productionDelays} production order(s) past due.` : 'All production on schedule.',
       ];
 
   const isLoading = salesLoading && !isDemo;
 
   return (
-    <AppLayout title="Dashboard" subtitle="Live overview of your business performance">
-      {/* Stats */}
+    <AppLayout title="Dashboard" subtitle={`Live overview · ${displayCurrency}`}>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Revenue" value={`$${totalRevenue.toLocaleString()}`} change={12.5} icon={DollarSign} iconColor="gradient-primary" />
+        <StatCard title="Total Revenue" value={formatMoney(totalRevenue)} change={12.5} icon={DollarSign} iconColor="gradient-primary" />
         <StatCard title="Total Orders" value={totalOrders.toLocaleString()} change={8.2} icon={ShoppingCart} />
-        <StatCard title="Inventory Value" value={`$${inventoryValue.toLocaleString()}`} change={-3.1} icon={Package} />
+        <StatCard title="Inventory Value" value={formatMoney(inventoryValue)} change={-3.1} icon={Package} />
         <StatCard title="Active Campaigns" value={String(activeCampaigns)} change={15.0} icon={Megaphone} />
       </div>
 
-      {/* Secondary stats row */}
       {!isDemo && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard title="Net Cash Flow" value={`$${(totalRevenue - totalExpenses).toLocaleString()}`} change={totalRevenue > totalExpenses ? 10 : -10} icon={TrendingUp} />
+          <StatCard title="Net Cash Flow" value={formatMoney(totalRevenue - totalExpenses)} change={totalRevenue > totalExpenses ? 10 : -10} icon={TrendingUp} />
           <StatCard title="Low Stock Alerts" value={String(lowStockCount)} change={lowStockCount > 0 ? -25 : 0} icon={AlertTriangle} />
           <StatCard title="Production Delays" value={String(productionDelays)} change={productionDelays > 0 ? -50 : 0} icon={Factory} />
         </div>
       )}
 
-      {/* AI Insights */}
       <div className="bg-card rounded-xl border border-border p-5 mb-6">
         <div className="flex items-center gap-2 mb-3">
           <Sparkles className="w-5 h-5 text-primary" />
@@ -158,18 +133,10 @@ export default function Dashboard() {
         </ul>
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         <div className="xl:col-span-2 bg-card rounded-xl border border-border p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-card-foreground">Revenue Trend</h3>
-              <p className="text-sm text-muted-foreground">Monthly revenue overview</p>
-            </div>
-            <div className="flex items-center gap-1 text-sm text-success font-medium">
-              <TrendingUp className="w-4 h-4" /> +12.5%
-            </div>
-          </div>
+          <h3 className="font-semibold text-card-foreground mb-1">Revenue Trend</h3>
+          <p className="text-sm text-muted-foreground mb-4">Monthly revenue overview</p>
           {isLoading ? (
             <Skeleton className="h-[280px] w-full" />
           ) : (
@@ -183,8 +150,8 @@ export default function Dashboard() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
                 <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" />
-                <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `$${v / 1000}k`} />
-                <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Revenue']} />
+                <YAxis tick={{ fontSize: 12 }} stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
+                <Tooltip formatter={(v: number) => [formatMoney(v), 'Revenue']} />
                 <Area type="monotone" dataKey="revenue" stroke="hsl(217, 91%, 60%)" strokeWidth={2} fill="url(#colorRevenue)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -224,17 +191,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Orders */}
-      <div className="mb-2">
-        <h3 className="font-semibold text-foreground mb-3">Recent Orders</h3>
-      </div>
+      <h3 className="font-semibold text-foreground mb-3">Recent Orders</h3>
       {isLoading ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
       ) : (
-        <DataTable
-          headers={['Order', 'Customer', 'Amount', 'Status', 'Date']}
-          rows={recentOrders}
-        />
+        <DataTable headers={['Order', 'Customer', 'Amount', 'Status', 'Date']} rows={recentOrders} />
       )}
     </AppLayout>
   );

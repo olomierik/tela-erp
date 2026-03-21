@@ -7,6 +7,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onSalesOrderCreated } from '@/hooks/use-cross-module';
 import { generatePDFReport } from '@/lib/pdf-reports';
@@ -24,11 +25,6 @@ const demoSalesData = [
   { day: 'Thu', sales: 15600 }, { day: 'Fri', sales: 11200 }, { day: 'Sat', sales: 7800 }, { day: 'Sun', sales: 4500 },
 ];
 
-const demoRows = [
-  ['#SO-2847', 'Acme Corp', 'john@acme.com', '$12,450', <StatusBadge status="Delivered" variant="success" />, 'Mar 18', null],
-  ['#SO-2846', 'TechStart Inc', 'buy@techstart.io', '$8,200', <StatusBadge status="Shipped" variant="info" />, 'Mar 17', null],
-];
-
 const fields = [
   { name: 'order_number', label: 'Order #', required: true },
   { name: 'customer_name', label: 'Customer Name', required: true },
@@ -42,6 +38,7 @@ const fields = [
 
 export default function Sales() {
   const { isDemo, tenant } = useAuth();
+  const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('sales_orders');
   const insertMutation = useTenantInsert('sales_orders');
   const remove = useTenantDelete('sales_orders');
@@ -75,11 +72,16 @@ export default function Sales() {
     });
   };
 
+  const demoRows = [
+    ['#SO-2847', 'Acme Corp', 'john@acme.com', formatMoney(12450), <StatusBadge status="Delivered" variant="success" />, 'Mar 18', null],
+    ['#SO-2846', 'TechStart Inc', 'buy@techstart.io', formatMoney(8200), <StatusBadge status="Shipped" variant="info" />, 'Mar 17', null],
+  ];
+
   const rows = isDemo ? demoRows : orders.map((o: any) => {
     const s = statusMap[o.status] || statusMap.pending;
     return [
       o.order_number, o.customer_name, o.customer_email,
-      `$${Number(o.total_amount).toLocaleString()}`,
+      formatMoney(Number(o.total_amount)),
       <StatusBadge status={s.label} variant={s.variant} />,
       new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       <Button variant="ghost" size="icon" onClick={() => remove.mutate(o.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>,
@@ -89,10 +91,10 @@ export default function Sales() {
   return (
     <AppLayout title="Sales" subtitle="Orders, POS, and revenue tracking">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Revenue (MTD)" value={isDemo ? '$89,400' : `$${totalRevenue.toLocaleString()}`} change={12.5} icon={DollarSign} />
+        <StatCard title="Revenue (MTD)" value={isDemo ? formatMoney(89400) : formatMoney(totalRevenue)} change={12.5} icon={DollarSign} />
         <StatCard title="Orders" value={isDemo ? '142' : String(orders.length)} change={8.2} icon={ShoppingCart} />
         <StatCard title="Customers" value={isDemo ? '89' : String(customers)} change={15} icon={Users} />
-        <StatCard title="Avg Order" value={isDemo ? '$630' : orders.length ? `$${Math.round(totalRevenue / orders.length)}` : '$0'} change={4.1} icon={TrendingUp} />
+        <StatCard title="Avg Order" value={isDemo ? formatMoney(630) : orders.length ? formatMoney(Math.round(totalRevenue / orders.length)) : formatMoney(0)} change={4.1} icon={TrendingUp} />
       </div>
 
       {salesChart.length > 0 && (
@@ -108,8 +110,8 @@ export default function Sales() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
               <XAxis dataKey="day" stroke="hsl(215, 16%, 47%)" />
-              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => `$${v / 1000}k`} />
-              <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Sales']} />
+              <YAxis stroke="hsl(215, 16%, 47%)" tickFormatter={(v) => formatMoney(v)} />
+              <Tooltip formatter={(v: number) => [formatMoney(v), 'Sales']} />
               <Area type="monotone" dataKey="sales" stroke="hsl(142, 71%, 45%)" strokeWidth={2} fill="url(#salesGrad)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -126,9 +128,9 @@ export default function Sales() {
                 subtitle: `Generated for ${tenant?.name || 'TELA-ERP'}`,
                 tenantName: tenant?.name,
                 headers: ['Order #', 'Customer', 'Email', 'Amount', 'Status', 'Date'],
-                rows: orders.map((o: any) => [o.order_number, o.customer_name, o.customer_email, `$${Number(o.total_amount).toLocaleString()}`, o.status, new Date(o.created_at).toLocaleDateString()]),
+                rows: orders.map((o: any) => [o.order_number, o.customer_name, o.customer_email, formatMoney(Number(o.total_amount)), o.status, new Date(o.created_at).toLocaleDateString()]),
                 stats: [
-                  { label: 'Revenue', value: `$${totalRevenue.toLocaleString()}` },
+                  { label: 'Revenue', value: formatMoney(totalRevenue) },
                   { label: 'Orders', value: String(orders.length) },
                   { label: 'Customers', value: String(customers) },
                 ],

@@ -70,6 +70,30 @@ export type Database = {
           },
         ]
       }
+      exchange_rates: {
+        Row: {
+          base_currency: string
+          fetched_at: string
+          id: string
+          rate: number
+          target_currency: string
+        }
+        Insert: {
+          base_currency?: string
+          fetched_at?: string
+          id?: string
+          rate?: number
+          target_currency: string
+        }
+        Update: {
+          base_currency?: string
+          fetched_at?: string
+          id?: string
+          rate?: number
+          target_currency?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           category: string
@@ -116,6 +140,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_transactions: {
+        Row: {
+          batch: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          notes: string | null
+          quantity: number
+          reference_id: string | null
+          tenant_id: string
+          type: string
+        }
+        Insert: {
+          batch?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          tenant_id: string
+          type?: string
+        }
+        Update: {
+          batch?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          notes?: string | null
+          quantity?: number
+          reference_id?: string | null
+          tenant_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_transactions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_transactions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -318,6 +393,7 @@ export type Database = {
         Row: {
           created_at: string
           custom_domain: string | null
+          default_currency: string
           id: string
           is_active: boolean
           logo_url: string | null
@@ -334,6 +410,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custom_domain?: string | null
+          default_currency?: string
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -350,6 +427,7 @@ export type Database = {
         Update: {
           created_at?: string
           custom_domain?: string | null
+          default_currency?: string
           id?: string
           is_active?: boolean
           logo_url?: string | null
