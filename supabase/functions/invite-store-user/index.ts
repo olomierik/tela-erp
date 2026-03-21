@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
     if (existingUser) {
-      // User exists — check if already in this tenant
+      // Check if already in this tenant
       const { data: existingProfile } = await adminClient
         .from("profiles")
         .select("user_id")
@@ -89,28 +89,36 @@ Deno.serve(async (req) => {
         .eq("tenant_id", callerProfile.tenant_id)
         .single();
 
-      if (existingProfile) {
-        // Just assign to store
-        const { error: assignErr } = await adminClient
-          .from("user_store_assignments")
-          .upsert({
-            user_id: existingUser.id,
-            store_id,
-            tenant_id: callerProfile.tenant_id,
-            role: role || "user",
-          }, { onConflict: "user_id,store_id" });
+      if (!existingProfile) {
+        // User exists in auth but not in this tenant — create profile
+        await adminClient.from("profiles").insert({
+          user_id: existingUser.id,
+          tenant_id: callerProfile.tenant_id,
+          email: email,
+          full_name: full_name || existingUser.user_metadata?.full_name || '',
+        });
+      }
 
-        if (assignErr) {
-          return new Response(JSON.stringify({ error: assignErr.message }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+      // Assign to store (upsert)
+      const { error: assignErr } = await adminClient
+        .from("user_store_assignments")
+        .upsert({
+          user_id: existingUser.id,
+          store_id,
+          tenant_id: callerProfile.tenant_id,
+          role: role || "user",
+        }, { onConflict: "user_id,store_id" });
 
-        return new Response(JSON.stringify({ message: "User assigned to store", existed: true }), {
+      if (assignErr) {
+        return new Response(JSON.stringify({ error: assignErr.message }), {
+          status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      return new Response(JSON.stringify({ message: "User assigned to store", existed: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Send magic link — user will be created on first sign-in via the trigger
