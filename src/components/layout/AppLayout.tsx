@@ -12,11 +12,15 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <div className="ml-[260px] transition-all duration-200">
+      <div className="md:ml-[240px] transition-all duration-200 flex flex-col min-h-screen">
         <TopBar title={title} subtitle={subtitle} />
-        <main className="p-6">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
+        <footer className="border-t border-border px-6 py-3 text-[11px] text-muted-foreground flex items-center justify-between">
+          <span>© {new Date().getFullYear()} TELA-ERP</span>
+          <span>v1.0.0</span>
+        </footer>
       </div>
     </div>
   );
