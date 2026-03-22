@@ -48,7 +48,7 @@ export default function Signup() {
           <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-primary blur-3xl" />
         </div>
         <div className="relative z-10 text-center max-w-md">
-          <img src={telaLogo} alt="TELA-ERP" className="w-48 h-48 object-contain mx-auto mb-8 drop-shadow-2xl" />
+          <img src={telaLogo} alt="TELA-ERP" className="w-80 h-80 object-contain mx-auto mb-8 drop-shadow-2xl" />
           <h1 className="text-4xl font-bold text-white mb-4">Get Started</h1>
           <p className="text-white/70 text-lg">
             Create your business account and start managing everything in one place.
