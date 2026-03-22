@@ -28,24 +28,29 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'info' | '
   cancelled: { label: 'Cancelled', variant: 'default' },
 };
 
-function CreateSalesOrderDialog({ inventoryItems, onCreated, isPending }: {
-  inventoryItems: any[]; onCreated: (row: Record<string, any>) => void; isPending: boolean;
+function CreateSalesOrderDialog({ inventoryItems, customers, onCreated, isPending }: {
+  inventoryItems: any[]; customers: any[]; onCreated: (row: Record<string, any>) => void; isPending: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ order_number: '', customer_name: '', customer_email: '', item_id: '', quantity: '1', status: 'pending' });
+  const [form, setForm] = useState({ order_number: '', customer_id: '', customer_name: '', customer_email: '', item_id: '', quantity: '1', status: 'pending', payment_method: 'cash' });
   const [stockError, setStockError] = useState('');
   const selectedItem = inventoryItems.find((i: any) => i.id === form.item_id);
   const unitPrice = selectedItem ? Number(selectedItem.unit_cost) : 0;
   const totalAmount = unitPrice * (parseInt(form.quantity) || 0);
+
+  const handleCustomerChange = (customerId: string) => {
+    const c = customers.find((c: any) => c.id === customerId);
+    setForm(p => ({ ...p, customer_id: customerId, customer_name: c?.name || '', customer_email: c?.email || '' }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedItem) { toast.error('Select an inventory item'); return; }
     const qty = parseInt(form.quantity) || 1;
     if (qty > selectedItem.quantity) { setStockError(`Insufficient stock. Available: ${selectedItem.quantity}`); return; }
-    onCreated({ order_number: form.order_number, customer_name: form.customer_name, customer_email: form.customer_email, item_id: form.item_id, quantity: qty, total_amount: totalAmount, status: form.status });
+    onCreated({ order_number: form.order_number, customer_name: form.customer_name, customer_email: form.customer_email, customer_id: form.customer_id || null, item_id: form.item_id, quantity: qty, total_amount: totalAmount, status: form.status });
     setOpen(false);
-    setForm({ order_number: '', customer_name: '', customer_email: '', item_id: '', quantity: '1', status: 'pending' });
+    setForm({ order_number: '', customer_id: '', customer_name: '', customer_email: '', item_id: '', quantity: '1', status: 'pending', payment_method: 'cash' });
     setStockError('');
   };
 
@@ -56,10 +61,20 @@ function CreateSalesOrderDialog({ inventoryItems, onCreated, isPending }: {
         <DialogHeader><DialogTitle>New Sales Order</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1"><Label className="text-xs">Order #</Label><Input required className="h-8 text-xs" value={form.order_number} onChange={e => setForm(p => ({ ...p, order_number: e.target.value }))} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Customer</Label><Input required className="h-8 text-xs" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))} /></div>
-            <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" required className="h-8 text-xs" value={form.customer_email} onChange={e => setForm(p => ({ ...p, customer_email: e.target.value }))} /></div>
-          </div>
+          {customers.length > 0 ? (
+            <div className="space-y-1">
+              <Label className="text-xs">Customer</Label>
+              <Select value={form.customer_id} onValueChange={handleCustomerChange}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select customer..." /></SelectTrigger>
+                <SelectContent>{customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1"><Label className="text-xs">Customer</Label><Input required className="h-8 text-xs" value={form.customer_name} onChange={e => setForm(p => ({ ...p, customer_name: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" className="h-8 text-xs" value={form.customer_email} onChange={e => setForm(p => ({ ...p, customer_email: e.target.value }))} /></div>
+            </div>
+          )}
           <div className="space-y-1">
             <Label className="text-xs">Inventory Item</Label>
             <Select value={form.item_id} onValueChange={v => { setForm(p => ({ ...p, item_id: v })); setStockError(''); }}>
@@ -71,9 +86,20 @@ function CreateSalesOrderDialog({ inventoryItems, onCreated, isPending }: {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Quantity</Label><Input type="number" min="1" className="h-8 text-xs" required value={form.quantity} onChange={e => { setForm(p => ({ ...p, quantity: e.target.value })); const q = parseInt(e.target.value) || 0; setStockError(selectedItem && q > selectedItem.quantity ? `Insufficient stock. Available: ${selectedItem.quantity}` : ''); }} /></div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1"><Label className="text-xs">Qty</Label><Input type="number" min="1" className="h-8 text-xs" required value={form.quantity} onChange={e => { setForm(p => ({ ...p, quantity: e.target.value })); const q = parseInt(e.target.value) || 0; setStockError(selectedItem && q > selectedItem.quantity ? `Insufficient stock. Available: ${selectedItem.quantity}` : ''); }} /></div>
             <div className="space-y-1"><Label className="text-xs">Total</Label><Input type="number" value={totalAmount.toFixed(2)} disabled className="h-8 text-xs bg-muted" /></div>
+            <div className="space-y-1"><Label className="text-xs">Payment</Label>
+              <Select value={form.payment_method} onValueChange={v => setForm(p => ({ ...p, payment_method: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="credit">Credit</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {stockError && <div className="bg-destructive/10 text-destructive text-xs px-3 py-2 rounded-md">⚠️ {stockError}</div>}
           {selectedItem && !stockError && <div className="bg-primary/5 text-primary text-xs px-3 py-2 rounded-md">✓ {selectedItem.quantity} available · {unitPrice.toFixed(2)}/unit</div>}
