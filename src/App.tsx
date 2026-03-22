@@ -22,6 +22,9 @@ import Marketing from "./pages/Marketing";
 import Accounting from "./pages/Accounting";
 import Procurement from "./pages/Procurement";
 import Stores from "./pages/Stores";
+import Customers from "./pages/Customers";
+import Suppliers from "./pages/Suppliers";
+import StockTransfers from "./pages/StockTransfers";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import WhiteLabel from "./pages/WhiteLabel";
 import Billing from "./pages/Billing";
@@ -63,6 +66,9 @@ const App = () => (
               <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+              <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+              <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
+              <Route path="/transfers" element={<ProtectedRoute><StockTransfers /></ProtectedRoute>} />
               <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
