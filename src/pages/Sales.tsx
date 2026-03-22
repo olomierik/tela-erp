@@ -115,6 +115,7 @@ export default function Sales() {
   const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('sales_orders');
   const { data: inventoryData } = useTenantQuery('inventory_items');
+  const { data: customersData } = useTenantQuery('customers');
   const insertMutation = useTenantInsert('sales_orders');
   const updateMutation = useTenantUpdate('sales_orders');
   const remove = useTenantDelete('sales_orders');
