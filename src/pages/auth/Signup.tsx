@@ -60,9 +60,7 @@ export default function Signup() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src={telaLogo} alt="TELA-ERP" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
           </div>
 
