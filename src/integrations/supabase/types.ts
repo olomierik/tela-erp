@@ -410,6 +410,7 @@ export type Database = {
           custom_fields: Json | null
           end_date: string | null
           id: string
+          item_id: string | null
           order_number: string
           product_name: string
           quantity: number
@@ -424,6 +425,7 @@ export type Database = {
           custom_fields?: Json | null
           end_date?: string | null
           id?: string
+          item_id?: string | null
           order_number: string
           product_name: string
           quantity?: number
@@ -438,6 +440,7 @@ export type Database = {
           custom_fields?: Json | null
           end_date?: string | null
           id?: string
+          item_id?: string | null
           order_number?: string
           product_name?: string
           quantity?: number
@@ -448,6 +451,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "production_orders_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "production_orders_store_id_fkey"
             columns: ["store_id"]
