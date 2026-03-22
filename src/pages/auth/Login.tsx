@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import telaLogo from '@/assets/tela-erp-logo.png';
 import { toast } from 'sonner';
 
 export default function Login() {
