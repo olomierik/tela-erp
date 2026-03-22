@@ -42,10 +42,8 @@ export default function Login() {
           <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary-foreground blur-3xl" />
           <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-primary-foreground blur-3xl" />
         </div>
-        <div className="relative z-10 text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-primary-foreground/20 backdrop-blur flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-primary-foreground" />
-          </div>
+         <div className="relative z-10 text-center max-w-md">
+          <img src={telaLogo} alt="TELA-ERP" className="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-lg" />
           <h1 className="text-4xl font-bold text-primary-foreground mb-4">TELA-ERP</h1>
           <p className="text-primary-foreground/80 text-lg">
             The complete business management platform with white-label reseller capabilities.
