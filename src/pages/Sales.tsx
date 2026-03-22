@@ -185,7 +185,7 @@ export default function Sales() {
                     rows: orders.map((o: any) => [o.order_number, o.customer_name, o.customer_email, formatMoney(Number(o.total_amount)), o.status, new Date(o.created_at).toLocaleDateString()]),
                     stats: [{ label: 'Revenue', value: formatMoney(totalRevenue) }, { label: 'Orders', value: String(orders.length) }],
                   })} disabled={orders.length === 0}><FileDown className="w-3.5 h-3.5" /> PDF</Button>
-                  <CreateSalesOrderDialog inventoryItems={inventoryItems} onCreated={handleCreate} isPending={insertMutation.isPending} />
+                  <CreateSalesOrderDialog inventoryItems={inventoryItems} customers={customers} onCreated={handleCreate} isPending={insertMutation.isPending} />
                 </>
               )}
             </div>
