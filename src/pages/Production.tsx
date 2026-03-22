@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/erp/SharedComponents';
-import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Factory, Clock, CheckCircle, AlertTriangle, Trash2, FileDown, Search } from 'lucide-react';
+import { Factory, Trash2, FileDown, Search, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
@@ -23,20 +24,115 @@ const statusMap: Record<string, { label: string; variant: 'success' | 'info' | '
   cancelled: { label: 'Cancelled', variant: 'warning' },
 };
 
-const fields = [
-  { name: 'order_number', label: 'Order #', required: true },
-  { name: 'product_name', label: 'Product Name', required: true },
-  { name: 'quantity', label: 'Quantity', type: 'number' as const, required: true },
-  { name: 'status', label: 'Status', type: 'select' as const, defaultValue: 'draft', options: [
-    { label: 'Draft', value: 'draft' }, { label: 'In Progress', value: 'in_progress' },
-  ]},
-  { name: 'start_date', label: 'Start Date', type: 'date' as const },
-  { name: 'end_date', label: 'End Date', type: 'date' as const },
-];
+function CreateProductionDialog({ inventoryItems, onCreated, isPending }: {
+  inventoryItems: any[]; onCreated: (row: Record<string, any>) => void; isPending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    order_number: '',
+    item_id: '',
+    product_name: '',
+    quantity: '1',
+    status: 'draft',
+    start_date: '',
+    end_date: '',
+  });
+
+  const selectedItem = inventoryItems.find((i: any) => i.id === form.item_id);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const productName = selectedItem ? selectedItem.name : form.product_name;
+    if (!productName.trim()) { return; }
+    onCreated({
+      order_number: form.order_number,
+      product_name: productName,
+      item_id: form.item_id || null,
+      quantity: parseInt(form.quantity) || 1,
+      status: form.status,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
+    });
+    setOpen(false);
+    setForm({ order_number: '', item_id: '', product_name: '', quantity: '1', status: 'draft', start_date: '', end_date: '' });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="h-8 text-xs gap-1.5"><Plus className="w-3.5 h-3.5" /> New Order</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>New Production Order</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Order #</Label>
+            <Input required className="h-8 text-xs" value={form.order_number} onChange={e => setForm(p => ({ ...p, order_number: e.target.value }))} placeholder="PRD-001" />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs">Link to Inventory Item (recommended)</Label>
+            <Select value={form.item_id} onValueChange={v => {
+              const item = inventoryItems.find((i: any) => i.id === v);
+              setForm(p => ({ ...p, item_id: v, product_name: item?.name || p.product_name }));
+            }}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select inventory item..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— None (manual name) —</SelectItem>
+                {inventoryItems.map((item: any) => (
+                  <SelectItem key={item.id} value={item.id}>{item.name} ({item.sku}) — {item.quantity} in stock</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">Linking ensures stock auto-increases on completion</p>
+          </div>
+
+          {(!form.item_id || form.item_id === 'none') && (
+            <div className="space-y-1">
+              <Label className="text-xs">Product Name</Label>
+              <Input required className="h-8 text-xs" value={form.product_name} onChange={e => setForm(p => ({ ...p, product_name: e.target.value }))} placeholder="Product name" />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Quantity</Label>
+              <Input type="number" min="1" className="h-8 text-xs" required value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(p => ({ ...p, status: v }))}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-xs">Start Date</Label><Input type="date" className="h-8 text-xs" value={form.start_date} onChange={e => setForm(p => ({ ...p, start_date: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">End Date</Label><Input type="date" className="h-8 text-xs" value={form.end_date} onChange={e => setForm(p => ({ ...p, end_date: e.target.value }))} /></div>
+          </div>
+
+          {selectedItem && form.item_id !== 'none' && (
+            <div className="bg-primary/5 text-primary text-xs px-3 py-2 rounded-md">
+              ✓ Linked to "{selectedItem.name}" — completing this order will add {form.quantity} units to inventory
+            </div>
+          )}
+
+          <Button type="submit" className="w-full h-8 text-xs" disabled={isPending}>{isPending ? 'Creating...' : 'Create Order'}</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function Production() {
   const { isDemo, tenant } = useAuth();
   const { data, isLoading } = useTenantQuery('production_orders');
+  const { data: inventoryData } = useTenantQuery('inventory_items');
   const insertBase = useTenantInsert('production_orders');
   const updateMutation = useTenantUpdate('production_orders');
   const remove = useTenantDelete('production_orders');
@@ -47,6 +143,7 @@ export default function Production() {
   const [tab, setTab] = useState('all');
 
   const orders = data ?? [];
+  const inventoryItems = inventoryData ?? [];
   const stats = isDemo
     ? { active: 14, inProgress: 8, completed: 23, delayed: 2 }
     : {
@@ -63,6 +160,12 @@ export default function Production() {
     if (tab === 'delayed') return o.end_date && new Date(o.end_date) < new Date() && o.status === 'in_progress';
     return true;
   });
+
+  const handleCreate = (row: Record<string, any>) => {
+    // Clean up 'none' item_id
+    if (row.item_id === 'none') row.item_id = null;
+    insertBase.mutate(row);
+  };
 
   return (
     <AppLayout title="Production" subtitle="Manufacturing orders & schedules">
@@ -91,7 +194,7 @@ export default function Production() {
                     rows: orders.map((o: any) => [o.order_number, o.product_name, o.quantity, o.status, o.start_date || '—', o.end_date || '—']),
                     stats: [{ label: 'Active', value: String(stats.active) }, { label: 'Completed', value: String(stats.completed) }],
                   })} disabled={orders.length === 0}><FileDown className="w-3.5 h-3.5" /> PDF</Button>
-                  <CreateDialog title="New Production Order" buttonLabel="+ New Order" fields={fields} onSubmit={insertBase.mutate} isPending={insertBase.isPending} />
+                  <CreateProductionDialog inventoryItems={inventoryItems} onCreated={handleCreate} isPending={insertBase.isPending} />
                 </>
               )}
             </div>
@@ -123,11 +226,15 @@ export default function Production() {
                 {filtered.map((o: any) => {
                   const s = statusMap[o.status] || statusMap.draft;
                   const canUpdate = o.status !== 'completed' && o.status !== 'cancelled';
+                  const linkedItem = inventoryItems.find((i: any) => i.id === o.item_id);
                   return (
                     <tr key={o.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                       <td className="px-4 py-2.5 font-medium text-foreground">{o.order_number}</td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{o.product_name}</td>
-                      <td className="px-4 py-2.5 font-medium">{o.quantity.toLocaleString()}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-muted-foreground">{o.product_name}</span>
+                        {linkedItem && <Badge variant="outline" className="ml-1.5 text-[9px]">linked</Badge>}
+                      </td>
+                      <td className="px-4 py-2.5 font-medium">{o.quantity?.toLocaleString()}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={s.label} variant={s.variant} /></td>
                       <td className="px-4 py-2.5 text-muted-foreground text-xs">{o.start_date || '—'}</td>
                       <td className="px-4 py-2.5 text-muted-foreground text-xs">{o.end_date || '—'}</td>
