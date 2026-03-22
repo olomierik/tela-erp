@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Factory,
   Calculator, BarChart3, Bot, Settings, LogOut, ChevronLeft,
   ChevronRight, Building2, CreditCard, Palette, Rocket, Users, Menu, X,
-  FileBarChart, Megaphone,
+  FileBarChart, Megaphone, ArrowRightLeft, UserCheck, Warehouse,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
