@@ -37,15 +37,15 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left panel */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-primary items-center justify-center p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-[hsl(220,30%,15%)] items-center justify-center p-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary-foreground blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-primary-foreground blur-3xl" />
+          <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary blur-3xl" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-primary blur-3xl" />
         </div>
-         <div className="relative z-10 text-center max-w-md">
-          <img src={telaLogo} alt="TELA-ERP" className="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-lg" />
-          <h1 className="text-4xl font-bold text-primary-foreground mb-4">TELA-ERP</h1>
-          <p className="text-primary-foreground/80 text-lg">
+        <div className="relative z-10 text-center max-w-md">
+          <img src={telaLogo} alt="TELA-ERP" className="w-48 h-48 object-contain mx-auto mb-8 drop-shadow-2xl" />
+          <h1 className="text-4xl font-bold text-white mb-4">TELA-ERP</h1>
+          <p className="text-white/70 text-lg">
             The complete business management platform with white-label reseller capabilities.
           </p>
         </div>
