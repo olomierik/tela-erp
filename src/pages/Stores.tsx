@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Store, Plus, Users, Trash2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,11 +29,26 @@ export default function Stores() {
     queryKey: ['user_store_assignments', tenant?.id],
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
-      const { data, error } = await (supabase.from('user_store_assignments') as any)
-        .select('*, profiles:user_id(full_name, email)')
+      // Get assignments
+      const { data: assignData, error } = await (supabase.from('user_store_assignments') as any)
+        .select('*')
         .eq('tenant_id', tenant.id);
       if (error) throw error;
-      return data ?? [];
+      if (!assignData || assignData.length === 0) return [];
+
+      // Get unique user_ids and fetch profiles separately
+      const userIds = [...new Set(assignData.map((a: any) => a.user_id))];
+      const { data: profilesData } = await (supabase.from('profiles') as any)
+        .select('user_id, full_name, email')
+        .in('user_id', userIds);
+
+      const profileMap = new Map();
+      (profilesData ?? []).forEach((p: any) => profileMap.set(p.user_id, p));
+
+      return assignData.map((a: any) => ({
+        ...a,
+        profile: profileMap.get(a.user_id) || null,
+      }));
     },
     enabled: !isDemo && !!tenant?.id,
   });
@@ -76,7 +91,7 @@ export default function Stores() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success(data?.message || 'Invitation sent!');
+      toast.success(data?.message || 'User assigned!');
       setInviteEmail('');
       setInviteOpen(null);
       qc.invalidateQueries({ queryKey: ['user_store_assignments'] });
@@ -170,14 +185,18 @@ export default function Stores() {
                   {storeAssignments.map((a: any) => (
                     <div key={a.id} className="flex items-center justify-between bg-muted/30 rounded px-2 py-1.5">
                       <div>
-                        <p className="text-xs font-medium">{a.profiles?.full_name || a.profiles?.email || 'Unknown'}</p>
-                        <Badge variant="outline" className="text-[10px] capitalize">{a.role}</Badge>
+                        <p className="text-xs font-medium">{a.profile?.full_name || a.profile?.email || 'Pending invite'}</p>
+                        <p className="text-[10px] text-muted-foreground">{a.profile?.email || ''}</p>
+                        <Badge variant="outline" className="text-[10px] capitalize mt-0.5">{a.role}</Badge>
                       </div>
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveAssignment(a.id)}>
                         <Trash2 className="w-3 h-3 text-destructive" />
                       </Button>
                     </div>
                   ))}
+                  {storeAssignments.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-2">No users assigned</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
