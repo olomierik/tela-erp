@@ -129,7 +129,7 @@ export default function Sales() {
   const inventoryItems = inventoryData ?? [];
   const customers = customersData ?? [];
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
-  const customers = new Set(orders.map((o: any) => o.customer_email)).size;
+  const uniqueCustomers = new Set(orders.map((o: any) => o.customer_email)).size;
 
   const filtered = orders.filter((o: any) => {
     if (search && !o.order_number.toLowerCase().includes(search.toLowerCase()) && !o.customer_name.toLowerCase().includes(search.toLowerCase())) return false;
