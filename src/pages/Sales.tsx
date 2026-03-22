@@ -112,9 +112,9 @@ export default function Sales() {
   const handleCreate = (row: Record<string, any>) => {
     insertMutation.mutate(row, {
       onSuccess: (data: any) => {
-        if (row.item_id && tenant?.id) {
+        if (row.item_id && tenant?.id && data?.id) {
           (supabase.from('inventory_reservations') as any).insert({
-            tenant_id: tenant.id, item_id: row.item_id, sales_order_id: undefined, quantity: row.quantity || 1, status: 'reserved',
+            tenant_id: tenant.id, item_id: row.item_id, sales_order_id: data.id, quantity: row.quantity || 1, status: 'reserved',
           }).then(() => {});
         }
       },
