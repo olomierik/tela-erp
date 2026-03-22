@@ -155,7 +155,7 @@ export default function Sales() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Revenue (MTD)</p><p className="text-lg font-bold text-foreground">{isDemo ? formatMoney(89400) : formatMoney(totalRevenue)}</p></div>
         <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Orders</p><p className="text-lg font-bold text-foreground">{isDemo ? '142' : orders.length}</p></div>
-        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Customers</p><p className="text-lg font-bold text-foreground">{isDemo ? '89' : customers}</p></div>
+        <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Customers</p><p className="text-lg font-bold text-foreground">{isDemo ? '89' : uniqueCustomers}</p></div>
         <div className="rounded-lg border border-border bg-card px-4 py-3"><p className="text-xs text-muted-foreground">Avg Order</p><p className="text-lg font-bold text-foreground">{isDemo ? formatMoney(630) : orders.length ? formatMoney(Math.round(totalRevenue / orders.length)) : formatMoney(0)}</p></div>
       </div>
 
