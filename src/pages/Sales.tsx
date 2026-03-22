@@ -127,6 +127,7 @@ export default function Sales() {
 
   const orders = data ?? [];
   const inventoryItems = inventoryData ?? [];
+  const customers = customersData ?? [];
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
   const customers = new Set(orders.map((o: any) => o.customer_email)).size;
 
