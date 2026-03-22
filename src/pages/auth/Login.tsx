@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import telaLogo from '@/assets/tela-erp-logo.png';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -41,10 +42,8 @@ export default function Login() {
           <div className="absolute top-20 left-20 w-72 h-72 rounded-full bg-primary-foreground blur-3xl" />
           <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-primary-foreground blur-3xl" />
         </div>
-        <div className="relative z-10 text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-primary-foreground/20 backdrop-blur flex items-center justify-center mx-auto mb-6">
-            <Building2 className="w-8 h-8 text-primary-foreground" />
-          </div>
+         <div className="relative z-10 text-center max-w-md">
+          <img src={telaLogo} alt="TELA-ERP" className="w-32 h-32 object-contain mx-auto mb-6 drop-shadow-lg" />
           <h1 className="text-4xl font-bold text-primary-foreground mb-4">TELA-ERP</h1>
           <p className="text-primary-foreground/80 text-lg">
             The complete business management platform with white-label reseller capabilities.
@@ -56,9 +55,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
+            <img src={telaLogo} alt="TELA-ERP" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
           </div>
 
