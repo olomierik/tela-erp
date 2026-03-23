@@ -22,6 +22,10 @@ import Marketing from "./pages/Marketing";
 import Accounting from "./pages/Accounting";
 import Procurement from "./pages/Procurement";
 import Stores from "./pages/Stores";
+import OnlineStoreBuilder from "./pages/OnlineStoreBuilder";
+import StorefrontLayout from "./pages/storefront/StorefrontLayout";
+import StorefrontHome from "./pages/storefront/StorefrontHome";
+import StorefrontCheckout from "./pages/storefront/StorefrontCheckout";
 import Customers from "./pages/Customers";
 import Suppliers from "./pages/Suppliers";
 import StockTransfers from "./pages/StockTransfers";
@@ -69,6 +73,7 @@ const App = () => (
               <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
               <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
               <Route path="/transfers" element={<ProtectedRoute><StockTransfers /></ProtectedRoute>} />
+              <Route path="/online-store" element={<ProtectedRoute><OnlineStoreBuilder /></ProtectedRoute>} />
               <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
@@ -80,6 +85,12 @@ const App = () => (
               <Route path="/settings/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+
+              {/* Public storefront routes */}
+              <Route path="/store/:slug" element={<StorefrontLayout />}>
+                <Route index element={<StorefrontHome />} />
+                <Route path="checkout" element={<StorefrontCheckout />} />
+              </Route>
 
               <Route path="*" element={<NotFound />} />
             </Routes>

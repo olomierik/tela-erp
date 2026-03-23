@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Truck, Factory,
   Calculator, BarChart3, Bot, Settings, LogOut, ChevronLeft,
   ChevronRight, Building2, CreditCard, Palette, Rocket, Users, Menu, X,
-  FileBarChart, Megaphone, ArrowRightLeft, UserCheck, Warehouse,
+  FileBarChart, Megaphone, ArrowRightLeft, UserCheck, Warehouse, Globe,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ const mainNav = [
   { label: 'Accounting', icon: Calculator, path: '/accounting' },
   { label: 'Reports', icon: FileBarChart, path: '/reports' },
   { label: 'Stores', icon: Building2, path: '/stores' },
+  { label: 'Online Store', icon: Globe, path: '/online-store' },
 ];
 
 const bottomNav = [
