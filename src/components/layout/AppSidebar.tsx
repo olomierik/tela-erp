@@ -23,6 +23,7 @@ const mainNav = [
   { label: 'Accounting', icon: Calculator, path: '/accounting' },
   { label: 'Reports', icon: FileBarChart, path: '/reports' },
   { label: 'Stores', icon: Building2, path: '/stores' },
+  { label: 'Online Store', icon: Globe, path: '/online-store' },
 ];
 
 const bottomNav = [
