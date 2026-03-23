@@ -494,7 +494,9 @@ export type Database = {
           category_id: string | null
           created_at: string
           custom_fields: Json | null
+          description: string | null
           id: string
+          image_url: string | null
           name: string
           quantity: number
           reorder_level: number
@@ -511,7 +513,9 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           custom_fields?: Json | null
+          description?: string | null
           id?: string
+          image_url?: string | null
           name: string
           quantity?: number
           reorder_level?: number
@@ -528,7 +532,9 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           custom_fields?: Json | null
+          description?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           quantity?: number
           reorder_level?: number
