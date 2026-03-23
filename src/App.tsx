@@ -86,6 +86,12 @@ const App = () => (
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
 
+              {/* Public storefront routes */}
+              <Route path="/store/:slug" element={<StorefrontLayout />}>
+                <Route index element={<StorefrontHome />} />
+                <Route path="checkout" element={<StorefrontCheckout />} />
+              </Route>
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
