@@ -16,6 +16,8 @@ interface Product {
   quantity: number;
   unit_cost: number;
   status: string;
+  image_url: string | null;
+  description: string | null;
 }
 
 export default function StorefrontHome() {
