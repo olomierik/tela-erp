@@ -201,7 +201,7 @@ export default function Inventory() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  {['Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Value', 'Status', ...(!isDemo ? [''] : [])].map((h, i) => (
+                  {['', 'Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Value', 'Status', ...(!isDemo ? [''] : [])].map((h, i) => (
                     <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -213,6 +213,15 @@ export default function Inventory() {
                   const displayVariant = i.status === 'good' ? s.variant : 'destructive';
                   return (
                     <tr key={i.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 w-12">
+                        {i.image_url ? (
+                          <img src={i.image_url} alt={i.name} className="w-9 h-9 rounded object-cover border border-border" />
+                        ) : (
+                          <div className="w-9 h-9 rounded bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                            {i.name?.[0] || '?'}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 font-medium text-foreground">{i.name}</td>
                       <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{i.sku}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{i.category || '—'}</td>
@@ -222,16 +231,24 @@ export default function Inventory() {
                       <td className="px-4 py-2.5"><StatusBadge status={displayStatus} variant={displayVariant} /></td>
                       {!isDemo && (
                         <td className="px-4 py-2.5">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(i.id)}>
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <input type="file" accept="image/*" className="hidden" ref={uploadingItemId === i.id ? fileInputRef : undefined}
+                              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(i.id, f); }} />
+                            <Button variant="ghost" size="icon" className="h-7 w-7" disabled={uploadingItemId === i.id}
+                              onClick={() => { setUploadingItemId(i.id); setTimeout(() => fileInputRef.current?.click(), 50); }}>
+                              <ImagePlus className="w-3.5 h-3.5 text-primary" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(i.id)}>
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </td>
                       )}
                     </tr>
                   );
                 })}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">No items found</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-8 text-center text-sm text-muted-foreground">No items found</td></tr>
                 )}
               </tbody>
             </table>
