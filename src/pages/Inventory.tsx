@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown, Search, Filter } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown, Search, Filter, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
