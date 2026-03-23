@@ -58,6 +58,27 @@ export default function Inventory() {
   const remove = useTenantDelete('inventory_items');
   const qc = useQueryClient();
   useRealtimeSync('inventory_items');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
+
+  const handleImageUpload = async (itemId: string, file: File) => {
+    setUploadingItemId(itemId);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `${tenant?.id}/${itemId}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      const { error: updateError } = await (supabase.from('inventory_items') as any).update({ image_url: urlData.publicUrl }).eq('id', itemId);
+      if (updateError) throw updateError;
+      toast.success('Image uploaded');
+      qc.invalidateQueries({ queryKey: ['inventory_items'] });
+    } catch (e: any) {
+      toast.error(e.message || 'Upload failed');
+    } finally {
+      setUploadingItemId(null);
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
