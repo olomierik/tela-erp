@@ -132,6 +132,8 @@ export default function Inventory() {
 
   return (
     <AppLayout title="Inventory" subtitle="Stock levels & warehouse tracking">
+      <input type="file" accept="image/*" className="hidden" ref={fileInputRef}
+        onChange={e => { const f = e.target.files?.[0]; if (f && pendingUploadId.current) { handleImageUpload(pendingUploadId.current, f); } e.target.value = ''; }} />
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <MiniStat label="Total Items" value={isDemo ? '1,247' : String(items.length)} />
