@@ -32,6 +32,7 @@ const fields = [
   { name: 'unit_cost', label: 'Unit Cost', type: 'number' as const, required: true },
   { name: 'reorder_level', label: 'Reorder Level', type: 'number' as const, defaultValue: '10' },
   { name: 'warehouse_location', label: 'Warehouse Location' },
+  { name: 'description', label: 'Description' },
 ];
 
 function getStockStatus(qty: number, reorder: number) {
