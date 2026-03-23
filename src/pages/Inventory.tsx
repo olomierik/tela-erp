@@ -60,6 +60,7 @@ export default function Inventory() {
   useRealtimeSync('inventory_items');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingItemId, setUploadingItemId] = useState<string | null>(null);
+  const pendingUploadId = useRef<string | null>(null);
 
   const handleImageUpload = async (itemId: string, file: File) => {
     setUploadingItemId(itemId);
