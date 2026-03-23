@@ -233,10 +233,8 @@ export default function Inventory() {
                       {!isDemo && (
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-1">
-                            <input type="file" accept="image/*" className="hidden" ref={uploadingItemId === i.id ? fileInputRef : undefined}
-                              onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(i.id, f); }} />
                             <Button variant="ghost" size="icon" className="h-7 w-7" disabled={uploadingItemId === i.id}
-                              onClick={() => { setUploadingItemId(i.id); setTimeout(() => fileInputRef.current?.click(), 50); }}>
+                              onClick={() => { pendingUploadId.current = i.id; fileInputRef.current?.click(); }}>
                               <ImagePlus className="w-3.5 h-3.5 text-primary" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(i.id)}>
