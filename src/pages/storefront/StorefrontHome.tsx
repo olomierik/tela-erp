@@ -16,6 +16,8 @@ interface Product {
   quantity: number;
   unit_cost: number;
   status: string;
+  image_url: string | null;
+  description: string | null;
 }
 
 export default function StorefrontHome() {
@@ -96,9 +98,13 @@ export default function StorefrontHome() {
           {filtered.map(product => (
             <Card key={product.id} className="group hover:shadow-lg transition-shadow overflow-hidden">
               <CardContent className="p-0">
-                <div className="h-40 flex items-center justify-center text-4xl font-bold text-white/80 rounded-t-lg" style={{ background: `linear-gradient(135deg, ${store.primary_color}40, ${store.secondary_color}40)` }}>
-                  {product.name[0]}
-                </div>
+                {product.image_url ? (
+                  <img src={product.image_url} alt={product.name} className="h-40 w-full object-cover rounded-t-lg" />
+                ) : (
+                  <div className="h-40 flex items-center justify-center text-4xl font-bold text-white/80 rounded-t-lg" style={{ background: `linear-gradient(135deg, ${store.primary_color}40, ${store.secondary_color}40)` }}>
+                    {product.name[0]}
+                  </div>
+                )}
                 <div className="p-4 space-y-2">
                   <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
                   <div className="flex items-center gap-2">
