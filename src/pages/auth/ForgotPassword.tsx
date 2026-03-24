@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Building2, Mail, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ForgotPassword() {
-  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -17,11 +16,14 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await resetPassword(email);
+      const { data, error } = await supabase.functions.invoke('send-reset-otp', {
+        body: { email },
+      });
+      if (error) throw error;
       setSent(true);
-      toast.success('Password reset email sent!');
+      toast.success('Password reset code sent! Check your email.');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send reset email');
+      toast.error(err.message || 'Failed to send reset code');
     } finally {
       setLoading(false);
     }
@@ -39,21 +41,29 @@ export default function ForgotPassword() {
 
         {sent ? (
           <div className="text-center">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-success" />
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
             <p className="text-muted-foreground mb-6">
-              We've sent a password reset link to <strong>{email}</strong>
+              We've sent a 5-digit reset code to <strong>{email}</strong>
             </p>
-            <Link to="/login" className="text-primary font-medium hover:underline flex items-center justify-center gap-1.5">
-              <ArrowLeft className="w-4 h-4" /> Back to sign in
+            <Link
+              to={`/reset-password?email=${encodeURIComponent(email)}`}
+              className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
+            >
+              Enter your code →
             </Link>
+            <div className="mt-4">
+              <Link to="/login" className="text-sm text-muted-foreground hover:underline flex items-center justify-center gap-1.5">
+                <ArrowLeft className="w-4 h-4" /> Back to sign in
+              </Link>
+            </div>
           </div>
         ) : (
           <>
             <h2 className="text-2xl font-bold text-foreground mb-1">Reset your password</h2>
-            <p className="text-muted-foreground mb-8">Enter your email and we'll send you a reset link</p>
+            <p className="text-muted-foreground mb-8">Enter your email and we'll send you a 5-digit reset code</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -72,7 +82,7 @@ export default function ForgotPassword() {
                 </div>
               </div>
               <Button type="submit" className="w-full gradient-primary" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Reset Link'}
+                {loading ? 'Sending...' : 'Send Reset Code'}
               </Button>
             </form>
 
