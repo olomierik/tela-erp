@@ -105,15 +105,15 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div className="flex-1 text-center lg:text-left" initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-medium">
-              🚀 Enterprise ERP for Africa
+              🌍 Open Source ERP for Africa & the World
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              The All-in-One{' '}
-              <span className="text-gradient">AI System</span>{' '}
-              for African Business Success
+              The Free &{' '}
+              <span className="text-gradient">Open Source ERP</span>{' '}
+              for SMEs Everywhere
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              Manage production, inventory, sales, accounting, and more in one interconnected platform. TELA-ERP keeps your business running smoothly, efficiently, and intelligently.
+              Manage production, inventory, sales, accounting, and more — completely free. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
