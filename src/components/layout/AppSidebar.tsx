@@ -95,7 +95,7 @@ export default function AppSidebar() {
                 {tenant?.name || 'TELA-ERP'}
               </h1>
               <p className="text-[11px] text-sidebar-foreground capitalize leading-none">
-                {tenant?.subscription_tier || 'Pro'} Plan
+                Open Source ERP
               </p>
             </motion.div>
           )}

@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsDemo(false);
   };
 
-  const signUp = async (email: string, password: string, fullName: string, companyName?: string, signUpRole?: UserRole) => {
+  const signUp = async (email: string, password: string, fullName: string, companyName?: string, signUpRole?: UserRole, phone?: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -145,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           full_name: fullName,
           company_name: companyName || fullName + "'s Company",
           role: signUpRole || 'admin',
+          phone: phone || '',
         },
         emailRedirectTo: window.location.origin,
       },
