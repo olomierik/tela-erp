@@ -25,6 +25,18 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.fullName.trim()) {
+      toast.error('Full name is required');
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!form.phone.trim()) {
+      toast.error('Phone number is required');
+      return;
+    }
     if (form.password.length < 6) {
       toast.error('Password must be at least 6 characters');
       return;

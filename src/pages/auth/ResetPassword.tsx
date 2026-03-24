@@ -12,9 +12,10 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailFromQuery = searchParams.get('email') || '';
+  const otpFromQuery = searchParams.get('otp') || '';
 
   const [email, setEmail] = useState(emailFromQuery);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(otpFromQuery);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -87,7 +88,9 @@ export default function ResetPassword() {
 
           <div>
             <Label>Reset Code</Label>
-            <p className="text-xs text-muted-foreground mb-2">Enter the 5-digit code sent to {email || 'your email'}</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              {otpFromQuery ? '✅ Code auto-filled from your email link' : `Enter the 5-digit code sent to ${email || 'your email'}`}
+            </p>
             <div className="flex justify-center">
               <InputOTP maxLength={5} value={otp} onChange={setOtp}>
                 <InputOTPGroup>

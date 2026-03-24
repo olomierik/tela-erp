@@ -45,14 +45,20 @@ export default function ForgotPassword() {
               <Mail className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
-            <p className="text-muted-foreground mb-6">
-              We've sent a 5-digit reset code to <strong>{email}</strong>
+            <p className="text-muted-foreground mb-4">
+              We've sent a password reset link to <strong>{email}</strong>.
+            </p>
+            <p className="text-sm text-muted-foreground mb-6">
+              Click the link in the email — it will take you directly to the password reset page with your code pre-filled.
+            </p>
+            <p className="text-xs text-muted-foreground mb-6">
+              Or enter the code manually:
             </p>
             <Link
               to={`/reset-password?email=${encodeURIComponent(email)}`}
               className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
             >
-              Enter your code →
+              Enter code manually →
             </Link>
             <div className="mt-4">
               <Link to="/login" className="text-sm text-muted-foreground hover:underline flex items-center justify-center gap-1.5">
