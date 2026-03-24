@@ -320,7 +320,7 @@ export default function Landing() {
                 <span className="font-bold text-lg">TELA-ERP</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The complete AI-powered ERP platform built for African businesses with white-label reseller capabilities.
+                Free & open source ERP platform built for SMEs in Africa and the world.
               </p>
             </div>
             <div>
