@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, User, Briefcase, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, Briefcase, ArrowRight, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ export default function Signup() {
   const [form, setForm] = useState({
     fullName: '',
     email: '',
+    phone: '',
     password: '',
     companyName: '',
     accountType: 'admin' as UserRole,
@@ -30,7 +31,7 @@ export default function Signup() {
     }
     setLoading(true);
     try {
-      await signUp(form.email, form.password, form.fullName, form.companyName, form.accountType);
+      await signUp(form.email, form.password, form.fullName, form.companyName, form.accountType, form.phone);
       toast.success('Account created! Check your email to verify.');
       navigate('/login');
     } catch (err: any) {
@@ -150,7 +151,7 @@ export default function Signup() {
           </div>
 
           <h2 className="text-2xl font-bold text-foreground mb-1">Create your account</h2>
-          <p className="text-muted-foreground mb-8">Start your 14-day free trial</p>
+          <p className="text-muted-foreground mb-8">Create your free account to get started</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -193,6 +194,22 @@ export default function Signup() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="you@company.com"
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="phone">Phone Number</Label>
+              <div className="relative mt-1.5">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="+254 712 345 678"
                   className="pl-10"
                   required
                 />

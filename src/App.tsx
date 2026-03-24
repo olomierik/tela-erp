@@ -31,7 +31,7 @@ import Suppliers from "./pages/Suppliers";
 import StockTransfers from "./pages/StockTransfers";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import WhiteLabel from "./pages/WhiteLabel";
-import Billing from "./pages/Billing";
+
 import Team from "./pages/Team";
 import SettingsPage from "./pages/Settings";
 import ProductionReadiness from "./pages/ProductionReadiness";
@@ -81,7 +81,7 @@ const App = () => (
 
               {/* Admin routes */}
               <Route path="/settings/white-label" element={<ProtectedRoute><WhiteLabel /></ProtectedRoute>} />
-              <Route path="/settings/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+              
               <Route path="/settings/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />

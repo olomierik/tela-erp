@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Package, ShoppingCart, Truck, Factory,
   Calculator, BarChart3, Bot, Settings, LogOut, ChevronLeft,
-  ChevronRight, Building2, CreditCard, Palette, Rocket, Users, Menu, X,
+  ChevronRight, Building2, Palette, Rocket, Users, Menu, X,
   FileBarChart, Megaphone, ArrowRightLeft, UserCheck, Warehouse, Globe,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +28,6 @@ const mainNav = [
 
 const bottomNav = [
   { label: 'Team', icon: Users, path: '/settings/team' },
-  { label: 'Billing', icon: CreditCard, path: '/settings/billing' },
   { label: 'White Label', icon: Palette, path: '/settings/white-label' },
   { label: 'Readiness', icon: Rocket, path: '/settings/readiness' },
   { label: 'Settings', icon: Settings, path: '/settings' },
@@ -96,7 +95,7 @@ export default function AppSidebar() {
                 {tenant?.name || 'TELA-ERP'}
               </h1>
               <p className="text-[11px] text-sidebar-foreground capitalize leading-none">
-                {tenant?.subscription_tier || 'Pro'} Plan
+                Open Source ERP
               </p>
             </motion.div>
           )}
