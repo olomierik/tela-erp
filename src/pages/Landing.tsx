@@ -4,7 +4,7 @@ import {
   Building2, Package, ShoppingCart, Truck, Factory, Calculator,
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
-  CreditCard, Menu, X, Store,
+  CreditCard, Menu, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
