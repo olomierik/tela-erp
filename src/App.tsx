@@ -81,7 +81,7 @@ const App = () => (
 
               {/* Admin routes */}
               <Route path="/settings/white-label" element={<ProtectedRoute><WhiteLabel /></ProtectedRoute>} />
-              <Route path="/settings/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+              
               <Route path="/settings/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
