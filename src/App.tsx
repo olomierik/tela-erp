@@ -31,7 +31,7 @@ import Suppliers from "./pages/Suppliers";
 import StockTransfers from "./pages/StockTransfers";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import WhiteLabel from "./pages/WhiteLabel";
-import Billing from "./pages/Billing";
+
 import Team from "./pages/Team";
 import SettingsPage from "./pages/Settings";
 import ProductionReadiness from "./pages/ProductionReadiness";
