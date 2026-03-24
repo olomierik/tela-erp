@@ -16,6 +16,7 @@ export default function Signup() {
   const [form, setForm] = useState({
     fullName: '',
     email: '',
+    phone: '',
     password: '',
     companyName: '',
     accountType: 'admin' as UserRole,
