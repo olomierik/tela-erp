@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Mail, ArrowLeft } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -16,14 +17,14 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-reset-otp', {
-        body: { email },
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
       setSent(true);
-      toast.success('Password reset code sent! Check your email.');
+      toast.success('Password reset link sent! Check your email.');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to send reset code');
+      toast.error(err.message || 'Failed to send reset link');
     } finally {
       setLoading(false);
     }
@@ -33,9 +34,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
-            <Building2 className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={telaLogo} alt="TELA-ERP" className="w-10 h-10 object-contain" />
           <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
         </div>
 
@@ -45,21 +44,9 @@ export default function ForgotPassword() {
               <Mail className="w-8 h-8 text-primary" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Check your email</h2>
-            <p className="text-muted-foreground mb-4">
-              We've sent a password reset link to <strong>{email}</strong>.
+            <p className="text-muted-foreground mb-6">
+              We've sent a password reset link to <strong>{email}</strong>. Click the link in the email to set a new password.
             </p>
-            <p className="text-sm text-muted-foreground mb-6">
-              Click the link in the email — it will take you directly to the password reset page with your code pre-filled.
-            </p>
-            <p className="text-xs text-muted-foreground mb-6">
-              Or enter the code manually:
-            </p>
-            <Link
-              to={`/reset-password?email=${encodeURIComponent(email)}`}
-              className="inline-flex items-center gap-2 text-primary font-medium hover:underline"
-            >
-              Enter code manually →
-            </Link>
             <div className="mt-4">
               <Link to="/login" className="text-sm text-muted-foreground hover:underline flex items-center justify-center gap-1.5">
                 <ArrowLeft className="w-4 h-4" /> Back to sign in
@@ -69,7 +56,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <h2 className="text-2xl font-bold text-foreground mb-1">Reset your password</h2>
-            <p className="text-muted-foreground mb-8">Enter your email and we'll send you a 5-digit reset code</p>
+            <p className="text-muted-foreground mb-8">Enter your email and we'll send you a reset link</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -88,7 +75,7 @@ export default function ForgotPassword() {
                 </div>
               </div>
               <Button type="submit" className="w-full gradient-primary" disabled={loading}>
-                {loading ? 'Sending...' : 'Send Reset Code'}
+                {loading ? 'Sending...' : 'Send Reset Link'}
               </Button>
             </form>
 
