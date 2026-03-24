@@ -28,7 +28,6 @@ const mainNav = [
 
 const bottomNav = [
   { label: 'Team', icon: Users, path: '/settings/team' },
-  { label: 'Billing', icon: CreditCard, path: '/settings/billing' },
   { label: 'White Label', icon: Palette, path: '/settings/white-label' },
   { label: 'Readiness', icon: Rocket, path: '/settings/readiness' },
   { label: 'Settings', icon: Settings, path: '/settings' },
