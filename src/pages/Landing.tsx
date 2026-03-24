@@ -41,39 +41,6 @@ const features = [
   { icon: Zap, title: 'Real-Time Sync', desc: 'Live updates across all modules — inventory, sales, accounting, and dashboards update instantly.' },
 ];
 
-const pricing = [
-  {
-    name: 'Starter',
-    price: '$60',
-    period: '/mo',
-    desc: 'For small businesses getting started',
-    stores: '1 Store',
-    features: ['Up to 5 client tenants', 'All 6 ERP modules', 'Basic reports & PDF export', 'Email support', 'Multi-currency', '1 store/location'],
-    cta: 'Get Started',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: '$180',
-    period: '/mo',
-    desc: 'For growing businesses with more clients',
-    stores: 'Up to 5 Stores',
-    features: ['Up to 50 client tenants', 'Everything in Starter', 'White-label branding', 'Tela AI insights', 'Priority support', 'Custom domain', 'Up to 5 stores/locations'],
-    cta: 'Get Started',
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '$400',
-    period: '/mo',
-    desc: 'Unlimited scale for large operations',
-    stores: 'Unlimited Stores',
-    features: ['Unlimited client tenants', 'Everything in Pro', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'Audit & compliance', 'Unlimited stores/locations'],
-    cta: 'Contact Sales',
-    popular: false,
-  },
-];
-
 const faqs = [
   { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform designed for African businesses. It manages production, inventory, sales, marketing, accounting, and procurement in one interconnected system.' },
   { q: 'Is it suitable for my business size?', a: 'Yes. Whether you run a single shop or manage operations across multiple locations and countries, TELA-ERP scales with you.' },
