@@ -88,7 +88,9 @@ export default function ResetPassword() {
 
           <div>
             <Label>Reset Code</Label>
-            <p className="text-xs text-muted-foreground mb-2">Enter the 5-digit code sent to {email || 'your email'}</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              {otpFromQuery ? '✅ Code auto-filled from your email link' : `Enter the 5-digit code sent to ${email || 'your email'}`}
+            </p>
             <div className="flex justify-center">
               <InputOTP maxLength={5} value={otp} onChange={setOtp}>
                 <InputOTPGroup>
