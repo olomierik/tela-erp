@@ -12,9 +12,10 @@ export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const emailFromQuery = searchParams.get('email') || '';
+  const otpFromQuery = searchParams.get('otp') || '';
 
   const [email, setEmail] = useState(emailFromQuery);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(otpFromQuery);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
