@@ -69,7 +69,7 @@ export default function Landing() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#modules" className="hover:text-foreground transition-colors">Modules</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-foreground transition-colors">Support</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </div>
 
