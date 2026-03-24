@@ -31,7 +31,7 @@ export default function Signup() {
     }
     setLoading(true);
     try {
-      await signUp(form.email, form.password, form.fullName, form.companyName, form.accountType);
+      await signUp(form.email, form.password, form.fullName, form.companyName, form.accountType, form.phone);
       toast.success('Account created! Check your email to verify.');
       navigate('/login');
     } catch (err: any) {
