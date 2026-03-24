@@ -4,7 +4,7 @@ import {
   Building2, Package, ShoppingCart, Truck, Factory, Calculator,
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
-  CreditCard, Menu, X, Store,
+  CreditCard, Menu, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,39 +41,6 @@ const features = [
   { icon: Zap, title: 'Real-Time Sync', desc: 'Live updates across all modules — inventory, sales, accounting, and dashboards update instantly.' },
 ];
 
-const pricing = [
-  {
-    name: 'Starter',
-    price: '$60',
-    period: '/mo',
-    desc: 'For small businesses getting started',
-    stores: '1 Store',
-    features: ['Up to 5 client tenants', 'All 6 ERP modules', 'Basic reports & PDF export', 'Email support', 'Multi-currency', '1 store/location'],
-    cta: 'Get Started',
-    popular: false,
-  },
-  {
-    name: 'Pro',
-    price: '$180',
-    period: '/mo',
-    desc: 'For growing businesses with more clients',
-    stores: 'Up to 5 Stores',
-    features: ['Up to 50 client tenants', 'Everything in Starter', 'White-label branding', 'Tela AI insights', 'Priority support', 'Custom domain', 'Up to 5 stores/locations'],
-    cta: 'Get Started',
-    popular: true,
-  },
-  {
-    name: 'Enterprise',
-    price: '$400',
-    period: '/mo',
-    desc: 'Unlimited scale for large operations',
-    stores: 'Unlimited Stores',
-    features: ['Unlimited client tenants', 'Everything in Pro', 'Dedicated support', 'Custom integrations', 'SLA guarantee', 'Audit & compliance', 'Unlimited stores/locations'],
-    cta: 'Contact Sales',
-    popular: false,
-  },
-];
-
 const faqs = [
   { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform designed for African businesses. It manages production, inventory, sales, marketing, accounting, and procurement in one interconnected system.' },
   { q: 'Is it suitable for my business size?', a: 'Yes. Whether you run a single shop or manage operations across multiple locations and countries, TELA-ERP scales with you.' },
@@ -102,7 +69,7 @@ export default function Landing() {
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#modules" className="hover:text-foreground transition-colors">Modules</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <a href="#pricing" className="hover:text-foreground transition-colors">Support</a>
             <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
           </div>
 
@@ -121,7 +88,7 @@ export default function Landing() {
             <div className="flex flex-col gap-3 py-3 text-sm font-medium">
               <a href="#modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Pricing</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Support</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2">FAQ</a>
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" asChild><Link to="/login">Sign In</Link></Button>
@@ -138,15 +105,15 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div className="flex-1 text-center lg:text-left" initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-medium">
-              🚀 Enterprise ERP for Africa
+              🌍 Open Source ERP for Africa & the World
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              The All-in-One{' '}
-              <span className="text-gradient">AI System</span>{' '}
-              for African Business Success
+              The Free &{' '}
+              <span className="text-gradient">Open Source ERP</span>{' '}
+              for SMEs Everywhere
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              Manage production, inventory, sales, accounting, and more in one interconnected platform. TELA-ERP keeps your business running smoothly, efficiently, and intelligently.
+              Manage production, inventory, sales, accounting, and more — completely free. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
@@ -248,62 +215,37 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* SUPPORT / OPEN SOURCE */}
       <section id="pricing" className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-3">Pricing</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Get Started Your Way</h2>
-            <p className="text-muted-foreground">Choose the plan that fits your business. All plans include a free trial.</p>
+            <Badge variant="secondary" className="mb-3">🌍 Open Source</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Free & Open Source ERP for Everyone</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
+              No subscriptions, no hidden fees. Just a powerful ERP system, completely free to use.
+            </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricing.map((plan, i) => (
-              <motion.div key={plan.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
-                <Card className={`h-full relative border-2 ${plan.popular ? 'border-primary shadow-glow' : 'border-border'}`}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="gradient-primary text-primary-foreground px-3">Most Popular</Badge>
-                    </div>
-                  )}
-                  <CardContent className="p-6 pt-8 flex flex-col h-full">
-                    <h3 className="font-bold text-lg">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
-                    <div className="flex items-center gap-2 mt-2 mb-4">
-                      <Badge variant="outline" className="text-xs"><Store className="w-3 h-3 mr-1" />{plan.stores}</Badge>
-                    </div>
-                    <div className="mb-6">
-                      <span className="text-4xl font-extrabold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    </div>
-                    <ul className="space-y-2.5 mb-8 flex-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5 text-sm">
-                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button className={`w-full ${plan.popular ? 'gradient-primary' : ''}`} variant={plan.popular ? 'default' : 'outline'} asChild>
-                      <Link to="/signup">{plan.cta} <ChevronRight className="w-4 h-4 ml-1" /></Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="max-w-lg mx-auto">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5">
+                    <CreditCard className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                  <h3 className="font-bold text-xl mb-2">Support the Project</h3>
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                    TELA-ERP is maintained by a small team passionate about making enterprise software accessible to all.
+                    You can support the continued development of this project by contributing via the QR code below.
+                    Every contribution helps us build new features, fix bugs, and keep the platform running.
+                  </p>
+                  <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP support" className="w-64 mx-auto rounded-lg border border-border mb-4" />
+                  <p className="text-xs text-muted-foreground">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
-
-          {/* Payment QR Code */}
-          <motion.div className="mt-14 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Card className="max-w-sm mx-auto border-2 border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-2">Pay via Mobile Money / Bank</h3>
-                <p className="text-sm text-muted-foreground mb-4">Scan the QR code below to make payment directly</p>
-                <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP payment" className="w-full rounded-lg border border-border" />
-                <p className="text-xs text-muted-foreground mt-3">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 
@@ -349,8 +291,8 @@ export default function Landing() {
               </div>
               <div className="relative z-10">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Ready to Transform Your Business?</h2>
-                <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-                  Join thousands of African businesses using TELA-ERP to streamline operations and drive growth.
+              <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
+                  Join SMEs across Africa and the world using this free, open source ERP to streamline operations and drive growth.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
@@ -378,7 +320,7 @@ export default function Landing() {
                 <span className="font-bold text-lg">TELA-ERP</span>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The complete AI-powered ERP platform built for African businesses with white-label reseller capabilities.
+                Free & open source ERP platform built for SMEs in Africa and the world.
               </p>
             </div>
             <div>
@@ -404,8 +346,8 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} TELA-ERP. All rights reserved.</span>
-            <span>Built with ❤️ for African businesses</span>
+            <span>© {new Date().getFullYear()} TELA-ERP. Open Source — Free Forever.</span>
+            <span>Built with ❤️ for SMEs in Africa & the world</span>
           </div>
         </div>
       </footer>

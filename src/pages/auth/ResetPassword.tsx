@@ -1,21 +1,31 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Building2, Lock } from 'lucide-react';
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Building2, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ResetPassword() {
-  const { updatePassword } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const emailFromQuery = searchParams.get('email') || '';
+
+  const [email, setEmail] = useState(emailFromQuery);
+  const [otp, setOtp] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (otp.length !== 5) {
+      toast.error('Please enter the full 5-digit code');
+      return;
+    }
     if (password !== confirmPassword) {
       toast.error('Passwords do not match');
       return;
@@ -24,13 +34,20 @@ export default function ResetPassword() {
       toast.error('Password must be at least 6 characters');
       return;
     }
+
     setLoading(true);
     try {
-      await updatePassword(password);
+      const { data, error } = await supabase.functions.invoke('verify-reset-otp', {
+        body: { email, otp, newPassword: password },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
       toast.success('Password updated successfully!');
-      navigate('/dashboard');
+      navigate('/login');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update password');
+      toast.error(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
@@ -46,10 +63,44 @@ export default function ResetPassword() {
           <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
         </div>
 
-        <h2 className="text-2xl font-bold text-foreground mb-1">Set new password</h2>
-        <p className="text-muted-foreground mb-8">Enter your new password below</p>
+        <div className="flex items-center gap-2 mb-1">
+          <ShieldCheck className="w-6 h-6 text-primary" />
+          <h2 className="text-2xl font-bold text-foreground">Set new password</h2>
+        </div>
+        <p className="text-muted-foreground mb-8">Enter the 5-digit code from your email and your new password</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {!emailFromQuery && (
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="mt-1.5"
+                required
+              />
+            </div>
+          )}
+
+          <div>
+            <Label>Reset Code</Label>
+            <p className="text-xs text-muted-foreground mb-2">Enter the 5-digit code sent to {email || 'your email'}</p>
+            <div className="flex justify-center">
+              <InputOTP maxLength={5} value={otp} onChange={setOtp}>
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="password">New Password</Label>
             <div className="relative mt-1.5">
@@ -65,6 +116,7 @@ export default function ResetPassword() {
               />
             </div>
           </div>
+
           <div>
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <div className="relative mt-1.5">
@@ -80,8 +132,9 @@ export default function ResetPassword() {
               />
             </div>
           </div>
+
           <Button type="submit" className="w-full gradient-primary" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Password'}
+            {loading ? 'Updating...' : 'Reset Password'}
           </Button>
         </form>
       </div>
