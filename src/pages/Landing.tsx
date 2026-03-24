@@ -215,62 +215,37 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* SUPPORT / OPEN SOURCE */}
       <section id="pricing" className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-3">Pricing</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Get Started Your Way</h2>
-            <p className="text-muted-foreground">Choose the plan that fits your business. All plans include a free trial.</p>
+            <Badge variant="secondary" className="mb-3">🌍 Open Source</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Free & Open Source ERP for Everyone</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
+              No subscriptions, no hidden fees. Just a powerful ERP system, completely free to use.
+            </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {pricing.map((plan, i) => (
-              <motion.div key={plan.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
-                <Card className={`h-full relative border-2 ${plan.popular ? 'border-primary shadow-glow' : 'border-border'}`}>
-                  {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <Badge className="gradient-primary text-primary-foreground px-3">Most Popular</Badge>
-                    </div>
-                  )}
-                  <CardContent className="p-6 pt-8 flex flex-col h-full">
-                    <h3 className="font-bold text-lg">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
-                    <div className="flex items-center gap-2 mt-2 mb-4">
-                      <Badge variant="outline" className="text-xs"><Store className="w-3 h-3 mr-1" />{plan.stores}</Badge>
-                    </div>
-                    <div className="mb-6">
-                      <span className="text-4xl font-extrabold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    </div>
-                    <ul className="space-y-2.5 mb-8 flex-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5 text-sm">
-                          <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Button className={`w-full ${plan.popular ? 'gradient-primary' : ''}`} variant={plan.popular ? 'default' : 'outline'} asChild>
-                      <Link to="/signup">{plan.cta} <ChevronRight className="w-4 h-4 ml-1" /></Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="max-w-lg mx-auto">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-8 text-center">
+                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5">
+                    <CreditCard className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                  <h3 className="font-bold text-xl mb-2">Support the Project</h3>
+                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                    TELA-ERP is maintained by a small team passionate about making enterprise software accessible to all.
+                    You can support the continued development of this project by contributing via the QR code below.
+                    Every contribution helps us build new features, fix bugs, and keep the platform running.
+                  </p>
+                  <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP support" className="w-64 mx-auto rounded-lg border border-border mb-4" />
+                  <p className="text-xs text-muted-foreground">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
-
-          {/* Payment QR Code */}
-          <motion.div className="mt-14 text-center" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Card className="max-w-sm mx-auto border-2 border-primary/20">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-2">Pay via Mobile Money / Bank</h3>
-                <p className="text-sm text-muted-foreground mb-4">Scan the QR code below to make payment directly</p>
-                <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP payment" className="w-full rounded-lg border border-border" />
-                <p className="text-xs text-muted-foreground mt-3">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
-              </CardContent>
-            </Card>
-          </motion.div>
         </div>
       </section>
 
