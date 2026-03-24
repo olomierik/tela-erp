@@ -88,7 +88,7 @@ export default function Landing() {
             <div className="flex flex-col gap-3 py-3 text-sm font-medium">
               <a href="#modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</a>
               <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Pricing</a>
+              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Support</a>
               <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2">FAQ</a>
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" asChild><Link to="/login">Sign In</Link></Button>
