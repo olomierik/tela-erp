@@ -346,8 +346,8 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} TELA-ERP. All rights reserved.</span>
-            <span>Built with ❤️ for African businesses</span>
+            <span>© {new Date().getFullYear()} TELA-ERP. Open Source — Free Forever.</span>
+            <span>Built with ❤️ for SMEs in Africa & the world</span>
           </div>
         </div>
       </footer>
