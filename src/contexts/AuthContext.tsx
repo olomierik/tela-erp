@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean;
   isDemo: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, companyName?: string, role?: UserRole) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, companyName?: string, role?: UserRole, phone?: string) => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
