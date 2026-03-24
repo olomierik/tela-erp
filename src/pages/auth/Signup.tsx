@@ -151,7 +151,7 @@ export default function Signup() {
           </div>
 
           <h2 className="text-2xl font-bold text-foreground mb-1">Create your account</h2>
-          <p className="text-muted-foreground mb-8">Start your 14-day free trial</p>
+          <p className="text-muted-foreground mb-8">Create your free account to get started</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
