@@ -16,7 +16,7 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
     queryKey: [table, tenant?.id, selectedStoreId],
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
-      let query = (supabase.from(table) as any)
+      let query = (supabase.from(table as any) as any)
         .select('*')
         .eq('tenant_id', tenant.id);
 
