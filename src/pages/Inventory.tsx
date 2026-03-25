@@ -134,6 +134,18 @@ export default function Inventory() {
     <AppLayout title="Inventory" subtitle="Stock levels & warehouse tracking">
       <input type="file" accept="image/*" className="hidden" ref={fileInputRef}
         onChange={e => { const f = e.target.files?.[0]; if (f && pendingUploadId.current) { handleImageUpload(pendingUploadId.current, f); } e.target.value = ''; }} />
+      
+      {/* Low Stock Alert Banner */}
+      {(lowStock.length > 0 || (isDemo)) && (
+        <div className="mb-4 flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <p className="text-sm font-medium">
+            {isDemo ? '8 items' : `${lowStock.length} item${lowStock.length !== 1 ? 's' : ''}`} below reorder level —{' '}
+            <button className="underline hover:no-underline" onClick={() => setTab('low_stock')}>View low stock items</button>
+          </p>
+        </div>
+      )}
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <MiniStat label="Total Items" value={isDemo ? '1,247' : String(items.length)} />

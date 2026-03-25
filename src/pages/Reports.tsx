@@ -259,13 +259,113 @@ export default function Reports() {
         if (v === 'accounting') setReportType('trial_balance');
         else setReportType(v as ReportType);
       }} className="mb-4">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="production">Production</TabsTrigger>
           <TabsTrigger value="accounting">Accounting</TabsTrigger>
+          <TabsTrigger value="hr">HR</TabsTrigger>
+          <TabsTrigger value="crm">CRM Pipeline</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {/* HR Summary */}
+      {reportType === ('hr' as any) && (
+        <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Total Headcount</p>
+            <p className="text-2xl font-bold text-foreground mt-1">24</p>
+            <p className="text-xs text-muted-foreground mt-1">+3 this month</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Monthly Payroll</p>
+            <p className="text-2xl font-bold text-indigo-600 mt-1">{formatMoney(28500)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Net after deductions</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Avg Salary</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{formatMoney(5800)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Per employee/month</p>
+          </div>
+          <div className="col-span-full rounded-xl border border-border bg-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40"><tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="text-left px-4 py-3 font-medium">Department</th>
+                <th className="text-center px-4 py-3 font-medium">Headcount</th>
+                <th className="text-right px-4 py-3 font-medium">Payroll Cost</th>
+                <th className="text-right px-4 py-3 font-medium">% of Total</th>
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {[
+                  { dept: 'Engineering', count: 8, cost: 9200 },
+                  { dept: 'Sales', count: 5, cost: 6100 },
+                  { dept: 'Finance', count: 3, cost: 3800 },
+                  { dept: 'Marketing', count: 4, cost: 4600 },
+                  { dept: 'HR', count: 2, cost: 2400 },
+                  { dept: 'Operations', count: 2, cost: 2400 },
+                ].map(row => (
+                  <tr key={row.dept} className="hover:bg-accent/40">
+                    <td className="px-4 py-3 font-medium text-foreground">{row.dept}</td>
+                    <td className="px-4 py-3 text-center">{row.count}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatMoney(row.cost)}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{Math.round((row.cost / 28500) * 100)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* CRM Pipeline Summary */}
+      {reportType === ('crm' as any) && (
+        <div className="mb-5 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Total Pipeline</p>
+              <p className="text-2xl font-bold text-indigo-600 mt-1">{formatMoney(187000)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Won (MTD)</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{formatMoney(310000)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Avg Deal Size</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{formatMoney(31167)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-xs text-muted-foreground">Win Rate</p>
+              <p className="text-2xl font-bold text-foreground mt-1">42%</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40"><tr className="border-b border-border text-xs text-muted-foreground">
+                <th className="text-left px-4 py-3 font-medium">Stage</th>
+                <th className="text-center px-4 py-3 font-medium">Deals</th>
+                <th className="text-right px-4 py-3 font-medium">Value</th>
+                <th className="text-right px-4 py-3 font-medium">Avg Probability</th>
+              </tr></thead>
+              <tbody className="divide-y divide-border">
+                {[
+                  { stage: 'Lead', count: 3, value: 27600, prob: '18%' },
+                  { stage: 'Qualified', count: 1, value: 12000, prob: '45%' },
+                  { stage: 'Proposal', count: 1, value: 48000, prob: '65%' },
+                  { stage: 'Negotiation', count: 1, value: 89000, prob: '80%' },
+                  { stage: 'Won', count: 1, value: 310000, prob: '100%' },
+                ].map(row => (
+                  <tr key={row.stage} className="hover:bg-accent/40">
+                    <td className="px-4 py-3 font-medium text-foreground">{row.stage}</td>
+                    <td className="px-4 py-3 text-center">{row.count}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-indigo-600">{formatMoney(row.value)}</td>
+                    <td className="px-4 py-3 text-right text-muted-foreground">{row.prob}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Accounting sub-tabs */}
       {isAccounting && (
