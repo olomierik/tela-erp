@@ -45,7 +45,7 @@ export function useTenantInsert(table: TableName) {
       if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
         insertData.store_id = selectedStoreId;
       }
-      const { data, error } = await (supabase.from(table) as any)
+      const { data, error } = await (supabase.from(table as any) as any)
         .insert(insertData)
         .select()
         .single();
@@ -65,7 +65,7 @@ export function useTenantUpdate(table: TableName) {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Record<string, any>) => {
-      const { data, error } = await (supabase.from(table) as any)
+      const { data, error } = await (supabase.from(table as any) as any)
         .update(updates)
         .eq('id', id)
         .select()
@@ -86,7 +86,7 @@ export function useTenantDelete(table: TableName) {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from(table) as any).delete().eq('id', id);
+      const { error } = await (supabase.from(table as any) as any).delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
