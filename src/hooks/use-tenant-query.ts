@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
 import { toast } from 'sonner';
 
-type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'campaigns' | 'transactions' | 'purchase_orders' | 'inventory_transactions' | 'inventory_reservations' | 'audit_log' | 'inventory_adjustments' | 'categories' | 'customers' | 'suppliers' | 'stock_transfers' | 'bom_templates' | 'bom_lines' | 'chart_of_accounts' | 'journal_entries' | 'payments' | 'stores' | 'employees' | 'departments' | 'attendance_logs' | 'leave_requests' | 'payroll_runs' | 'payroll_lines' | 'crm_deals' | 'crm_activities' | 'invoices' | 'invoice_lines' | 'projects' | 'project_tasks' | 'time_logs' | 'notifications';
+type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'campaigns' | 'transactions' | 'purchase_orders' | 'inventory_transactions' | 'inventory_reservations' | 'audit_log' | 'inventory_adjustments' | 'categories' | 'customers' | 'suppliers' | 'stock_transfers' | 'bom_templates' | 'bom_lines' | 'chart_of_accounts' | 'journal_entries' | 'payments' | 'stores' | 'invoices' | 'invoice_lines' | 'projects' | 'project_tasks' | 'notifications';
 
 const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders', 'customers', 'suppliers', 'stock_transfers', 'payments'];
 
