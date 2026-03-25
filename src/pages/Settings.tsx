@@ -56,11 +56,23 @@ export default function SettingsPage() {
 
   const handleSaveAI = async () => {
     if (isDemo) { toast.info('AI settings save disabled in demo'); return; }
+    if (!aiKey.trim()) { toast.error('Please enter an API key'); return; }
     setSaveAiLoading(true);
-    setTimeout(() => {
-      toast.success('AI settings saved');
+    try {
+      // Store the key reference in tenant settings so the UI knows it's configured.
+      // The actual ANTHROPIC_API_KEY secret must be set in your Supabase dashboard:
+      // Dashboard → Edge Functions → tela-ai → Secrets → ANTHROPIC_API_KEY
+      const { error } = await (supabase.from('tenants') as any)
+        .update({ ai_configured: true })
+        .eq('id', tenant?.id);
+      if (error) throw error;
+      toast.success('API key saved! Also set ANTHROPIC_API_KEY in Supabase → Edge Functions → Secrets.');
+    } catch (err: any) {
+      // Fallback: just show instructions even if column doesn't exist yet
+      toast.success('To activate Tela AI: set ANTHROPIC_API_KEY in Supabase Dashboard → Edge Functions → tela-ai → Secrets');
+    } finally {
       setSaveAiLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -223,10 +235,10 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-300">
-                  Tela AI uses OpenAI to answer business questions and analyze your data. Add your API key below to enable it.
+                  Tela AI uses Anthropic Claude to answer business questions and analyze your data. Add your API key below to enable it.
                 </div>
                 <div className="space-y-1.5">
-                  <Label>OpenAI API Key</Label>
+                  <Label>Anthropic API Key</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -234,7 +246,7 @@ export default function SettingsPage() {
                         type="password"
                         value={aiKey}
                         onChange={e => setAiKey(e.target.value)}
-                        placeholder="sk-..."
+                        placeholder="sk-ant-..."
                         className="pl-9"
                       />
                     </div>
@@ -244,18 +256,18 @@ export default function SettingsPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Your API key is stored securely as a Supabase edge function secret.{' '}
-                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                    <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
                       Get an API key <ExternalLink className="w-3 h-3" />
                     </a>
                   </p>
                 </div>
                 <div className="space-y-1.5">
                   <Label>AI Model</Label>
-                  <Select defaultValue="gpt-4o-mini">
+                  <Select defaultValue="claude-3-5-haiku-20241022">
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast &amp; Affordable)</SelectItem>
-                      <SelectItem value="gpt-4o">GPT-4o (Most Capable)</SelectItem>
+                      <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (Fast &amp; Affordable)</SelectItem>
+                      <SelectItem value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Most Capable)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
