@@ -31,11 +31,15 @@ import Suppliers from "./pages/Suppliers";
 import StockTransfers from "./pages/StockTransfers";
 import ResellerDashboard from "./pages/ResellerDashboard";
 import WhiteLabel from "./pages/WhiteLabel";
-
 import Team from "./pages/Team";
 import SettingsPage from "./pages/Settings";
 import ProductionReadiness from "./pages/ProductionReadiness";
 import NotFound from "./pages/NotFound";
+import Billing from "./pages/Billing";
+import HR from "./pages/HR";
+import CRM from "./pages/CRM";
+import Invoices from "./pages/Invoices";
+import Projects from "./pages/Projects";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 
 // Initialize error monitoring
@@ -75,13 +79,19 @@ const App = () => (
               <Route path="/transfers" element={<ProtectedRoute><StockTransfers /></ProtectedRoute>} />
               <Route path="/online-store" element={<ProtectedRoute><OnlineStoreBuilder /></ProtectedRoute>} />
               <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
+              <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+
+              {/* New module routes */}
+              <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
+              <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
+              <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+              <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
 
               {/* Admin routes */}
               <Route path="/settings/white-label" element={<ProtectedRoute><WhiteLabel /></ProtectedRoute>} />
-              
               <Route path="/settings/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
