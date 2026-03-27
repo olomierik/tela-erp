@@ -94,7 +94,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     try {
       const [customers, invoices, products, orders] = await Promise.all([
         (supabase.from('customers') as any).select('id,name,email').eq('tenant_id', tenant.id).ilike('name', `%${q}%`).limit(3),
-        (supabase.from('invoices') as any).select('id,invoice_number,customer_name').eq('tenant_id', tenant.id).ilike('invoice_number', `%${q}%`).limit(3),
+        (supabase.from as any)('invoices').select('id,invoice_number,customer_name').eq('tenant_id', tenant.id).ilike('invoice_number', `%${q}%`).limit(3),
         (supabase.from('inventory_items') as any).select('id,name,sku').eq('tenant_id', tenant.id).ilike('name', `%${q}%`).limit(3),
         (supabase.from('sales_orders') as any).select('id,order_number,customer_name').eq('tenant_id', tenant.id).ilike('order_number', `%${q}%`).limit(3),
       ]);
