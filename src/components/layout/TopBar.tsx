@@ -54,7 +54,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   useEffect(() => {
     if (isDemo || !tenant?.id || !profile?.user_id) return;
     const load = async () => {
-      const { data } = await (supabase.from('notifications') as any)
+      const { data } = await (supabase.from as any)('notifications')
         .select('*')
         .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
@@ -76,12 +76,12 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
 
   const markAllRead = async () => {
     if (!tenant?.id) return;
-    await (supabase.from('notifications') as any).update({ read: true }).eq('tenant_id', tenant.id).eq('read', false);
+    await (supabase.from as any)('notifications').update({ read: true }).eq('tenant_id', tenant.id).eq('read', false);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const markRead = async (id: string) => {
-    await (supabase.from('notifications') as any).update({ read: true }).eq('id', id);
+    await (supabase.from as any)('notifications').update({ read: true }).eq('id', id);
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
@@ -242,7 +242,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-2 px-2 rounded-lg">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[11px] font-bold text-white shadow-sm">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-sm">
                   {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                 </div>
                 <span className="hidden lg:block text-sm font-medium max-w-[90px] truncate">
@@ -254,7 +254,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             <PopoverContent align="end" className="w-56 p-1.5 shadow-xl border-border">
               <div className="px-3 py-2.5 border-b border-border mb-1.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-primary-foreground">
                     {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                   </div>
                   <div className="min-w-0">
