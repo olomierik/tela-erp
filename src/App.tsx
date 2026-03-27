@@ -40,6 +40,13 @@ import HR from "./pages/HR";
 import CRM from "./pages/CRM";
 import Invoices from "./pages/Invoices";
 import Projects from "./pages/Projects";
+import AICFOAssistant from "./pages/AICFOAssistant";
+import DocumentScanner from "./pages/DocumentScanner";
+import FixedAssets from "./pages/FixedAssets";
+import Expenses from "./pages/Expenses";
+import Budgets from "./pages/Budgets";
+import AutomationBuilder from "./pages/AutomationBuilder";
+import Profile from "./pages/Profile";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 
 // Initialize error monitoring
@@ -86,6 +93,15 @@ const App = () => (
               <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
               <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
               <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+
+              {/* Enterprise & AI routes */}
+              <Route path="/ai-cfo" element={<ProtectedRoute><AICFOAssistant /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><DocumentScanner /></ProtectedRoute>} />
+              <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
+              <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+              <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
+              <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
