@@ -3,9 +3,9 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Plus, Search, Download, Send, Eye, Trash2, FileText,
-  ChevronDown, Calendar, DollarSign, CheckCircle, Clock, AlertTriangle,
+  CheckCircle, Clock, AlertTriangle, Loader2, RefreshCw,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -15,19 +15,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
-
-// ─── Demo Data ─────────────────────────────────────────────────────────────
-
-const demoInvoices = [
-  { id: '1', invoice_number: 'INV-0001', customer_name: 'Acme Corp', issue_date: '2026-03-01', due_date: '2026-03-31', status: 'paid', total_amount: 12400, subtotal: 11636, tax_amount: 764, tax_rate: 6.5 },
-  { id: '2', invoice_number: 'INV-0002', customer_name: 'Wayne Industries', issue_date: '2026-03-05', due_date: '2026-04-04', status: 'sent', total_amount: 8900, subtotal: 8356, tax_amount: 544, tax_rate: 6.5 },
-  { id: '3', invoice_number: 'INV-0003', customer_name: 'Daily Planet', issue_date: '2026-02-15', due_date: '2026-03-15', status: 'overdue', total_amount: 3200, subtotal: 3004, tax_amount: 196, tax_rate: 6.5 },
-  { id: '4', invoice_number: 'INV-0004', customer_name: 'Stark Industries', issue_date: '2026-03-20', due_date: '2026-04-19', status: 'draft', total_amount: 45000, subtotal: 42254, tax_amount: 2746, tax_rate: 6.5 },
-  { id: '5', invoice_number: 'INV-0005', customer_name: 'Red Room Inc', issue_date: '2026-03-10', due_date: '2026-04-09', status: 'sent', total_amount: 7800, subtotal: 7324, tax_amount: 476, tax_rate: 6.5 },
-  { id: '6', invoice_number: 'INV-0006', customer_name: 'Wayne Industries', issue_date: '2026-03-22', due_date: '2026-04-21', status: 'paid', total_amount: 15600, subtotal: 14648, tax_amount: 952, tax_rate: 6.5 },
-];
-
-const demoCustomers = ['Acme Corp', 'Wayne Industries', 'Daily Planet', 'Stark Industries', 'Red Room Inc', 'Daily Bugle'];
+import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
@@ -112,16 +103,33 @@ function LineItemRow({ item, index, onChange, onRemove }: {
   );
 }
 
-// ─── Create Invoice Sheet ──────────────────────────────────────────────────
+// ─── Create / Edit Invoice Sheet ───────────────────────────────────────────
 
-function CreateInvoiceSheet({ onClose }: { onClose: () => void }) {
-  const [customer, setCustomer] = useState('');
-  const [dueDate, setDueDate] = useState('');
-  const [taxRate, setTaxRate] = useState(6.5);
-  const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<LineItem[]>([
-    { description: '', quantity: 1, unit_price: 0, discount_percent: 0 },
-  ]);
+function InvoiceSheet({
+  invoice,
+  customers,
+  onClose,
+}: {
+  invoice?: any;
+  customers: any[];
+  onClose: () => void;
+}) {
+  const { isDemo } = useAuth();
+  const insert = useTenantInsert('invoices');
+  const update = useTenantUpdate('invoices');
+  const insertLine = useTenantInsert('invoice_lines');
+
+  const [customerId, setCustomerId] = useState(invoice?.customer_id || '');
+  const [dueDate, setDueDate] = useState(invoice?.due_date || '');
+  const [issueDate, setIssueDate] = useState(invoice?.issue_date || new Date().toISOString().slice(0, 10));
+  const [taxRate, setTaxRate] = useState(invoice?.tax_rate || 0);
+  const [notes, setNotes] = useState(invoice?.notes || '');
+  const [saving, setSaving] = useState(false);
+  const [items, setItems] = useState<LineItem[]>(
+    invoice?.lines?.length
+      ? invoice.lines
+      : [{ description: '', quantity: 1, unit_price: 0, discount_percent: 0 }]
+  );
 
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
@@ -133,25 +141,74 @@ function CreateInvoiceSheet({ onClose }: { onClose: () => void }) {
   const taxAmount = subtotal * (taxRate / 100);
   const total = subtotal + taxAmount;
 
+  const selectedCustomer = customers.find(c => c.id === customerId);
+
+  const handleSave = async (status: 'draft' | 'sent') => {
+    if (isDemo) { toast.info('Save disabled in demo'); return; }
+    if (!customerId) { toast.error('Please select a customer'); return; }
+    if (items.every(i => !i.description.trim())) { toast.error('Add at least one line item'); return; }
+
+    setSaving(true);
+    try {
+      const invoiceData = {
+        customer_id: customerId,
+        customer_name: selectedCustomer?.name || '',
+        issue_date: issueDate,
+        due_date: dueDate || null,
+        status,
+        subtotal,
+        tax_rate: taxRate,
+        tax_amount: taxAmount,
+        total_amount: total,
+        notes,
+      };
+
+      let invoiceId = invoice?.id;
+
+      if (invoice?.id) {
+        await update.mutateAsync({ id: invoice.id, ...invoiceData });
+      } else {
+        const created = await insert.mutateAsync(invoiceData);
+        invoiceId = created.id;
+        // Insert line items
+        for (const line of items.filter(l => l.description.trim())) {
+          await insertLine.mutateAsync({
+            invoice_id: invoiceId,
+            description: line.description,
+            quantity: line.quantity,
+            unit_price: line.unit_price,
+            discount_percent: line.discount_percent,
+            line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
+          });
+        }
+      }
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save invoice');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <>
       <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
-        <SheetTitle>Create Invoice</SheetTitle>
+        <SheetTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</SheetTitle>
       </SheetHeader>
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 space-y-1.5">
-            <Label>Customer</Label>
-            <Select value={customer} onValueChange={setCustomer}>
+            <Label>Customer *</Label>
+            <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
-                {demoCustomers.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {customers.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Issue Date</Label>
-            <Input type="date" defaultValue={new Date().toISOString().slice(0, 10)} />
+            <Input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Due Date</Label>
@@ -217,10 +274,14 @@ function CreateInvoiceSheet({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <SheetFooter className="px-6 py-4 border-t border-border gap-2">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button variant="outline" onClick={onClose}>Save as Draft</Button>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={onClose}>
-          <Send className="w-4 h-4" /> Create & Send
+        <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button variant="outline" onClick={() => handleSave('draft')} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+          Save as Draft
+        </Button>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={() => handleSave('sent')} disabled={saving}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {invoice ? 'Update Invoice' : 'Create & Send'}
         </Button>
       </SheetFooter>
     </>
@@ -231,22 +292,40 @@ function CreateInvoiceSheet({ onClose }: { onClose: () => void }) {
 
 export default function Invoices() {
   const { formatMoney } = useCurrency();
+  const { isDemo } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editInvoice, setEditInvoice] = useState<any>(null);
 
-  const filtered = demoInvoices.filter(inv => {
-    const matchSearch = inv.invoice_number.toLowerCase().includes(search.toLowerCase()) ||
-      inv.customer_name.toLowerCase().includes(search.toLowerCase());
+  const { data: invoices = [], isLoading } = useTenantQuery('invoices');
+  const { data: customers = [] } = useTenantQuery('customers');
+  const deleteInvoice = useTenantDelete('invoices');
+  const updateInvoice = useTenantUpdate('invoices');
+
+  const filtered = invoices.filter((inv: any) => {
+    const matchSearch = (inv.invoice_number || '').toLowerCase().includes(search.toLowerCase()) ||
+      (inv.customer_name || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || inv.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
   const stats = {
-    total: demoInvoices.reduce((s, i) => s + i.total_amount, 0),
-    paid: demoInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.total_amount, 0),
-    outstanding: demoInvoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + i.total_amount, 0),
-    overdue: demoInvoices.filter(i => i.status === 'overdue').length,
+    total: invoices.reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+    paid: invoices.filter((i: any) => i.status === 'paid').reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+    outstanding: invoices.filter((i: any) => ['sent', 'overdue'].includes(i.status)).reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0),
+    overdue: invoices.filter((i: any) => i.status === 'overdue').length,
+  };
+
+  const handleMarkPaid = async (inv: any) => {
+    if (isDemo) { toast.info('Disabled in demo'); return; }
+    await updateInvoice.mutateAsync({ id: inv.id, status: 'paid' });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (isDemo) { toast.info('Disabled in demo'); return; }
+    if (!confirm('Delete this invoice?')) return;
+    await deleteInvoice.mutateAsync(id);
   };
 
   return (
@@ -338,7 +417,13 @@ export default function Invoices() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((inv) => (
+              {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}>
+                    <td className="px-4 py-3" colSpan={7}><Skeleton className="h-5 w-full" /></td>
+                  </tr>
+                ))
+              ) : filtered.map((inv: any) => (
                 <motion.tr
                   key={inv.id}
                   className={cn(
@@ -349,7 +434,7 @@ export default function Invoices() {
                   animate={{ opacity: 1 }}
                 >
                   <td className="px-4 py-3">
-                    <span className="font-mono font-semibold text-foreground">{inv.invoice_number}</span>
+                    <span className="font-mono font-semibold text-foreground">{inv.invoice_number || `INV-${inv.id?.slice(-4).toUpperCase()}`}</span>
                   </td>
                   <td className="px-4 py-3 font-medium text-foreground">{inv.customer_name}</td>
                   <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{inv.issue_date}</td>
@@ -358,25 +443,29 @@ export default function Invoices() {
                       'text-sm',
                       inv.status === 'overdue' ? 'text-red-600 font-medium' : 'text-muted-foreground'
                     )}>
-                      {inv.due_date}
+                      {inv.due_date || '—'}
                     </span>
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={inv.status} /></td>
                   <td className="px-4 py-3 text-right font-bold text-foreground">{formatMoney(inv.total_amount)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-foreground">
-                        <Eye className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600">
-                        <Download className="w-3.5 h-3.5" />
-                      </Button>
-                      {inv.status === 'draft' && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-blue-600">
-                          <Send className="w-3.5 h-3.5" />
+                      {inv.status === 'sent' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-green-600 hover:bg-green-50 gap-1"
+                          onClick={() => handleMarkPaid(inv)}
+                        >
+                          <CheckCircle className="w-3 h-3" /> Mark Paid
                         </Button>
                       )}
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
+                        onClick={() => setEditInvoice(inv)}>
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                        onClick={() => handleDelete(inv.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -385,7 +474,7 @@ export default function Invoices() {
               ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
+          {!isLoading && filtered.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-medium">No invoices found</p>
@@ -401,7 +490,20 @@ export default function Invoices() {
       {/* Create Invoice Sheet */}
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
         <SheetContent className="w-full sm:max-w-[560px] flex flex-col p-0" side="right">
-          <CreateInvoiceSheet onClose={() => setCreateOpen(false)} />
+          <InvoiceSheet customers={customers as any[]} onClose={() => setCreateOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Invoice Sheet */}
+      <Sheet open={!!editInvoice} onOpenChange={v => !v && setEditInvoice(null)}>
+        <SheetContent className="w-full sm:max-w-[560px] flex flex-col p-0" side="right">
+          {editInvoice && (
+            <InvoiceSheet
+              invoice={editInvoice}
+              customers={customers as any[]}
+              onClose={() => setEditInvoice(null)}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </AppLayout>

@@ -3,40 +3,23 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Search, Plus, Phone, Mail, Calendar, Tag, ArrowRight,
-  Star, User, Activity, DollarSign, TrendingUp, Filter,
-  MessageSquare, Video, FileText as FileTextIcon, CheckSquare,
+  Star, Activity, DollarSign, Video, FileText as FileTextIcon,
+  CheckSquare, Trash2, Loader2,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
-
-// ─── Demo Data ─────────────────────────────────────────────────────────────
-
-const demoContacts = [
-  { id: '1', name: 'Diana Prince', company: 'Acme Corp', email: 'diana@acme.com', phone: '+1 555 0200', tier: 'VIP', tags: ['Enterprise', 'Tech'], last_contact: '2026-03-22', deals: 3, revenue: 124000 },
-  { id: '2', name: 'Bruce Wayne', company: 'Wayne Industries', email: 'bruce@wayne.com', phone: '+1 555 0201', tier: 'VIP', tags: ['Manufacturing', 'Premium'], last_contact: '2026-03-20', deals: 2, revenue: 89000 },
-  { id: '3', name: 'Clark Kent', company: 'Daily Planet', email: 'clark@dailyplanet.com', phone: '+1 555 0202', tier: 'Regular', tags: ['Media'], last_contact: '2026-03-18', deals: 1, revenue: 32000 },
-  { id: '4', name: 'Natasha Romanoff', company: 'Red Room Inc', email: 'nat@redroom.com', phone: '+1 555 0203', tier: 'Regular', tags: ['Security', 'Consulting'], last_contact: '2026-03-15', deals: 2, revenue: 47500 },
-  { id: '5', name: 'Peter Parker', company: 'Daily Bugle', email: 'peter@bugle.com', phone: '+1 555 0204', tier: 'New', tags: ['Media', 'SMB'], last_contact: '2026-03-10', deals: 0, revenue: 0 },
-  { id: '6', name: 'Tony Stark', company: 'Stark Industries', email: 'tony@stark.com', phone: '+1 555 0205', tier: 'VIP', tags: ['Enterprise', 'Tech', 'Defense'], last_contact: '2026-03-24', deals: 5, revenue: 310000 },
-];
-
-const demoDeals = [
-  { id: '1', title: 'Enterprise License', contact: 'Diana Prince', company: 'Acme Corp', value: 48000, stage: 'proposal', probability: 65, close_date: '2026-04-30' },
-  { id: '2', title: 'Manufacturing Suite', contact: 'Bruce Wayne', company: 'Wayne Industries', value: 89000, stage: 'negotiation', probability: 80, close_date: '2026-04-15' },
-  { id: '3', title: 'Cloud Subscription', contact: 'Clark Kent', company: 'Daily Planet', value: 12000, stage: 'qualified', probability: 45, close_date: '2026-05-15' },
-  { id: '4', title: 'Security Module', contact: 'Natasha Romanoff', company: 'Red Room Inc', value: 24000, stage: 'lead', probability: 20, close_date: '2026-06-01' },
-  { id: '5', title: 'Full ERP Bundle', contact: 'Tony Stark', company: 'Stark Industries', value: 310000, stage: 'won', probability: 100, close_date: '2026-03-01' },
-  { id: '6', title: 'Starter Pack', contact: 'Peter Parker', company: 'Daily Bugle', value: 3600, stage: 'lead', probability: 15, close_date: '2026-05-30' },
-];
+import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const stages = [
   { id: 'lead', label: 'Lead', color: 'bg-gray-100 dark:bg-gray-800', badge: 'bg-gray-200 text-gray-700' },
@@ -61,27 +44,183 @@ function TierBadge({ tier }: { tier: string }) {
     Regular: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
     New: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   };
-  return <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', map[tier] || 'bg-gray-100 text-gray-600')}>{tier === 'VIP' && <Star className="w-2.5 h-2.5 mr-1" />}{tier}</span>;
+  return (
+    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', map[tier] || 'bg-gray-100 text-gray-600')}>
+      {tier === 'VIP' && <Star className="w-2.5 h-2.5 mr-1" />}{tier}
+    </span>
+  );
+}
+
+// ─── Add Contact Sheet ─────────────────────────────────────────────────────
+
+function AddContactSheet({ onClose }: { onClose: () => void }) {
+  const { isDemo } = useAuth();
+  const insert = useTenantInsert('customers');
+  const [form, setForm] = useState({ name: '', email: '', phone: '', company: '', tier: 'New', notes: '' });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = async () => {
+    if (isDemo) { return; }
+    if (!form.name.trim()) { return; }
+    setSaving(true);
+    try {
+      await insert.mutateAsync({ ...form });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <SheetTitle>Add Contact</SheetTitle>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 space-y-1.5">
+            <Label>Full Name *</Label>
+            <Input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Diana Prince" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input value={form.email} onChange={e => set('email', e.target.value)} placeholder="diana@acme.com" type="email" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Phone</Label>
+            <Input value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+1 555 0200" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Company</Label>
+            <Input value={form.company} onChange={e => set('company', e.target.value)} placeholder="Acme Corp" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Customer Tier</Label>
+            <Select value={form.tier} onValueChange={v => set('tier', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="New">New</SelectItem>
+                <SelectItem value="Regular">Regular</SelectItem>
+                <SelectItem value="VIP">VIP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea value={form.notes} onChange={e => set('notes', e.target.value)} placeholder="Additional notes..." rows={3} />
+          </div>
+        </div>
+      </div>
+      <SheetFooter className="px-6 py-4 border-t border-border gap-2">
+        <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={handleSave} disabled={saving || !form.name.trim()}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          Add Contact
+        </Button>
+      </SheetFooter>
+    </>
+  );
+}
+
+// ─── Add Deal Sheet ────────────────────────────────────────────────────────
+
+function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => void }) {
+  const { isDemo } = useAuth();
+  const insert = useTenantInsert('crm_deals');
+  const [form, setForm] = useState({
+    title: '', contact_id: '', contact_name: '', company: '',
+    value: '', stage: 'lead', probability: '20', close_date: '',
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSave = async () => {
+    if (isDemo || !form.title.trim()) return;
+    setSaving(true);
+    try {
+      const selectedContact = contacts.find(c => c.id === form.contact_id);
+      await insert.mutateAsync({
+        title: form.title,
+        contact_id: form.contact_id || null,
+        contact_name: selectedContact?.name || form.contact_name,
+        company: selectedContact?.company || form.company,
+        value: parseFloat(form.value) || 0,
+        stage: form.stage,
+        probability: parseInt(form.probability) || 20,
+        close_date: form.close_date || null,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <SheetTitle>Add Deal</SheetTitle>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2 space-y-1.5">
+            <Label>Deal Title *</Label>
+            <Input value={form.title} onChange={e => set('title', e.target.value)} placeholder="Enterprise License" />
+          </div>
+          <div className="col-span-2 space-y-1.5">
+            <Label>Contact</Label>
+            <Select value={form.contact_id} onValueChange={v => set('contact_id', v)}>
+              <SelectTrigger><SelectValue placeholder="Select contact (optional)" /></SelectTrigger>
+              <SelectContent>
+                {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name} — {c.company}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Deal Value</Label>
+            <Input value={form.value} onChange={e => set('value', e.target.value)} type="number" placeholder="48000" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Probability (%)</Label>
+            <Input value={form.probability} onChange={e => set('probability', e.target.value)} type="number" placeholder="20" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Stage</Label>
+            <Select value={form.stage} onValueChange={v => set('stage', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {stages.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Expected Close Date</Label>
+            <Input value={form.close_date} onChange={e => set('close_date', e.target.value)} type="date" />
+          </div>
+        </div>
+      </div>
+      <SheetFooter className="px-6 py-4 border-t border-border gap-2">
+        <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={handleSave} disabled={saving || !form.title.trim()}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          Add Deal
+        </Button>
+      </SheetFooter>
+    </>
+  );
 }
 
 // ─── Contact Detail Sheet ──────────────────────────────────────────────────
 
 function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void }) {
   const { formatMoney } = useCurrency();
-  const [activityNote, setActivityNote] = useState('');
-
-  const demoActivities = [
-    { type: 'call', title: 'Discovery call', time: '2026-03-22 10:00', note: 'Discussed enterprise needs, needs budget approval' },
-    { type: 'email', title: 'Sent proposal', time: '2026-03-20 14:30', note: 'Sent detailed proposal for 50-user license' },
-    { type: 'meeting', title: 'Demo session', time: '2026-03-18 11:00', note: 'Product demo went well, very interested' },
-  ];
 
   return (
     <>
       <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg font-bold">
-            {contact.name.charAt(0)}
+            {(contact.name || '?').charAt(0)}
           </div>
           <div>
             <SheetTitle>{contact.name}</SheetTitle>
@@ -90,46 +229,31 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
         </div>
       </SheetHeader>
       <div className="flex-1 overflow-y-auto">
-        {/* Stats */}
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
           <div className="p-4 text-center">
-            <p className="text-lg font-bold text-foreground">{contact.deals}</p>
-            <p className="text-xs text-muted-foreground">Deals</p>
+            <p className="text-lg font-bold text-foreground">{contact.total_orders || 0}</p>
+            <p className="text-xs text-muted-foreground">Orders</p>
           </div>
           <div className="p-4 text-center">
-            <p className="text-lg font-bold text-foreground">{formatMoney(contact.revenue)}</p>
+            <p className="text-lg font-bold text-foreground">{formatMoney(contact.total_spent || 0)}</p>
             <p className="text-xs text-muted-foreground">Revenue</p>
           </div>
           <div className="p-4 text-center">
-            <TierBadge tier={contact.tier} />
+            <TierBadge tier={contact.tier || 'New'} />
             <p className="text-xs text-muted-foreground mt-1">Tier</p>
           </div>
         </div>
 
         <div className="px-6 py-4 space-y-4">
-          {/* Contact Info */}
           <div className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contact Info</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-foreground"><Mail className="w-4 h-4 text-muted-foreground" />{contact.email}</div>
-              <div className="flex items-center gap-2 text-foreground"><Phone className="w-4 h-4 text-muted-foreground" />{contact.phone}</div>
-              <div className="flex items-center gap-2 text-muted-foreground"><Calendar className="w-4 h-4" />Last contact: {contact.last_contact}</div>
+              {contact.email && <div className="flex items-center gap-2 text-foreground"><Mail className="w-4 h-4 text-muted-foreground" />{contact.email}</div>}
+              {contact.phone && <div className="flex items-center gap-2 text-foreground"><Phone className="w-4 h-4 text-muted-foreground" />{contact.phone}</div>}
+              <div className="flex items-center gap-2 text-muted-foreground"><Calendar className="w-4 h-4" />Added: {contact.created_at?.slice(0, 10)}</div>
             </div>
           </div>
 
-          {/* Tags */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Tags</h3>
-            <div className="flex flex-wrap gap-1.5">
-              {contact.tags.map((tag: string) => (
-                <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-accent text-xs font-medium text-foreground">
-                  <Tag className="w-2.5 h-2.5" />{tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Log Activity */}
           <div className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Log Activity</h3>
             <div className="flex gap-2 flex-wrap">
@@ -141,28 +265,12 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
             </div>
           </div>
 
-          {/* Activity Timeline */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity Timeline</h3>
-            <div className="space-y-3">
-              {demoActivities.map((act, i) => {
-                const actType = activityTypes.find(a => a.type === act.type);
-                const Icon = actType?.icon || Activity;
-                return (
-                  <div key={i} className="flex gap-3">
-                    <div className={cn('w-7 h-7 rounded-full bg-accent flex items-center justify-center shrink-0 mt-0.5', actType?.color)}>
-                      <Icon className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-foreground">{act.title}</p>
-                      <p className="text-xs text-muted-foreground">{act.note}</p>
-                      <p className="text-[11px] text-muted-foreground/60 mt-0.5">{act.time}</p>
-                    </div>
-                  </div>
-                );
-              })}
+          {contact.notes && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notes</h3>
+              <p className="text-sm text-foreground">{contact.notes}</p>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>
@@ -173,19 +281,34 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
 
 export default function CRM() {
   const { formatMoney } = useCurrency();
+  const { isDemo } = useAuth();
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedContact, setSelectedContact] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('contacts');
+  const [addContactOpen, setAddContactOpen] = useState(false);
+  const [addDealOpen, setAddDealOpen] = useState(false);
 
-  const filteredContacts = demoContacts.filter(c => {
-    const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) || c.company.toLowerCase().includes(search.toLowerCase());
+  const { data: contacts = [], isLoading: contactsLoading } = useTenantQuery('customers');
+  const { data: deals = [], isLoading: dealsLoading } = useTenantQuery('crm_deals');
+  const deleteContact = useTenantDelete('customers');
+  const deleteDeal = useTenantDelete('crm_deals');
+  const updateDeal = useTenantUpdate('crm_deals');
+
+  const filteredContacts = (contacts as any[]).filter(c => {
+    const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (c.company || '').toLowerCase().includes(search.toLowerCase());
     const matchTier = tierFilter === 'all' || c.tier === tierFilter;
     return matchSearch && matchTier;
   });
 
-  const pipelineValue = demoDeals.filter(d => !['won', 'lost'].includes(d.stage)).reduce((s, d) => s + d.value, 0);
-  const wonValue = demoDeals.filter(d => d.stage === 'won').reduce((s, d) => s + d.value, 0);
+  const pipelineValue = (deals as any[]).filter(d => !['won', 'lost'].includes(d.stage)).reduce((s, d) => s + Number(d.value || 0), 0);
+  const wonValue = (deals as any[]).filter(d => d.stage === 'won').reduce((s, d) => s + Number(d.value || 0), 0);
+
+  const handleMoveDeal = async (dealId: string, newStage: string) => {
+    if (isDemo) return;
+    await updateDeal.mutateAsync({ id: dealId, stage: newStage });
+  };
 
   return (
     <AppLayout title="CRM" subtitle="Contacts, deals & pipeline">
@@ -198,15 +321,14 @@ export default function CRM() {
         {/* ── Contacts ── */}
         <TabsContent value="contacts">
           <div className="space-y-4">
-            {/* Stats bar */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card className="rounded-xl border-border"><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Total Contacts</p>
-                <p className="text-xl font-bold text-foreground">{demoContacts.length}</p>
+                <p className="text-xl font-bold text-foreground">{(contacts as any[]).length}</p>
               </CardContent></Card>
               <Card className="rounded-xl border-border"><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">VIP Contacts</p>
-                <p className="text-xl font-bold text-amber-500">{demoContacts.filter(c => c.tier === 'VIP').length}</p>
+                <p className="text-xl font-bold text-amber-500">{(contacts as any[]).filter(c => c.tier === 'VIP').length}</p>
               </CardContent></Card>
               <Card className="rounded-xl border-border"><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Pipeline Value</p>
@@ -234,7 +356,7 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" size="sm">
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" size="sm" onClick={() => setAddContactOpen(true)}>
                 <Plus className="w-4 h-4" /> Add Contact
               </Button>
             </div>
@@ -246,18 +368,21 @@ export default function CRM() {
                     <th className="text-left px-4 py-3 font-medium">Contact</th>
                     <th className="text-left px-4 py-3 font-medium">Company</th>
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Tier</th>
-                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Tags</th>
                     <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">Revenue</th>
                     <th className="text-right px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filteredContacts.map((contact) => (
+                  {contactsLoading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <tr key={i}><td colSpan={5} className="px-4 py-3"><Skeleton className="h-5 w-full" /></td></tr>
+                    ))
+                  ) : filteredContacts.map((contact: any) => (
                     <tr key={contact.id} className="hover:bg-accent/40 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                            {contact.name.charAt(0)}
+                            {(contact.name || '?').charAt(0)}
                           </div>
                           <div>
                             <p className="font-medium text-foreground">{contact.name}</p>
@@ -265,27 +390,35 @@ export default function CRM() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">{contact.company}</td>
-                      <td className="px-4 py-3 hidden md:table-cell"><TierBadge tier={contact.tier} /></td>
-                      <td className="px-4 py-3 hidden lg:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {contact.tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="px-1.5 py-0.5 rounded bg-accent text-xs text-foreground">{tag}</span>
-                          ))}
-                        </div>
-                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{contact.company || '—'}</td>
+                      <td className="px-4 py-3 hidden md:table-cell"><TierBadge tier={contact.tier || 'New'} /></td>
                       <td className="px-4 py-3 text-right font-semibold text-foreground hidden sm:table-cell">
-                        {contact.revenue > 0 ? formatMoney(contact.revenue) : '—'}
+                        {contact.total_spent > 0 ? formatMoney(contact.total_spent) : '—'}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-indigo-600" onClick={() => setSelectedContact(contact)}>
-                          View <ArrowRight className="w-3 h-3" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-indigo-600" onClick={() => setSelectedContact(contact)}>
+                            View <ArrowRight className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                            onClick={() => !isDemo && deleteContact.mutate(contact.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {!contactsLoading && filteredContacts.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Activity className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  <p className="font-medium">No contacts yet</p>
+                  <Button className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white gap-2" size="sm" onClick={() => setAddContactOpen(true)}>
+                    <Plus className="w-4 h-4" /> Add First Contact
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -295,16 +428,16 @@ export default function CRM() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {demoDeals.filter(d => !['won','lost'].includes(d.stage)).length} active deals · {formatMoney(pipelineValue)} pipeline
+                {(deals as any[]).filter(d => !['won', 'lost'].includes(d.stage)).length} active deals · {formatMoney(pipelineValue)} pipeline
               </p>
-              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1 h-8">
+              <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1 h-8" onClick={() => setAddDealOpen(true)}>
                 <Plus className="w-3.5 h-3.5" /> Add Deal
               </Button>
             </div>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {stages.map(stage => {
-                const stageDeals = demoDeals.filter(d => d.stage === stage.id);
-                const stageValue = stageDeals.reduce((s, d) => s + d.value, 0);
+                const stageDeals = (deals as any[]).filter(d => d.stage === stage.id);
+                const stageValue = stageDeals.reduce((s, d) => s + Number(d.value || 0), 0);
                 return (
                   <div key={stage.id} className="flex-shrink-0 w-[240px]">
                     <div className={cn('rounded-xl p-3 min-h-[200px]', stage.color)}>
@@ -315,14 +448,16 @@ export default function CRM() {
                         <span className="text-xs text-muted-foreground">{formatMoney(stageValue)}</span>
                       </div>
                       <div className="space-y-2">
-                        {stageDeals.map(deal => (
+                        {dealsLoading ? (
+                          <Skeleton className="h-20 w-full rounded-lg" />
+                        ) : stageDeals.map((deal: any) => (
                           <motion.div
                             key={deal.id}
                             whileHover={{ scale: 1.02 }}
-                            className="bg-card rounded-lg p-3 border border-border shadow-sm cursor-grab"
+                            className="bg-card rounded-lg p-3 border border-border shadow-sm cursor-grab group"
                           >
                             <p className="text-sm font-semibold text-foreground leading-snug">{deal.title}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{deal.contact} · {deal.company}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{deal.contact_name} · {deal.company}</p>
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-sm font-bold text-indigo-600">{formatMoney(deal.value)}</span>
                               <span className="text-xs text-muted-foreground bg-accent rounded-full px-1.5 py-0.5">{deal.probability}%</span>
@@ -332,10 +467,30 @@ export default function CRM() {
                                 <Calendar className="w-2.5 h-2.5" />{deal.close_date}
                               </p>
                             )}
+                            <div className="mt-2 pt-2 border-t border-border flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {deal.stage !== 'won' && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 text-[10px] text-green-600 hover:bg-green-50 px-1.5"
+                                  onClick={() => handleMoveDeal(deal.id, 'won')}
+                                >Won</Button>
+                              )}
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-red-400 hover:text-red-600 ml-auto"
+                                onClick={() => !isDemo && deleteDeal.mutate(deal.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </motion.div>
                         ))}
-                        {stageDeals.length === 0 && (
-                          <div className="text-center py-6 text-xs text-muted-foreground/60">No deals</div>
+                        {!dealsLoading && stageDeals.length === 0 && (
+                          <div className="text-center py-6 text-xs text-muted-foreground/60 border-2 border-dashed border-border rounded-lg">
+                            Drop deals here
+                          </div>
                         )}
                       </div>
                     </div>
@@ -353,6 +508,20 @@ export default function CRM() {
           {selectedContact && (
             <ContactDetail contact={selectedContact} onClose={() => setSelectedContact(null)} />
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Add Contact Sheet */}
+      <Sheet open={addContactOpen} onOpenChange={setAddContactOpen}>
+        <SheetContent className="w-full sm:max-w-[440px] flex flex-col p-0" side="right">
+          <AddContactSheet onClose={() => setAddContactOpen(false)} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Add Deal Sheet */}
+      <Sheet open={addDealOpen} onOpenChange={setAddDealOpen}>
+        <SheetContent className="w-full sm:max-w-[440px] flex flex-col p-0" side="right">
+          <AddDealSheet contacts={contacts as any[]} onClose={() => setAddDealOpen(false)} />
         </SheetContent>
       </Sheet>
     </AppLayout>

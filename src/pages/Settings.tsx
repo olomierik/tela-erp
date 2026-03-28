@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import {
   Building2, Users, Bot, Bell, Plug, Shield, RefreshCw,
   Upload, Save, Plus, Mail, ExternalLink, Lock, Key,
+  CheckCircle2, XCircle, Loader2, Zap,
 } from 'lucide-react';
 
 const integrations = [
@@ -29,8 +30,30 @@ export default function SettingsPage() {
   const { tenant, isDemo } = useAuth();
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
   const [syncing, setSyncing] = useState(false);
+
+  // AI settings state
   const [aiKey, setAiKey] = useState('');
+  const [aiModel, setAiModel] = useState('claude-sonnet-4-6');
   const [saveAiLoading, setSaveAiLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [aiConfigured, setAiConfigured] = useState(false);
+
+  // Load existing AI config on mount
+  useEffect(() => {
+    if (!tenant?.id || isDemo) return;
+    (async () => {
+      const { data } = await (supabase.from('tenants') as any)
+        .select('anthropic_api_key, ai_model')
+        .eq('id', tenant.id)
+        .single();
+      if (data?.anthropic_api_key) {
+        setAiConfigured(true);
+        setAiModel(data.ai_model || 'claude-sonnet-4-6');
+        // Show masked placeholder so user knows a key is set
+        setAiKey('');
+      }
+    })();
+  }, [tenant?.id, isDemo]);
 
   const handleSaveCurrency = async () => {
     if (isDemo || !tenant?.id) { toast.info('Settings save disabled in demo'); return; }
@@ -56,22 +79,54 @@ export default function SettingsPage() {
 
   const handleSaveAI = async () => {
     if (isDemo) { toast.info('AI settings save disabled in demo'); return; }
-    if (!aiKey.trim()) { toast.error('Please enter an API key'); return; }
+    if (!aiKey.trim() && !aiConfigured) { toast.error('Please enter an Anthropic API key'); return; }
     setSaveAiLoading(true);
     try {
-      // Store the key reference in tenant settings so the UI knows it's configured.
-      // The actual ANTHROPIC_API_KEY secret must be set in your Supabase dashboard:
-      // Dashboard → Edge Functions → tela-ai → Secrets → ANTHROPIC_API_KEY
+      const updates: Record<string, any> = { ai_model: aiModel };
+      if (aiKey.trim()) updates.anthropic_api_key = aiKey.trim();
       const { error } = await (supabase.from('tenants') as any)
-        .update({ ai_configured: true })
+        .update(updates)
         .eq('id', tenant?.id);
       if (error) throw error;
-      toast.success('API key saved! Also set ANTHROPIC_API_KEY in Supabase → Edge Functions → Secrets.');
+      setAiConfigured(true);
+      if (aiKey.trim()) setAiKey('');
+      toast.success('AI settings saved successfully');
     } catch (err: any) {
-      // Fallback: just show instructions even if column doesn't exist yet
-      toast.success('To activate Tela AI: set ANTHROPIC_API_KEY in Supabase Dashboard → Edge Functions → tela-ai → Secrets');
+      toast.error(err.message || 'Failed to save AI settings');
     } finally {
       setSaveAiLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    if (isDemo) { toast.info('Test disabled in demo'); return; }
+    setTestLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('tela-ai', {
+        body: { message: 'ping', context: {}, mode: 'default' },
+      });
+      if (error) throw error;
+      if (data?.reply && !data.reply.includes('not configured')) {
+        toast.success('Connected — Claude responded successfully');
+      } else {
+        toast.error(data?.reply || 'API key not working. Check your key and try again.');
+      }
+    } catch (err: any) {
+      toast.error('Connection failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const handleClearKey = async () => {
+    if (isDemo) return;
+    const { error } = await (supabase.from('tenants') as any)
+      .update({ anthropic_api_key: null })
+      .eq('id', tenant?.id);
+    if (!error) {
+      setAiConfigured(false);
+      setAiKey('');
+      toast.success('API key removed');
     }
   };
 
@@ -226,18 +281,31 @@ export default function SettingsPage() {
           <TabsContent value="ai" className="space-y-4">
             <Card className="rounded-xl border-border">
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-indigo-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <CardTitle className="text-sm">Tela AI Configuration</CardTitle>
                   </div>
-                  <CardTitle className="text-sm">Tela AI Configuration</CardTitle>
+                  {aiConfigured ? (
+                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 gap-1 text-xs">
+                      <CheckCircle2 className="w-3 h-3" /> Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 gap-1">
+                      <XCircle className="w-3 h-3" /> Not configured
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-5">
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-300">
-                  Tela AI uses Anthropic Claude to answer business questions and analyze your data. Add your API key below to enable it.
+                  Tela AI uses Anthropic Claude to answer business questions and analyze your data.
+                  Your API key is stored securely in your tenant database — all AI features activate instantly after saving.
                 </div>
-                <div className="space-y-1.5">
+
+                <div className="space-y-2">
                   <Label>Anthropic API Key</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
@@ -246,30 +314,98 @@ export default function SettingsPage() {
                         type="password"
                         value={aiKey}
                         onChange={e => setAiKey(e.target.value)}
-                        placeholder="sk-ant-..."
-                        className="pl-9"
+                        placeholder={aiConfigured ? '●●●●●●●●●●●●●●● (key saved)' : 'sk-ant-api03-...'}
+                        className="pl-9 font-mono text-sm"
                       />
                     </div>
-                    <Button onClick={handleSaveAI} disabled={saveAiLoading} className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
-                      <Save className="w-4 h-4" /> {saveAiLoading ? 'Saving...' : 'Save'}
-                    </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Your API key is stored securely as a Supabase edge function secret.{' '}
+                  <p className="text-xs text-muted-foreground">
+                    Get your API key from{' '}
                     <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
-                      Get an API key <ExternalLink className="w-3 h-3" />
+                      console.anthropic.com <ExternalLink className="w-3 h-3" />
                     </a>
                   </p>
                 </div>
-                <div className="space-y-1.5">
+
+                <div className="space-y-2">
                   <Label>AI Model</Label>
-                  <Select defaultValue="claude-3-5-haiku-20241022">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select value={aiModel} onValueChange={setAiModel}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (Fast &amp; Affordable)</SelectItem>
-                      <SelectItem value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (Most Capable)</SelectItem>
+                      <SelectItem value="claude-haiku-4-5-20251001">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-3.5 h-3.5 text-amber-500" />
+                          <span>Claude Haiku 4.5</span>
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">Fast · Low cost</Badge>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="claude-sonnet-4-6">
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>Claude Sonnet 4.6</span>
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">Recommended</Badge>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="claude-opus-4-6">
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-3.5 h-3.5 text-purple-500" />
+                          <span>Claude Opus 4.6</span>
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">Most capable</Badge>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Model used across all Tela AI features: CFO Assistant, Document Scanner, and Demand Forecast.</p>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    onClick={handleSaveAI}
+                    disabled={saveAiLoading}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                  >
+                    {saveAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {saveAiLoading ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                  <Button
+                    onClick={handleTestConnection}
+                    disabled={testLoading || !aiConfigured}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {testLoading ? 'Testing...' : 'Test Connection'}
+                  </Button>
+                  {aiConfigured && (
+                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5 text-sm" onClick={handleClearKey}>
+                      <XCircle className="w-4 h-4" /> Remove Key
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Features Overview */}
+            <Card className="rounded-xl border-border">
+              <CardHeader><CardTitle className="text-sm">AI Features</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: '🧠', title: 'Tela AI Chat', desc: 'Ask anything about your business data', route: '/dashboard' },
+                    { icon: '📊', title: 'CFO Assistant', desc: 'Financial analysis, forecasts & anomaly detection', route: '/ai-cfo' },
+                    { icon: '📄', title: 'Document Scanner', desc: 'AI-powered invoice & receipt extraction', route: '/documents' },
+                    { icon: '📦', title: 'Demand Forecast', desc: 'Predict inventory needs with 30/60/90-day outlook', route: '/inventory' },
+                  ].map(f => (
+                    <div key={f.title} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-accent/30 transition-colors">
+                      <span className="text-xl">{f.icon}</span>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{f.title}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>

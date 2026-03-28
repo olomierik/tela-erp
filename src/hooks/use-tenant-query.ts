@@ -4,9 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
 import { toast } from 'sonner';
 
-type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'campaigns' | 'transactions' | 'purchase_orders' | 'inventory_transactions' | 'inventory_reservations' | 'audit_log' | 'inventory_adjustments' | 'categories' | 'customers' | 'suppliers' | 'stock_transfers' | 'bom_templates' | 'bom_lines' | 'chart_of_accounts' | 'journal_entries' | 'payments' | 'stores' | 'invoices' | 'invoice_lines' | 'projects' | 'project_tasks' | 'notifications';
+type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'campaigns' | 'transactions' | 'purchase_orders' | 'inventory_transactions' | 'inventory_reservations' | 'audit_log' | 'inventory_adjustments' | 'categories' | 'customers' | 'suppliers' | 'stock_transfers' | 'bom_templates' | 'bom_lines' | 'chart_of_accounts' | 'journal_entries' | 'payments' | 'stores' | 'invoices' | 'invoice_lines' | 'projects' | 'project_tasks' | 'notifications' | 'employees' | 'departments' | 'attendance_logs' | 'leave_requests' | 'payroll_runs' | 'payroll_lines' | 'crm_deals' | 'crm_activities' | 'scanned_documents' | 'fixed_assets' | 'expense_claims' | 'expense_items' | 'budgets' | 'budget_lines' | 'automation_rules' | 'automation_logs' | 'tax_rates' | 'recurring_templates' | 'team_invites';
 
-const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders', 'customers', 'suppliers', 'stock_transfers', 'payments'];
+const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders', 'customers', 'suppliers', 'stock_transfers', 'payments', 'employees', 'expense_claims'];
 
 export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at') {
   const { tenant, isDemo } = useAuth();
