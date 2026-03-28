@@ -1,8 +1,40 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+async function getTenantApiConfig(req: Request) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const authHeader = req.headers.get('Authorization')
+
+  if (!authHeader) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
+  if (!user) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (!profile?.tenant_id) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
+
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('anthropic_api_key, ai_model')
+    .eq('id', profile.tenant_id)
+    .single()
+
+  return {
+    apiKey: tenant?.anthropic_api_key || Deno.env.get('ANTHROPIC_API_KEY'),
+    model: tenant?.ai_model || 'claude-sonnet-4-6',
+  }
 }
 
 serve(async (req) => {
@@ -10,11 +42,11 @@ serve(async (req) => {
 
   try {
     const { inventoryItems, salesHistory } = await req.json()
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
+    const { apiKey, model } = await getTenantApiConfig(req)
 
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ forecasts: null, error: 'AI not configured.' }),
+        JSON.stringify({ forecasts: null, error: 'AI not configured. Add your Anthropic API key in Settings → AI Settings.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -55,7 +87,7 @@ Return ONLY the JSON array, no other text.`
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model,
         max_tokens: 3000,
         system: systemPrompt,
         messages: [{ role: 'user', content: forecastPrompt }],
