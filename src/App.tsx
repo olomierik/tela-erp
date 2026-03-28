@@ -9,6 +9,11 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Modules from "./pages/Modules";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -67,6 +72,11 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/modules" element={<Modules />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

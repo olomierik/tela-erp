@@ -313,123 +313,136 @@ export default function SettingsPage() {
 
           {/* ── AI Settings ── */}
           <TabsContent value="ai" className="space-y-4">
-            <Card className="rounded-xl border-border">
+
+            {/* Platform AI — primary card */}
+            <Card className="rounded-xl border-border overflow-hidden">
+              <div className="h-1 w-full bg-gradient-to-r from-primary via-blue-500 to-amber-500" />
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                      <Bot className="w-4 h-4 text-indigo-600" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Bot className="w-5 h-5 text-primary" />
                     </div>
-                    <CardTitle className="text-sm">Tela AI Configuration</CardTitle>
+                    <div>
+                      <CardTitle className="text-base">Tela AI</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Powered by Anthropic Claude — built into the platform</p>
+                    </div>
                   </div>
-                  {aiConfigured ? (
-                    <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 gap-1 text-xs">
-                      <CheckCircle2 className="w-3 h-3" /> Connected
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 gap-1">
-                      <XCircle className="w-3 h-3" /> Not configured
-                    </Badge>
-                  )}
+                  <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-0 gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Included
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-5">
-                {needsMigration && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600 text-lg leading-none">⚠️</span>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Tela AI is fully managed by the platform — no API key or configuration needed. All AI features are available immediately.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { icon: '🧠', title: 'Tela AI Chat', desc: 'Ask anything about your business data in plain language' },
+                    { icon: '📊', title: 'CFO Assistant', desc: 'Financial analysis, anomaly detection & cash-flow forecasts' },
+                    { icon: '📄', title: 'Document Scanner', desc: 'AI-powered invoice & receipt data extraction' },
+                    { icon: '📦', title: 'Demand Forecast', desc: '30/60/90-day inventory demand predictions' },
+                  ].map(f => (
+                    <div key={f.title} className="flex items-start gap-2.5 p-3 rounded-lg bg-muted/40 border border-border">
+                      <span className="text-base leading-none mt-0.5">{f.icon}</span>
                       <div>
-                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">One-time database migration required</p>
-                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                          The <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">anthropic_api_key</code> and <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">ai_model</code> columns don't exist yet in your Supabase database.
-                          Run this SQL in your <strong>Supabase dashboard → SQL Editor</strong> then come back and save.
-                        </p>
+                        <p className="text-sm font-medium text-foreground">{f.title}</p>
+                        <p className="text-xs text-muted-foreground">{f.desc}</p>
                       </div>
                     </div>
-                    <div className="relative">
-                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre-wrap">
-{MIGRATION_SQL}
-                      </pre>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute top-2 right-2 h-6 text-[10px] gap-1 border-amber-300"
-                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}
-                      >
-                        <Copy className="w-3 h-3" /> Copy
-                      </Button>
-                    </div>
-                    <p className="text-xs text-amber-600 dark:text-amber-400">
-                      After running the SQL, refresh this page and save your API key again.
+                  ))}
+                </div>
+
+                <Button
+                  onClick={handleTestConnection}
+                  disabled={testLoading}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  {testLoading ? 'Testing...' : 'Test AI Connection'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Deployment instructions (shown on error) */}
+            {needsFunctionDeploy && (
+              <div className="rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-blue-600 text-lg leading-none">🚀</span>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Deploy Edge Functions</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                      The AI edge functions need to be deployed to Supabase. Run these commands from the project root, then set <code className="font-mono bg-blue-100 px-1 rounded">ANTHROPIC_API_KEY</code> in Supabase → Edge Functions → Secrets.
                     </p>
                   </div>
-                )}
-
-                {needsFunctionDeploy && (
-                  <div className="rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 p-4 space-y-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-blue-600 text-lg leading-none">🚀</span>
-                      <div>
-                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Deploy Edge Functions</p>
-                        <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-                          The AI edge functions need to be deployed to your Supabase project. Run these commands in your terminal from the project root:
-                        </p>
-                      </div>
-                    </div>
-                    <div className="relative">
-                      <pre className="text-xs bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 rounded-lg p-3 overflow-x-auto font-mono">
+                </div>
+                <div className="relative">
+                  <pre className="text-xs bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 rounded-lg p-3 overflow-x-auto font-mono">
 {`npx supabase functions deploy tela-ai
 npx supabase functions deploy ai-cfo
 npx supabase functions deploy ai-document-parser
 npx supabase functions deploy ai-demand-forecast`}
-                      </pre>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="absolute top-2 right-2 h-6 text-[10px] gap-1 border-blue-300"
-                        onClick={() => {
-                          navigator.clipboard.writeText('npx supabase functions deploy tela-ai\nnpx supabase functions deploy ai-cfo\nnpx supabase functions deploy ai-document-parser\nnpx supabase functions deploy ai-demand-forecast');
-                          toast.success('Commands copied!');
-                        }}
-                      >
-                        <Copy className="w-3 h-3" /> Copy
+                  </pre>
+                  <Button
+                    size="sm" variant="outline"
+                    className="absolute top-2 right-2 h-6 text-[10px] gap-1 border-blue-300"
+                    onClick={() => { navigator.clipboard.writeText('npx supabase functions deploy tela-ai\nnpx supabase functions deploy ai-cfo\nnpx supabase functions deploy ai-document-parser\nnpx supabase functions deploy ai-demand-forecast'); toast.success('Copied!'); }}
+                  >
+                    <Copy className="w-3 h-3" /> Copy
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Advanced: Custom API Key (optional override) */}
+            <Card className="rounded-xl border-border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-muted-foreground" />
+                  <CardTitle className="text-sm text-muted-foreground font-medium">Advanced: Custom API Key (Optional)</CardTitle>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  By default, Tela AI is powered by the platform. Optionally provide your own Anthropic key to use your own quota and choose the model.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {needsMigration && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">⚠️ Database migration required first</p>
+                    <div className="relative">
+                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 rounded p-2 font-mono">{MIGRATION_SQL}</pre>
+                      <Button size="sm" variant="outline" className="absolute top-1 right-1 h-5 text-[10px] gap-1 border-amber-300"
+                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}>
+                        <Copy className="w-2.5 h-2.5" /> Copy
                       </Button>
                     </div>
-                    <p className="text-xs text-blue-600 dark:text-blue-400">
-                      Make sure you're logged in first: <code className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">npx supabase login</code> and linked: <code className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">npx supabase link</code>
-                    </p>
                   </div>
                 )}
 
-                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-300">
-                  Tela AI uses Anthropic Claude to answer business questions and analyze your data.
-                  Your API key is stored securely in your tenant database — all AI features activate instantly after saving.
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Anthropic API Key</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        type="password"
-                        value={aiKey}
-                        onChange={e => setAiKey(e.target.value)}
-                        placeholder={aiConfigured ? '●●●●●●●●●●●●●●● (key saved)' : 'sk-ant-api03-...'}
-                        className="pl-9 font-mono text-sm"
-                      />
-                    </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Anthropic API Key</Label>
+                  <div className="relative">
+                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      value={aiKey}
+                      onChange={e => setAiKey(e.target.value)}
+                      placeholder={aiConfigured ? '●●●●●●●●●●●●●●● (custom key saved)' : 'sk-ant-api03-... (optional)'}
+                      className="pl-9 font-mono text-sm"
+                    />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Get your API key from{' '}
                     <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
-                      console.anthropic.com <ExternalLink className="w-3 h-3" />
+                      Get key from console.anthropic.com <ExternalLink className="w-3 h-3" />
                     </a>
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>AI Model</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Preferred Model</Label>
                   <Select value={aiModel} onValueChange={setAiModel}>
                     <SelectTrigger>
                       <SelectValue />
@@ -439,12 +452,12 @@ npx supabase functions deploy ai-demand-forecast`}
                         <div className="flex items-center gap-2">
                           <Zap className="w-3.5 h-3.5 text-amber-500" />
                           <span>Claude Haiku 4.5</span>
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">Fast · Low cost</Badge>
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">Fast</Badge>
                         </div>
                       </SelectItem>
                       <SelectItem value="claude-sonnet-4-6">
                         <div className="flex items-center gap-2">
-                          <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                          <Bot className="w-3.5 h-3.5 text-primary" />
                           <span>Claude Sonnet 4.6</span>
                           <Badge variant="secondary" className="text-[10px] px-1 py-0">Recommended</Badge>
                         </div>
@@ -458,33 +471,21 @@ npx supabase functions deploy ai-demand-forecast`}
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">Model used across all Tela AI features: CFO Assistant, Document Scanner, and Demand Forecast.</p>
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
-                  <Button
-                    onClick={handleSaveAI}
-                    disabled={saveAiLoading}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-                  >
+                  <Button onClick={handleSaveAI} disabled={saveAiLoading} variant="outline" className="gap-2">
                     {saveAiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    {saveAiLoading ? 'Saving...' : 'Save Settings'}
-                  </Button>
-                  <Button
-                    onClick={handleTestConnection}
-                    disabled={testLoading || !aiConfigured}
-                    variant="outline"
-                    className="gap-2"
-                  >
-                    {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                    {testLoading ? 'Testing...' : 'Test Connection'}
+                    {saveAiLoading ? 'Saving...' : 'Save Custom Key'}
                   </Button>
                   {aiConfigured && (
                     <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5 text-sm" onClick={handleClearKey}>
-                      <XCircle className="w-4 h-4" /> Remove Key
+                      <XCircle className="w-4 h-4" /> Remove Custom Key
                     </Button>
                   )}
                 </div>
+              </CardContent>
+            </Card>
               </CardContent>
             </Card>
 
