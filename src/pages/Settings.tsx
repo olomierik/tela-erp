@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const [testLoading, setTestLoading] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
   const [needsMigration, setNeedsMigration] = useState(false);
+  const [needsFunctionDeploy, setNeedsFunctionDeploy] = useState(false);
 
   const MIGRATION_SQL = `ALTER TABLE public.tenants
   ADD COLUMN IF NOT EXISTS anthropic_api_key TEXT,
@@ -121,16 +122,31 @@ export default function SettingsPage() {
     setTestLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('tela-ai', {
-        body: { message: 'ping', context: {}, mode: 'default' },
+        body: { message: 'Say "Tela AI is working!" in exactly those words.', context: {}, mode: 'default' },
       });
+
+      // Edge function not deployed
+      if (error?.message?.includes('Failed to send') || error?.message?.includes('404') || error?.message?.includes('not found')) {
+        setNeedsFunctionDeploy(true);
+        toast.error('Edge function not deployed yet — see deployment instructions below.');
+        return;
+      }
       if (error) throw error;
-      if (data?.reply && !data.reply.includes('not configured')) {
-        toast.success('Connected — Claude responded successfully');
+
+      if (data?.reply && !data.reply.toLowerCase().includes('not configured')) {
+        setNeedsFunctionDeploy(false);
+        toast.success('✓ Connected — Tela AI is working!');
       } else {
-        toast.error(data?.reply || 'API key not working. Check your key and try again.');
+        toast.error(data?.reply || 'API key not working. Check your key in Settings.');
       }
     } catch (err: any) {
-      toast.error('Connection failed: ' + (err.message || 'Unknown error'));
+      const msg = err.message || '';
+      if (msg.includes('Failed to send') || msg.includes('fetch') || msg.includes('network')) {
+        setNeedsFunctionDeploy(true);
+        toast.error('Edge function not reachable — deploy it first (see instructions below).');
+      } else {
+        toast.error('Connection failed: ' + msg);
+      }
     } finally {
       setTestLoading(false);
     }
@@ -345,6 +361,42 @@ export default function SettingsPage() {
                     </div>
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       After running the SQL, refresh this page and save your API key again.
+                    </p>
+                  </div>
+                )}
+
+                {needsFunctionDeploy && (
+                  <div className="rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-blue-600 text-lg leading-none">🚀</span>
+                      <div>
+                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Deploy Edge Functions</p>
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                          The AI edge functions need to be deployed to your Supabase project. Run these commands in your terminal from the project root:
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <pre className="text-xs bg-blue-100 dark:bg-blue-950/60 text-blue-900 dark:text-blue-200 rounded-lg p-3 overflow-x-auto font-mono">
+{`npx supabase functions deploy tela-ai
+npx supabase functions deploy ai-cfo
+npx supabase functions deploy ai-document-parser
+npx supabase functions deploy ai-demand-forecast`}
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2 h-6 text-[10px] gap-1 border-blue-300"
+                        onClick={() => {
+                          navigator.clipboard.writeText('npx supabase functions deploy tela-ai\nnpx supabase functions deploy ai-cfo\nnpx supabase functions deploy ai-document-parser\nnpx supabase functions deploy ai-demand-forecast');
+                          toast.success('Commands copied!');
+                        }}
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Make sure you're logged in first: <code className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">npx supabase login</code> and linked: <code className="font-mono bg-blue-100 dark:bg-blue-900/40 px-1 rounded">npx supabase link</code>
                     </p>
                   </div>
                 )}
