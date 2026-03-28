@@ -425,7 +425,7 @@ export default function Team() {
                   <Select value={inviteStore} onValueChange={setInviteStore}>
                     <SelectTrigger><SelectValue placeholder="No store assignment" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No store assignment</SelectItem>
+                      <SelectItem value="none">No store assignment</SelectItem>
                       {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
