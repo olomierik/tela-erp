@@ -1447,6 +1447,8 @@ export type Database = {
       }
       tenants: {
         Row: {
+          ai_model: string | null
+          anthropic_api_key: string | null
           created_at: string
           custom_domain: string | null
           default_currency: string
@@ -1464,6 +1466,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_model?: string | null
+          anthropic_api_key?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
@@ -1481,6 +1485,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_model?: string | null
+          anthropic_api_key?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
