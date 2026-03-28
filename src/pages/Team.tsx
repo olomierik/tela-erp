@@ -422,7 +422,7 @@ export default function Team() {
               {stores.length > 0 && (
                 <div className="space-y-2">
                   <Label>Assign to Store (optional)</Label>
-                  <Select value={inviteStore} onValueChange={setInviteStore}>
+                  <Select value={inviteStore || 'none'} onValueChange={v => setInviteStore(v === 'none' ? '' : v)}>
                     <SelectTrigger><SelectValue placeholder="No store assignment" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">No store assignment</SelectItem>
