@@ -66,14 +66,14 @@ export default function FixedAssets() {
     for (const asset of assets.filter(a => a.status === 'active')) {
       const annualDep = (Number(asset.purchase_cost) - Number(asset.salvage_value ?? 0)) / Number(asset.useful_life_years ?? 5);
       const monthlyDep = annualDep / 12;
-      await (supabase.from('asset_depreciation_entries') as any).insert({
+      await (supabase.from as any)('asset_depreciation_entries').insert({
         tenant_id: tenant?.id,
         asset_id: asset.id,
         period_date: new Date().toISOString().slice(0, 10),
         depreciation_amount: monthlyDep,
         book_value_after: Math.max(0, Number(asset.current_value) - monthlyDep),
       });
-      await (supabase.from('fixed_assets') as any)
+      await (supabase.from as any)('fixed_assets')
         .update({ accumulated_depreciation: Number(asset.accumulated_depreciation ?? 0) + monthlyDep, current_value: Math.max(0, Number(asset.current_value) - monthlyDep) })
         .eq('id', asset.id);
       // Create accounting journal entry

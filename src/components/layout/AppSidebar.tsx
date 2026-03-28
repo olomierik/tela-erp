@@ -129,20 +129,20 @@ export default function AppSidebar() {
         className={cn(
           'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-sm group relative',
           active
-            ? 'bg-indigo-600 text-white font-medium shadow-sm shadow-indigo-500/20'
-            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            ? 'bg-primary text-primary-foreground font-medium shadow-sm shadow-primary/20'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
         )}
         title={collapsed ? item.label : undefined}
       >
         {active && (
           <motion.div
             layoutId="activePill"
-            className="absolute inset-0 rounded-lg bg-indigo-600"
+            className="absolute inset-0 rounded-lg bg-primary"
             style={{ zIndex: -1 }}
             transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
           />
         )}
-        <item.icon className={cn('w-[18px] h-[18px] shrink-0', active ? 'text-white' : 'text-slate-400 group-hover:text-white')} />
+        <item.icon className={cn('w-[18px] h-[18px] shrink-0', active ? 'text-primary-foreground' : 'text-sidebar-foreground group-hover:text-sidebar-accent-foreground')} />
         <AnimatePresence>
           {!collapsed && (
             <motion.span
@@ -171,9 +171,9 @@ export default function AppSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-slate-700/50 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
-          <Building2 className="w-4 h-4 text-white" />
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 shadow-lg shadow-primary/30">
+          <Building2 className="w-4 h-4 text-primary-foreground" />
         </div>
         <AnimatePresence>
           {!collapsed && (
@@ -183,17 +183,17 @@ export default function AppSidebar() {
               exit={{ opacity: 0, width: 0 }}
               className="overflow-hidden"
             >
-              <h1 className="text-white font-bold text-sm tracking-tight whitespace-nowrap leading-tight">
+              <h1 className="text-sidebar-accent-foreground font-bold text-sm tracking-tight whitespace-nowrap leading-tight">
                 {tenant?.name ?? 'TELA ERP'}
               </h1>
-              <p className="text-[10px] text-slate-400 whitespace-nowrap leading-none">Enterprise Platform</p>
+              <p className="text-[10px] text-sidebar-muted whitespace-nowrap leading-none">Enterprise Platform</p>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-slate-700">
+      <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-sidebar-border">
         {navSections.map(section => {
           if (section.title === 'Admin' && role !== 'admin' && role !== 'reseller') return null;
           const isSectionCollapsed = collapsedSections.has(section.title);
@@ -209,15 +209,15 @@ export default function AppSidebar() {
                     onClick={() => section.collapsible && toggleSection(section.title)}
                     className={cn(
                       'flex items-center justify-between w-full px-3 mb-1',
-                      section.collapsible && 'hover:text-slate-300 transition-colors cursor-pointer'
+                      section.collapsible && 'hover:text-sidebar-accent-foreground transition-colors cursor-pointer'
                     )}
                   >
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
+                    <span className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-widest">
                       {section.title}
                     </span>
                     {section.collapsible && (
                       <ChevronRight className={cn(
-                        'w-3 h-3 text-slate-500 transition-transform',
+                        'w-3 h-3 text-sidebar-muted transition-transform',
                         !isSectionCollapsed && 'rotate-90'
                       )} />
                     )}
@@ -247,10 +247,10 @@ export default function AppSidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-slate-700/50 p-3 shrink-0 space-y-2">
+      <div className="border-t border-sidebar-border p-3 shrink-0 space-y-2">
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
-          <div className="flex items-center gap-2.5 px-1 py-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 text-xs font-bold text-white shadow-sm">
+          <div className="flex items-center gap-2.5 px-1 py-1 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 text-xs font-bold text-primary-foreground shadow-sm">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
             <AnimatePresence>
@@ -261,8 +261,8 @@ export default function AppSidebar() {
                   exit={{ opacity: 0 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-sm font-medium text-white truncate">{profile?.full_name ?? 'User'}</p>
-                  <p className="text-[11px] text-slate-400 capitalize">{role}</p>
+                  <p className="text-sm font-medium text-sidebar-accent-foreground truncate">{profile?.full_name ?? 'User'}</p>
+                  <p className="text-[11px] text-sidebar-muted capitalize">{role}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -270,7 +270,7 @@ export default function AppSidebar() {
         </Link>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full transition-colors text-slate-400 hover:bg-red-500/10 hover:text-red-400"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm w-full transition-colors text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive"
           title={collapsed ? 'Sign out' : undefined}
         >
           <LogOut className="w-[18px] h-[18px] shrink-0" />
@@ -291,7 +291,7 @@ export default function AppSidebar() {
       {/* Mobile toggle */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-50 w-9 h-9 rounded-lg bg-slate-900 border border-slate-700 flex items-center justify-center text-white shadow-lg"
+        className="md:hidden fixed top-3 left-3 z-50 w-9 h-9 rounded-lg bg-sidebar border border-sidebar-border flex items-center justify-center text-sidebar-accent-foreground shadow-lg"
       >
         <Menu className="w-5 h-5" />
       </button>
@@ -301,16 +301,16 @@ export default function AppSidebar() {
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="md:hidden fixed inset-0 bg-foreground/60 backdrop-blur-sm z-50"
             onClick={() => setMobileOpen(false)}
           >
             <motion.aside
               initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="w-[260px] h-full bg-slate-900 flex flex-col"
+              className="w-[260px] h-full bg-sidebar flex flex-col"
               onClick={e => e.stopPropagation()}
             >
-              <button onClick={() => setMobileOpen(false)} className="absolute top-3.5 right-3 text-slate-400 hover:text-white">
+              <button onClick={() => setMobileOpen(false)} className="absolute top-3.5 right-3 text-sidebar-foreground hover:text-sidebar-accent-foreground">
                 <X className="w-5 h-5" />
               </button>
               {sidebarContent}
@@ -323,25 +323,25 @@ export default function AppSidebar() {
       <motion.aside
         animate={{ width: collapsed ? 64 : 240 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-slate-900 flex-col border-r border-slate-700/50 z-50 overflow-hidden"
+        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar flex-col border-r border-sidebar-border z-50 overflow-hidden"
       >
         {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-600 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors shadow-sm z-10"
+          className="absolute -right-3 top-16 w-6 h-6 rounded-full bg-card border border-border dark:bg-card dark:border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm z-10"
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
       </motion.aside>
 
       {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-700/50 flex items-center justify-around px-2 py-1.5 safe-area-pb">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar border-t border-sidebar-border flex items-center justify-around px-2 py-1.5 safe-area-pb">
         {mobileBottomNav.map(item => {
           const active = isActive(item.path);
           return (
             <Link
               key={item.path} to={item.path}
-              className={cn('flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg text-[10px] transition-colors', active ? 'text-indigo-400' : 'text-slate-500')}
+              className={cn('flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg text-[10px] transition-colors', active ? 'text-primary' : 'text-sidebar-muted')}
             >
               <item.icon className="w-5 h-5" />
               <span>{item.label}</span>

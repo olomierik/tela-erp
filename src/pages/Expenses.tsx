@@ -108,7 +108,7 @@ export default function Expenses() {
     });
     // Insert items
     for (const item of form.items) {
-      await (supabase.from('expense_items') as any).insert({
+      await (supabase.from as any)('expense_items').insert({
         claim_id: claim.id, tenant_id: tenant?.id,
         ...item, amount: Number(item.amount),
       });

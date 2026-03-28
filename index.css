@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,100 +6,100 @@
 
 @layer base {
   :root {
-    /* ── Core palette ── */
-    --background:       0 0% 99%;
-    --foreground:       224 15% 10%;
+    /* ── Core palette — Warm Navy + Amber ── */
+    --background:       220 20% 98%;
+    --foreground:       222 20% 12%;
     --card:             0 0% 100%;
-    --card-foreground:  224 15% 10%;
+    --card-foreground:  222 20% 12%;
     --popover:          0 0% 100%;
-    --popover-foreground: 224 15% 10%;
+    --popover-foreground: 222 20% 12%;
 
-    /* Brand: deep navy-blue */
-    --primary:          221 83% 38%;
+    /* Brand: warm navy-indigo */
+    --primary:          230 65% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:        220 14% 96%;
-    --secondary-foreground: 224 15% 20%;
+    --secondary:        225 15% 95%;
+    --secondary-foreground: 222 20% 18%;
 
-    --muted:            220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted:            225 15% 95%;
+    --muted-foreground: 222 10% 50%;
 
-    --accent:           221 83% 95%;
-    --accent-foreground: 221 83% 30%;
+    --accent:           32 95% 52%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive:      0 84% 55%;
+    --destructive:      4 76% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:          142 71% 38%;
+    --success:          160 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning:          38 92% 48%;
+    --warning:          38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info:             199 89% 42%;
+    --info:             205 85% 50%;
     --info-foreground:  0 0% 100%;
 
-    --border:           220 13% 91%;
-    --input:            220 13% 91%;
-    --ring:             221 83% 38%;
+    --border:           225 14% 91%;
+    --input:            225 14% 91%;
+    --ring:             230 65% 52%;
     --radius:           0.625rem;
 
-    /* Sidebar */
-    --sidebar-background: 224 30% 10%;
-    --sidebar-foreground: 220 15% 85%;
-    --sidebar-primary:    221 83% 60%;
+    /* Sidebar — rich dark navy */
+    --sidebar-background: 228 28% 12%;
+    --sidebar-foreground: 225 15% 72%;
+    --sidebar-primary:    230 65% 62%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:     224 25% 16%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border:     224 20% 16%;
-    --sidebar-ring:       221 83% 60%;
-    --sidebar-muted:      220 12% 55%;
+    --sidebar-accent:     228 22% 18%;
+    --sidebar-accent-foreground: 225 15% 92%;
+    --sidebar-border:     228 20% 18%;
+    --sidebar-ring:       230 65% 62%;
+    --sidebar-muted:      225 12% 50%;
   }
 
   .dark {
-    --background:       224 20% 8%;
-    --foreground:       220 15% 92%;
-    --card:             224 18% 11%;
-    --card-foreground:  220 15% 92%;
-    --popover:          224 18% 11%;
-    --popover-foreground: 220 15% 92%;
+    --background:       228 22% 7%;
+    --foreground:       225 15% 92%;
+    --card:             228 20% 10%;
+    --card-foreground:  225 15% 92%;
+    --popover:          228 20% 10%;
+    --popover-foreground: 225 15% 92%;
 
-    --primary:          221 83% 60%;
-    --primary-foreground: 224 30% 8%;
+    --primary:          230 65% 62%;
+    --primary-foreground: 228 28% 8%;
 
-    --secondary:        224 18% 16%;
-    --secondary-foreground: 220 15% 85%;
+    --secondary:        228 18% 16%;
+    --secondary-foreground: 225 15% 85%;
 
-    --muted:            224 18% 16%;
-    --muted-foreground: 220 9% 55%;
+    --muted:            228 18% 16%;
+    --muted-foreground: 225 10% 55%;
 
-    --accent:           221 40% 18%;
-    --accent-foreground: 221 83% 75%;
+    --accent:           32 90% 55%;
+    --accent-foreground: 228 28% 8%;
 
-    --destructive:      0 72% 55%;
+    --destructive:      4 68% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:          142 60% 42%;
+    --success:          160 50% 42%;
     --success-foreground: 0 0% 100%;
 
     --warning:          38 85% 52%;
-    --warning-foreground: 224 30% 8%;
+    --warning-foreground: 228 28% 8%;
 
-    --border:           224 18% 18%;
-    --input:            224 18% 18%;
-    --ring:             221 83% 60%;
+    --border:           228 18% 18%;
+    --input:            228 18% 18%;
+    --ring:             230 65% 62%;
 
-    --sidebar-background: 224 25% 6%;
-    --sidebar-foreground: 220 15% 80%;
-    --sidebar-accent:     224 22% 12%;
-    --sidebar-border:     224 22% 13%;
+    --sidebar-background: 228 28% 6%;
+    --sidebar-foreground: 225 15% 72%;
+    --sidebar-accent:     228 22% 13%;
+    --sidebar-border:     228 22% 14%;
   }
 
   * { @apply border-border; box-sizing: border-box; }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'DM Sans', system-ui, sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
@@ -109,11 +109,8 @@
   ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }
 
-  /* Mono font for numbers */
-  .font-mono { font-family: 'DM Mono', monospace; }
-
-  /* Display font for hero text */
-  .font-display { font-family: 'Playfair Display', serif; }
+  /* Mono font */
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
 }
 
 @layer components {
@@ -162,14 +159,14 @@
     @apply mr-auto max-w-[85%] rounded-2xl rounded-tl-sm bg-card border px-4 py-3 text-sm;
   }
 
-  /* ── KPI glow ── */
+  /* ── KPI ── */
   .kpi-positive { @apply text-success; }
   .kpi-negative { @apply text-destructive; }
   .kpi-neutral  { @apply text-muted-foreground; }
 
   /* ── Gradient text ── */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-blue-500 to-cyan-500 bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-blue-500 to-accent bg-clip-text text-transparent;
   }
 
   /* ── Status pills ── */

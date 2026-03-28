@@ -56,16 +56,16 @@ function KpiCard({ title, value, change, icon: Icon, alert, loading, subtitle }:
               <div className="flex items-start justify-between mb-3">
                 <div className={cn(
                   'w-9 h-9 rounded-lg flex items-center justify-center',
-                  alert ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-indigo-50 dark:bg-indigo-900/20'
+                  alert ? 'bg-warning/10' : 'bg-primary/10'
                 )}>
-                  <Icon className={cn('w-4.5 h-4.5', alert ? 'text-amber-600' : 'text-indigo-600')} style={{ width: 18, height: 18 }} />
+                  <Icon className={cn('w-4.5 h-4.5', alert ? 'text-warning' : 'text-primary')} style={{ width: 18, height: 18 }} />
                 </div>
                 {change !== undefined && (
                   <div className={cn(
                     'flex items-center gap-0.5 text-[11px] font-semibold rounded-full px-2 py-0.5',
                     isPositive
-                      ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400'
-                      : 'text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400'
+                      ? 'text-success bg-success/10'
+                      : 'text-destructive bg-destructive/10'
                   )}>
                     {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                     {isPositive ? '+' : ''}{change}%

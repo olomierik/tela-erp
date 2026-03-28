@@ -106,7 +106,7 @@ export default function DocumentScanner() {
 
       // Save to DB
       if (tenant?.id) {
-        await (supabase.from('scanned_documents') as any).insert({
+        await (supabase.from as any)('scanned_documents').insert({
           tenant_id: tenant.id,
           file_name: file?.name,
           document_type: docType,
