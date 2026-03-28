@@ -486,8 +486,6 @@ npx supabase functions deploy ai-demand-forecast`}
                 </div>
               </CardContent>
             </Card>
-              </CardContent>
-            </Card>
 
             {/* AI Features Overview */}
             <Card className="rounded-xl border-border">
