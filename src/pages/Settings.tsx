@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Copy } from 'lucide-react';
 import {
   Building2, Users, Bot, Bell, Plug, Shield, RefreshCw,
   Upload, Save, Plus, Mail, ExternalLink, Lock, Key,
@@ -37,19 +38,27 @@ export default function SettingsPage() {
   const [saveAiLoading, setSaveAiLoading] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
   const [aiConfigured, setAiConfigured] = useState(false);
+  const [needsMigration, setNeedsMigration] = useState(false);
+
+  const MIGRATION_SQL = `ALTER TABLE public.tenants
+  ADD COLUMN IF NOT EXISTS anthropic_api_key TEXT,
+  ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT 'claude-sonnet-4-6';`;
 
   // Load existing AI config on mount
   useEffect(() => {
     if (!tenant?.id || isDemo) return;
     (async () => {
-      const { data } = await (supabase.from('tenants') as any)
+      const { data, error } = await (supabase.from('tenants') as any)
         .select('anthropic_api_key, ai_model')
         .eq('id', tenant.id)
         .single();
+      if (error?.message?.includes('column') || error?.message?.includes('schema')) {
+        setNeedsMigration(true);
+        return;
+      }
       if (data?.anthropic_api_key) {
         setAiConfigured(true);
         setAiModel(data.ai_model || 'claude-sonnet-4-6');
-        // Show masked placeholder so user knows a key is set
         setAiKey('');
       }
     })();
@@ -87,7 +96,16 @@ export default function SettingsPage() {
       const { error } = await (supabase.from('tenants') as any)
         .update(updates)
         .eq('id', tenant?.id);
-      if (error) throw error;
+      if (error) {
+        // Columns don't exist yet — migration not applied
+        if (error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('ai_model')) {
+          setNeedsMigration(true);
+          toast.error('Database migration required — see the setup instructions below.');
+          return;
+        }
+        throw error;
+      }
+      setNeedsMigration(false);
       setAiConfigured(true);
       if (aiKey.trim()) setAiKey('');
       toast.success('AI settings saved successfully');
@@ -300,6 +318,37 @@ export default function SettingsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-5">
+                {needsMigration && (
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600 text-lg leading-none">⚠️</span>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">One-time database migration required</p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                          The <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">anthropic_api_key</code> and <code className="font-mono bg-amber-100 dark:bg-amber-900/40 px-1 rounded">ai_model</code> columns don't exist yet in your Supabase database.
+                          Run this SQL in your <strong>Supabase dashboard → SQL Editor</strong> then come back and save.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 rounded-lg p-3 overflow-x-auto font-mono whitespace-pre-wrap">
+{MIGRATION_SQL}
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2 h-6 text-[10px] gap-1 border-amber-300"
+                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}
+                      >
+                        <Copy className="w-3 h-3" /> Copy
+                      </Button>
+                    </div>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      After running the SQL, refresh this page and save your API key again.
+                    </p>
+                  </div>
+                )}
+
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-300">
                   Tela AI uses Anthropic Claude to answer business questions and analyze your data.
                   Your API key is stored securely in your tenant database — all AI features activate instantly after saving.
