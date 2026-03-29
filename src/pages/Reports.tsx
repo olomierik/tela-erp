@@ -15,7 +15,16 @@ import { useStore } from '@/contexts/StoreContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { cn } from '@/lib/utils';
 
-type ReportType = 'sales' | 'inventory' | 'production' | 'trial_balance' | 'profit_loss' | 'balance_sheet' | 'general_ledger';
+type ReportType = 'sales' | 'inventory' | 'production' | 'trial_balance' | 'profit_loss' | 'balance_sheet' | 'general_ledger' | 'hr' | 'crm';
+
+// Tanzania 2026 PAYE (same formula as HR page)
+function calcPAYE(gross: number): number {
+  if (gross <= 270000) return 0;
+  if (gross <= 520000) return (gross - 270000) * 0.08;
+  if (gross <= 760000) return 20000 + (gross - 520000) * 0.20;
+  if (gross <= 1000000) return 68000 + (gross - 760000) * 0.25;
+  return 128000 + (gross - 1000000) * 0.30;
+}
 
 export default function Reports() {
   const { tenant, isDemo } = useAuth();
@@ -31,6 +40,8 @@ export default function Reports() {
   const { data: transactionData } = useTenantQuery('transactions');
   const { data: coaData } = useTenantQuery('chart_of_accounts');
   const { data: journalData } = useTenantQuery('journal_entries', 'entry_date');
+  const { data: employeeData } = useTenantQuery('employees');
+  const { data: crmDealData } = useTenantQuery('crm_deals');
 
   const sales = salesData ?? [];
   const inventory = inventoryData ?? [];
@@ -38,6 +49,48 @@ export default function Reports() {
   const transactions = transactionData ?? [];
   const coa = coaData ?? [];
   const journals = journalData ?? [];
+  const employees = (employeeData ?? []) as any[];
+  const crmDeals = (crmDealData ?? []) as any[];
+
+  // ── Payroll calculations from real employee data ──────────────────────────
+  const activeEmployees = employees.filter((e: any) => e.status === 'active');
+  const payrollRows = activeEmployees.map((e: any) => {
+    const basic = Number(e.salary) || 0;
+    const allowances = Number(e.allowances) || 0;
+    const gross = basic + allowances;
+    const paye = calcPAYE(gross);
+    const nssfEmp = basic * 0.10;
+    const nssfEmpr = basic * 0.10;
+    const sdl = gross * 0.035;
+    const wcf = gross * 0.005;
+    const net = gross - paye - nssfEmp;
+    return { ...e, basic, allowances, gross, paye, nssfEmp, nssfEmpr, sdl, wcf, net };
+  });
+  const hrTotals = {
+    gross: payrollRows.reduce((s: number, e: any) => s + e.gross, 0),
+    paye: payrollRows.reduce((s: number, e: any) => s + e.paye, 0),
+    nssfEmp: payrollRows.reduce((s: number, e: any) => s + e.nssfEmp, 0),
+    nssfEmpr: payrollRows.reduce((s: number, e: any) => s + e.nssfEmpr, 0),
+    sdl: payrollRows.reduce((s: number, e: any) => s + e.sdl, 0),
+    wcf: payrollRows.reduce((s: number, e: any) => s + e.wcf, 0),
+    net: payrollRows.reduce((s: number, e: any) => s + e.net, 0),
+    cost: payrollRows.reduce((s: number, e: any) => s + e.gross + e.nssfEmpr + e.sdl + e.wcf, 0),
+  };
+
+  // ── CRM pipeline from real deals ─────────────────────────────────────────
+  const stageOrder = ['lead', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+  const crmByStage = stageOrder.map(stage => {
+    const deals = crmDeals.filter((d: any) => d.stage === stage);
+    const value = deals.reduce((s: number, d: any) => s + Number(d.value), 0);
+    const avgProb = deals.length ? deals.reduce((s: number, d: any) => s + Number(d.probability || 0), 0) / deals.length : 0;
+    return { stage: stage.charAt(0).toUpperCase() + stage.slice(1), count: deals.length, value, avgProb: Math.round(avgProb) };
+  }).filter(s => s.count > 0);
+  const totalPipeline = crmDeals.filter((d: any) => !['won','lost'].includes(d.stage)).reduce((s: number, d: any) => s + Number(d.value), 0);
+  const wonValue = crmDeals.filter((d: any) => d.stage === 'won').reduce((s: number, d: any) => s + Number(d.value), 0);
+  const wonCount = crmDeals.filter((d: any) => d.stage === 'won').length;
+  const closedCount = crmDeals.filter((d: any) => ['won','lost'].includes(d.stage)).length;
+  const winRate = closedCount > 0 ? Math.round((wonCount / closedCount) * 100) : 0;
+  const avgDealSize = crmDeals.length > 0 ? (crmDeals.reduce((s: number, d: any) => s + Number(d.value), 0) / crmDeals.length) : 0;
 
   const filterByDate = (items: any[], dateField: string) =>
     items.filter((i: any) => {
@@ -227,29 +280,68 @@ export default function Reports() {
           ],
         };
       }
-      default:
+      case 'hr': {
         return {
-          headers: [],
-          rows: [],
-          count: 0,
-          stats: [],
+          headers: ['Employee', 'Position', 'Dept', 'Basic', 'Allowances', 'Gross', 'PAYE', 'NSSF Emp', 'Net Pay', 'NSSF Empr', 'SDL 3.5%', 'WCF 0.5%'],
+          rows: [
+            ...payrollRows.map((e: any) => [
+              e.full_name, e.position || '—', e.department || '—',
+              formatMoney(e.basic), formatMoney(e.allowances), formatMoney(e.gross),
+              formatMoney(e.paye), formatMoney(e.nssfEmp), formatMoney(e.net),
+              formatMoney(e.nssfEmpr), formatMoney(e.sdl), formatMoney(e.wcf),
+            ]),
+            ['', '', '', '', '', '', '', '', '', '', '', ''],
+            ['TOTALS', '', '', '', '', formatMoney(hrTotals.gross),
+              formatMoney(hrTotals.paye), formatMoney(hrTotals.nssfEmp), formatMoney(hrTotals.net),
+              formatMoney(hrTotals.nssfEmpr), formatMoney(hrTotals.sdl), formatMoney(hrTotals.wcf)],
+          ],
+          count: payrollRows.length,
+          stats: [
+            { label: 'Total Gross Payroll', value: formatMoney(hrTotals.gross) },
+            { label: 'PAYE → TRA', value: formatMoney(hrTotals.paye) },
+            { label: 'Net Pay (Take-home)', value: formatMoney(hrTotals.net) },
+            { label: 'Total Employer Cost', value: formatMoney(hrTotals.cost) },
+          ],
         };
+      }
+      case 'crm': {
+        return {
+          headers: ['Stage', 'Deals', 'Pipeline Value', 'Avg Probability'],
+          rows: [
+            ...crmByStage.map(s => [s.stage, s.count, formatMoney(s.value), `${s.avgProb}%`]),
+            ['', '', '', ''],
+            ['TOTAL', crmDeals.length, formatMoney(crmDeals.reduce((s: number, d: any) => s + Number(d.value), 0)), `${winRate}% win rate`],
+          ],
+          count: crmDeals.length,
+          stats: [
+            { label: 'Open Pipeline', value: formatMoney(totalPipeline) },
+            { label: 'Won (All Time)', value: formatMoney(wonValue) },
+            { label: 'Avg Deal Size', value: formatMoney(avgDealSize) },
+            { label: 'Win Rate', value: `${winRate}%` },
+          ],
+        };
+      }
+      default:
+        return { headers: [], rows: [], count: 0, stats: [] };
     }
   };
 
   const preview = getPreviewData();
 
-  const reportLabel = {
+  const reportLabel: Record<ReportType, string> = {
     sales: 'Sales Report', inventory: 'Inventory Report', production: 'Production Report',
-    trial_balance: 'Trial Balance', profit_loss: 'Profit & Loss', balance_sheet: 'Balance Sheet', general_ledger: 'General Ledger',
-  }[reportType];
+    trial_balance: 'Trial Balance', profit_loss: 'Profit & Loss', balance_sheet: 'Balance Sheet',
+    general_ledger: 'General Ledger', hr: 'Payroll Report', crm: 'CRM Pipeline Report',
+  };
 
   const handleDownload = () => {
     const data = getPreviewData();
-    // For PDF, get all rows (not sliced)
+    const subtitle = reportType === 'hr'
+      ? `Payroll for ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} · ${tenant?.name || 'TELA-ERP'}`
+      : `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'}`;
     generatePDFReport({
-      title: reportLabel,
-      subtitle: `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'} · Store: ${selectedStore?.name || 'All Stores'}`,
+      title: reportLabel[reportType],
+      subtitle,
       tenantName: tenant?.name,
       headers: data.headers,
       rows: data.rows,
@@ -258,119 +350,149 @@ export default function Reports() {
   };
 
   const isAccounting = ['trial_balance', 'profit_loss', 'balance_sheet', 'general_ledger'].includes(reportType);
+  const isCustomSection = reportType === 'hr' || reportType === 'crm';
 
   return (
     <AppLayout title="Reports" subtitle="Generate & download reports">
       {/* Report category tabs */}
-      <Tabs value={isAccounting ? 'accounting' : reportType} onValueChange={(v) => {
-        if (v === 'accounting') setReportType('trial_balance');
-        else setReportType(v as ReportType);
-      }} className="mb-4">
+      <Tabs
+        value={isAccounting ? 'accounting' : reportType}
+        onValueChange={(v) => {
+          if (v === 'accounting') setReportType('trial_balance');
+          else setReportType(v as ReportType);
+        }}
+        className="mb-4"
+      >
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="sales">Sales</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="production">Production</TabsTrigger>
           <TabsTrigger value="accounting">Accounting</TabsTrigger>
-          <TabsTrigger value="hr">HR</TabsTrigger>
+          <TabsTrigger value="hr">HR / Payroll</TabsTrigger>
           <TabsTrigger value="crm">CRM Pipeline</TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {/* HR Summary */}
-      {reportType === ('hr' as any) && (
-        <div className="mb-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">Total Headcount</p>
-            <p className="text-2xl font-bold text-foreground mt-1">24</p>
-            <p className="text-xs text-muted-foreground mt-1">+3 this month</p>
+      {/* HR Payroll Summary — real data */}
+      {reportType === 'hr' && (
+        <div className="mb-5 space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Active Employees', value: String(activeEmployees.length), color: 'text-foreground' },
+              { label: 'Total Gross Payroll', value: formatMoney(hrTotals.gross), color: 'text-foreground' },
+              { label: 'Net Pay (Take-home)', value: formatMoney(hrTotals.net), color: 'text-indigo-600' },
+              { label: 'Total Employer Cost', value: formatMoney(hrTotals.cost), color: 'text-amber-600' },
+            ].map(k => (
+              <div key={k.label} className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs text-muted-foreground">{k.label}</p>
+                <p className={`text-xl font-bold mt-1 ${k.color}`}>{k.value}</p>
+              </div>
+            ))}
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">Monthly Payroll</p>
-            <p className="text-2xl font-bold text-indigo-600 mt-1">{formatMoney(28500)}</p>
-            <p className="text-xs text-muted-foreground mt-1">Net after deductions</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-xs text-muted-foreground">Avg Salary</p>
-            <p className="text-2xl font-bold text-foreground mt-1">{formatMoney(5800)}</p>
-            <p className="text-xs text-muted-foreground mt-1">Per employee/month</p>
-          </div>
-          <div className="col-span-full rounded-xl border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40"><tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="text-left px-4 py-3 font-medium">Department</th>
-                <th className="text-center px-4 py-3 font-medium">Headcount</th>
-                <th className="text-right px-4 py-3 font-medium">Payroll Cost</th>
-                <th className="text-right px-4 py-3 font-medium">% of Total</th>
-              </tr></thead>
-              <tbody className="divide-y divide-border">
-                {[
-                  { dept: 'Engineering', count: 8, cost: 9200 },
-                  { dept: 'Sales', count: 5, cost: 6100 },
-                  { dept: 'Finance', count: 3, cost: 3800 },
-                  { dept: 'Marketing', count: 4, cost: 4600 },
-                  { dept: 'HR', count: 2, cost: 2400 },
-                  { dept: 'Operations', count: 2, cost: 2400 },
-                ].map(row => (
-                  <tr key={row.dept} className="hover:bg-accent/40">
-                    <td className="px-4 py-3 font-medium text-foreground">{row.dept}</td>
-                    <td className="px-4 py-3 text-center">{row.count}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-foreground">{formatMoney(row.cost)}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{Math.round((row.cost / 28500) * 100)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {payrollRows.length > 0 && (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/40">
+                    <tr className="border-b border-border text-muted-foreground">
+                      <th className="text-left px-4 py-2.5 font-medium">Employee</th>
+                      <th className="text-left px-3 py-2.5 font-medium">Dept</th>
+                      <th className="text-right px-3 py-2.5 font-medium">Basic</th>
+                      <th className="text-right px-3 py-2.5 font-medium">Allowances</th>
+                      <th className="text-right px-3 py-2.5 font-medium">Gross</th>
+                      <th className="text-right px-3 py-2.5 font-medium text-red-500">PAYE</th>
+                      <th className="text-right px-3 py-2.5 font-medium text-orange-500">NSSF (Emp)</th>
+                      <th className="text-right px-3 py-2.5 font-medium text-indigo-600">Net Pay</th>
+                      <th className="text-right px-3 py-2.5 font-medium text-amber-500">SDL</th>
+                      <th className="text-right px-3 py-2.5 font-medium text-amber-500">WCF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {payrollRows.map((e: any) => (
+                      <tr key={e.id} className="hover:bg-accent/30">
+                        <td className="px-4 py-2.5 font-medium text-foreground">{e.full_name}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{e.department || '—'}</td>
+                        <td className="px-3 py-2.5 text-right">{formatMoney(e.basic)}</td>
+                        <td className="px-3 py-2.5 text-right">{formatMoney(e.allowances)}</td>
+                        <td className="px-3 py-2.5 text-right font-medium text-foreground">{formatMoney(e.gross)}</td>
+                        <td className="px-3 py-2.5 text-right text-red-500">{formatMoney(e.paye)}</td>
+                        <td className="px-3 py-2.5 text-right text-orange-500">{formatMoney(e.nssfEmp)}</td>
+                        <td className="px-3 py-2.5 text-right font-bold text-indigo-600">{formatMoney(e.net)}</td>
+                        <td className="px-3 py-2.5 text-right text-amber-500">{formatMoney(e.sdl)}</td>
+                        <td className="px-3 py-2.5 text-right text-amber-500">{formatMoney(e.wcf)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border bg-muted/30 font-semibold text-xs">
+                      <td className="px-4 py-2.5">TOTALS</td>
+                      <td />
+                      <td />
+                      <td />
+                      <td className="px-3 py-2.5 text-right">{formatMoney(hrTotals.gross)}</td>
+                      <td className="px-3 py-2.5 text-right text-red-500">{formatMoney(hrTotals.paye)}</td>
+                      <td className="px-3 py-2.5 text-right text-orange-500">{formatMoney(hrTotals.nssfEmp)}</td>
+                      <td className="px-3 py-2.5 text-right text-indigo-600">{formatMoney(hrTotals.net)}</td>
+                      <td className="px-3 py-2.5 text-right text-amber-500">{formatMoney(hrTotals.sdl)}</td>
+                      <td className="px-3 py-2.5 text-right text-amber-500">{formatMoney(hrTotals.wcf)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
+          {payrollRows.length === 0 && (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
+              No active employees found. Add employees in HR &amp; Payroll to see this report.
+            </div>
+          )}
         </div>
       )}
 
-      {/* CRM Pipeline Summary */}
-      {reportType === ('crm' as any) && (
+      {/* CRM Pipeline Summary — real data */}
+      {reportType === 'crm' && (
         <div className="mb-5 space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Total Pipeline</p>
-              <p className="text-2xl font-bold text-indigo-600 mt-1">{formatMoney(187000)}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Won (MTD)</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">{formatMoney(310000)}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Avg Deal Size</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{formatMoney(31167)}</p>
-            </div>
-            <div className="rounded-xl border border-border bg-card p-4">
-              <p className="text-xs text-muted-foreground">Win Rate</p>
-              <p className="text-2xl font-bold text-foreground mt-1">42%</p>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Open Pipeline', value: formatMoney(totalPipeline), color: 'text-indigo-600' },
+              { label: 'Won (All Time)', value: formatMoney(wonValue), color: 'text-green-600' },
+              { label: 'Avg Deal Size', value: formatMoney(avgDealSize), color: 'text-foreground' },
+              { label: 'Win Rate', value: `${winRate}%`, color: 'text-foreground' },
+            ].map(k => (
+              <div key={k.label} className="rounded-xl border border-border bg-card p-4">
+                <p className="text-xs text-muted-foreground">{k.label}</p>
+                <p className={`text-xl font-bold mt-1 ${k.color}`}>{k.value}</p>
+              </div>
+            ))}
           </div>
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40"><tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="text-left px-4 py-3 font-medium">Stage</th>
-                <th className="text-center px-4 py-3 font-medium">Deals</th>
-                <th className="text-right px-4 py-3 font-medium">Value</th>
-                <th className="text-right px-4 py-3 font-medium">Avg Probability</th>
-              </tr></thead>
-              <tbody className="divide-y divide-border">
-                {[
-                  { stage: 'Lead', count: 3, value: 27600, prob: '18%' },
-                  { stage: 'Qualified', count: 1, value: 12000, prob: '45%' },
-                  { stage: 'Proposal', count: 1, value: 48000, prob: '65%' },
-                  { stage: 'Negotiation', count: 1, value: 89000, prob: '80%' },
-                  { stage: 'Won', count: 1, value: 310000, prob: '100%' },
-                ].map(row => (
-                  <tr key={row.stage} className="hover:bg-accent/40">
-                    <td className="px-4 py-3 font-medium text-foreground">{row.stage}</td>
-                    <td className="px-4 py-3 text-center">{row.count}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-indigo-600">{formatMoney(row.value)}</td>
-                    <td className="px-4 py-3 text-right text-muted-foreground">{row.prob}</td>
+          {crmByStage.length > 0 ? (
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="border-b border-border text-xs text-muted-foreground">
+                    <th className="text-left px-4 py-3 font-medium">Stage</th>
+                    <th className="text-center px-4 py-3 font-medium">Deals</th>
+                    <th className="text-right px-4 py-3 font-medium">Value</th>
+                    <th className="text-right px-4 py-3 font-medium">Avg Probability</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {crmByStage.map(row => (
+                    <tr key={row.stage} className="hover:bg-accent/40">
+                      <td className="px-4 py-3 font-medium text-foreground">{row.stage}</td>
+                      <td className="px-4 py-3 text-center">{row.count}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-indigo-600">{formatMoney(row.value)}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{row.avgProb}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-8 text-center text-muted-foreground text-sm">
+              No CRM deals found. Add deals in the CRM module to see pipeline data.
+            </div>
+          )}
         </div>
       )}
 
@@ -423,8 +545,8 @@ export default function Reports() {
         </CardContent>
       </Card>
 
-      {/* Stats summary cards */}
-      {preview.stats && preview.stats.length > 0 && (
+      {/* Stats summary cards — only for non-custom-section reports */}
+      {!isCustomSection && preview.stats && preview.stats.length > 0 && (
         <div className={cn("grid gap-3 mb-5", preview.stats.length <= 3 ? "grid-cols-3" : "grid-cols-2 md:grid-cols-4")}>
           {preview.stats.map((stat, i) => (
             <div key={i} className="rounded-lg border border-border bg-card px-4 py-3">
@@ -435,11 +557,11 @@ export default function Reports() {
         </div>
       )}
 
-      {/* Preview table */}
-      <Card>
+      {/* Preview table — hidden for HR and CRM which render their own above */}
+      {!isCustomSection && <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">{reportLabel} ({preview.count} records)</CardTitle>
+            <CardTitle className="text-sm font-semibold">{reportLabel[reportType]} ({preview.count} records)</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -476,7 +598,7 @@ export default function Reports() {
             </table>
           </div>
         </CardContent>
-      </Card>
+      </Card>}
     </AppLayout>
   );
 }
