@@ -4,6 +4,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Hide Lovable platform UI injections ── */
+[data-lovable],
+[class*="lovable"],
+[id*="lovable"],
+[data-lovable-blank-page-placeholder],
+iframe[src*="lovable"],
+a[href*="lovable.dev"],
+a[href*="lovable.app"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 @layer base {
   :root {
     /* ── Core palette — Warm Navy + Amber ── */
