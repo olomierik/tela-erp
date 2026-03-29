@@ -18,6 +18,7 @@ import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import JoinInvite from "./pages/auth/JoinInvite";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import Production from "./pages/Production";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/join/:inviteId" element={<JoinInvite />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
