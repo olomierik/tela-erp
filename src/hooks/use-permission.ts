@@ -11,7 +11,7 @@ export function usePermission() {
 
   const isAdmin   = role === 'admin' || role === 'reseller';
   const isUser    = role === 'user';
-  const isViewer  = role === 'viewer';
+  const isViewer  = !isAdmin && !isUser;
 
   return {
     canCreate: isAdmin || isUser,
