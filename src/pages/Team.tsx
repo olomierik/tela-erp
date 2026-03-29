@@ -4,7 +4,7 @@ import PageHeader from '@/components/erp/PageHeader';
 import {
   Users, Shield, Store, Clock, UserPlus, Trash2, Edit2,
   Mail, MoreHorizontal, RefreshCw, AlertCircle,
-  CheckCircle2, Building2, Brain,
+  CheckCircle2, Building2, Copy, Link2, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,8 @@ export default function Team() {
   const [inviteStore, setInviteStore] = useState('');
   const [inviteStoreRole, setInviteStoreRole] = useState('user');
   const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [editRoleOpen, setEditRoleOpen] = useState(false);
   const [editingRole, setEditingRole] = useState('user');
@@ -132,19 +134,46 @@ export default function Team() {
     if (!inviteEmail.trim()) return;
     setInviting(true);
     try {
-      if (isDemo) { toast.success(`Invite sent to ${inviteEmail} (demo)`); }
-      else {
-        const { error } = await supabase.functions.invoke('invite-store-user', {
-          body: { email: inviteEmail.trim(), role: inviteRole, store_id: inviteStore || null, store_role: inviteStore ? inviteStoreRole : null },
-        });
-        if (error) throw error;
-        toast.success(`Invite sent to ${inviteEmail}`);
-        loadMembers();
+      if (isDemo) {
+        const demoLink = `${window.location.origin}/join/demo-invite-id`;
+        setInviteLink(demoLink);
+        setInviteOpen(false);
+        setLinkDialogOpen(true);
+        return;
       }
+
+      // Insert invite record directly into team_invites table
+      const { data, error } = await (supabase.from as any)('team_invites').insert({
+        tenant_id: tenant!.id,
+        email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole,
+        store_id: inviteStore || null,
+        store_role: inviteStore ? inviteStoreRole : null,
+        invited_by: (await supabase.auth.getUser()).data.user?.id,
+        status: 'pending',
+        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      }).select('id').single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/join/${data.id}`;
+      setInviteLink(link);
       setInviteOpen(false);
-      setInviteEmail(''); setInviteRole('user'); setInviteStore('');
-    } catch (e: any) { toast.error(e.message ?? 'Failed to send invite'); }
+      setInviteEmail(''); setInviteRole('user'); setInviteStore(''); setInviteStoreRole('user');
+      setLinkDialogOpen(true);
+      loadMembers();
+    } catch (e: any) { toast.error(e.message ?? 'Failed to create invite'); }
     finally { setInviting(false); }
+  };
+
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    toast.success('Invite link copied to clipboard!');
+  };
+
+  const shareWhatsApp = () => {
+    const text = encodeURIComponent(`You've been invited to join our team on TELA-ERP. Click this link to create your account:\n${inviteLink}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleUpdateRole = async () => {
@@ -441,18 +470,54 @@ export default function Team() {
                   )}
                 </div>
               )}
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3">
-                <p className="text-xs text-blue-800 dark:text-blue-300">An email invite will be sent. Link expires in 7 days.</p>
+              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                <p className="text-xs text-primary font-medium flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5" />
+                  A shareable invite link will be generated — no email required.
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">Share it via WhatsApp, SMS, or any channel. Expires in 7 days.</p>
               </div>
             </div>
             <SheetFooter className="mt-8 flex-row gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setInviteOpen(false)}>Cancel</Button>
               <Button className="flex-1" disabled={!inviteEmail.trim() || inviting} onClick={handleInvite}>
-                {inviting ? 'Sending...' : 'Send Invite'}
+                {inviting ? 'Creating...' : <><Link2 className="w-4 h-4 mr-1.5" />Generate Invite Link</>}
               </Button>
             </SheetFooter>
           </SheetContent>
         </Sheet>
+
+        {/* Invite Link Dialog */}
+        <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Invite Link Ready
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Share this link with the person you're inviting. They'll create an account and be instantly added to your team.
+              </p>
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-muted border border-border">
+                <ExternalLink className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-xs text-foreground flex-1 truncate font-mono">{inviteLink}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={copyInviteLink} variant="outline" className="gap-2">
+                  <Copy className="w-4 h-4" /> Copy Link
+                </Button>
+                <Button onClick={shareWhatsApp} className="gap-2 bg-[#25D366] hover:bg-[#22c55e] text-white border-0">
+                  <Mail className="w-4 h-4" /> Send via WhatsApp
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">Link expires in 7 days</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setLinkDialogOpen(false)} className="w-full">Done</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Role Dialog */}
         <Dialog open={editRoleOpen} onOpenChange={setEditRoleOpen}>
