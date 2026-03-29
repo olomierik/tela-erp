@@ -394,8 +394,9 @@ export default function Modules() {
               <Building2 className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-semibold text-foreground">TELA-ERP</span>
-            <span>— Free & Open Source</span>
+            <span>— Free &amp; Open Source</span>
           </div>
+          <span className="text-xs">© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
           <div className="flex gap-6">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
