@@ -336,9 +336,18 @@ export default function Reports() {
 
   const handleDownload = () => {
     const data = getPreviewData();
-    const subtitle = reportType === 'hr'
+    const isPayroll = reportType === 'hr';
+    const subtitle = isPayroll
       ? `Payroll for ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })} · ${tenant?.name || 'TELA-ERP'}`
       : `${format(startDate, 'MMM d, yyyy')} — ${format(endDate, 'MMM d, yyyy')} · ${tenant?.name || 'TELA-ERP'}`;
+
+    // For payroll: landscape + right-align all numeric columns (3 onward)
+    const numericColumns = isPayroll
+      ? data.headers.map((_, i) => i).filter(i => i >= 3)
+      : reportType === 'crm'
+        ? [1, 2, 3]
+        : [];
+
     generatePDFReport({
       title: reportLabel[reportType],
       subtitle,
@@ -346,6 +355,8 @@ export default function Reports() {
       headers: data.headers,
       rows: data.rows,
       stats: data.stats,
+      landscape: isPayroll || reportType === 'crm',
+      numericColumns,
     });
   };
 
