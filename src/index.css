@@ -58,16 +58,16 @@ a[href*="lovable.app"] {
     --ring:             230 65% 52%;
     --radius:           0.625rem;
 
-    /* Sidebar — rich dark navy */
-    --sidebar-background: 228 28% 12%;
-    --sidebar-foreground: 225 15% 72%;
-    --sidebar-primary:    230 65% 62%;
+    /* Sidebar — deep charcoal-navy, premium dark */
+    --sidebar-background: 228 32% 9%;
+    --sidebar-foreground: 220 14% 68%;
+    --sidebar-primary:    230 65% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:     228 22% 18%;
-    --sidebar-accent-foreground: 225 15% 92%;
-    --sidebar-border:     228 20% 18%;
-    --sidebar-ring:       230 65% 62%;
-    --sidebar-muted:      225 12% 50%;
+    --sidebar-accent:     228 24% 16%;
+    --sidebar-accent-foreground: 220 18% 92%;
+    --sidebar-border:     228 22% 16%;
+    --sidebar-ring:       230 65% 58%;
+    --sidebar-muted:      225 10% 42%;
   }
 
   .dark {
@@ -189,6 +189,19 @@ a[href*="lovable.app"] {
   .pill-paid      { @apply bg-primary/10 text-primary; }
   .pill-overdue   { @apply bg-destructive/10 text-destructive; }
   .pill-cancelled { @apply bg-muted text-muted-foreground line-through; }
+
+  /* Responsive table wrapper — horizontal scroll on mobile */
+  .table-responsive {
+    @apply w-full overflow-x-auto -mx-0 rounded-xl;
+  }
+  .table-responsive table {
+    @apply min-w-full;
+  }
+
+  /* Page content container — prevents overflow on mobile */
+  .page-container {
+    @apply w-full max-w-full overflow-x-hidden;
+  }
 }
 
 @layer utilities {
