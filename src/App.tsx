@@ -54,6 +54,7 @@ import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
+import WhatsAppButton from "@/components/ui/WhatsAppButton";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -70,6 +71,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <WhatsAppButton />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
