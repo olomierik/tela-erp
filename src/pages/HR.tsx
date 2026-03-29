@@ -258,23 +258,23 @@ export default function HR() {
 
   // ── Tanzania statutory payroll calculation ────────────────────────────────
   const payrollData = activeEmployees.map(e => {
-    const gross = Number(e.salary) || 0;
+    const basic = Number(e.salary) || 0;
     const baseAllowances = Number(e.allowances) || 0;
     const allowances = runAllowances[e.id] ?? baseAllowances;
-    const taxable = gross + allowances;           // PAYE base = gross + allowances
-    const paye = calculatePAYE(taxable);
-    const nssfEmployee = gross * 0.10;            // 10% of gross, deducted from employee
-    const nssfEmployer = gross * 0.10;            // 10% of gross, paid by employer
-    const sdl = gross * 0.035;                    // SDL: 3.5% of GROSS SALARY only
-    const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS SALARY only
-    const net = taxable - paye - nssfEmployee;    // take-home
+    const gross = basic + allowances;             // Gross = Basic + Allowances
+    const paye = calculatePAYE(gross);            // PAYE on full gross
+    const nssfEmployee = basic * 0.10;            // NSSF: 10% of basic, employee
+    const nssfEmployer = basic * 0.10;            // NSSF: 10% of basic, employer
+    const sdl = gross * 0.035;                    // SDL: 3.5% of GROSS (basic + allowances)
+    const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS (basic + allowances)
+    const net = gross - paye - nssfEmployee;      // take-home
     const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
-    return { ...e, gross, allowances, taxable, paye, band: payeBand(taxable), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost };
+    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost };
   });
 
-  const totalGross        = payrollData.reduce((s, e) => s + e.gross, 0);
+  const totalBasic        = payrollData.reduce((s, e) => s + e.basic, 0);
   const totalAllowances   = payrollData.reduce((s, e) => s + e.allowances, 0);
-  const totalTaxable      = payrollData.reduce((s, e) => s + e.taxable, 0);
+  const totalGross        = payrollData.reduce((s, e) => s + e.gross, 0);
   const totalPAYE         = payrollData.reduce((s, e) => s + e.paye, 0);
   const totalNssfEmp      = payrollData.reduce((s, e) => s + e.nssfEmployee, 0);
   const totalNssfEmpr     = payrollData.reduce((s, e) => s + e.nssfEmployer, 0);
@@ -286,16 +286,16 @@ export default function HR() {
   const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
   const handleDownload = () => {
-    const headers = ['Employee', 'Position', 'Department', 'Basic Salary', 'Allowances', 'Taxable Income', 'PAYE', 'NSSF (Emp 10%)', 'Net Pay', 'NSSF (Empr 10%)', 'SDL (3.5%)', 'WCF (0.5%)', 'Total Employer Cost'];
+    const headers = ['Employee', 'Position', 'Department', 'Basic Salary', 'Allowances', 'Gross Salary', 'PAYE', 'NSSF (Emp 10%)', 'Net Pay', 'NSSF (Empr 10%)', 'SDL (3.5%)', 'WCF (0.5%)', 'Total Employer Cost'];
     const rows = payrollData.map(e => [
       e.full_name, e.position || '', e.department || '',
-      e.gross, e.allowances, e.taxable,
+      Math.round(e.basic), Math.round(e.allowances), Math.round(e.gross),
       Math.round(e.paye), Math.round(e.nssfEmployee), Math.round(e.net),
       Math.round(e.nssfEmployer), Math.round(e.sdl), Math.round(e.wcf),
       Math.round(e.totalEmployerCost),
     ]);
     rows.push(['TOTALS', '', '',
-      Math.round(totalGross), Math.round(totalAllowances), Math.round(totalTaxable),
+      Math.round(totalBasic), Math.round(totalAllowances), Math.round(totalGross),
       Math.round(totalPAYE), Math.round(totalNssfEmp), Math.round(totalNet),
       Math.round(totalNssfEmpr), Math.round(totalSDL), Math.round(totalWCF),
       Math.round(totalEmployerCost),
@@ -339,7 +339,7 @@ export default function HR() {
               </CardContent></Card>
               <Card className="rounded-xl border-border"><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Monthly Payroll</p>
-                <p className="text-xl font-bold text-indigo-600">{formatMoney(totalTaxable)}</p>
+                <p className="text-xl font-bold text-indigo-600">{formatMoney(totalGross)}</p>
               </CardContent></Card>
             </div>
 
@@ -591,7 +591,7 @@ export default function HR() {
                   <CardContent className="space-y-2 text-sm">
                     <Row label="Gross Salary" value={formatMoney(totalGross)} />
                     <Row label="Allowances" value={formatMoney(totalAllowances)} />
-                    <Row label="Taxable Income" value={formatMoney(totalTaxable)} bold />
+                    <Row label="Gross Salary (Basic + Allowances)" value={formatMoney(totalGross)} bold />
                     <Row label="Less: PAYE (TRA)" value={`− ${formatMoney(totalPAYE)}`} color="text-red-500" />
                     <Row label="Less: NSSF (Employee 10%)" value={`− ${formatMoney(totalNssfEmp)}`} color="text-orange-500" />
                     <div className="border-t border-border pt-2">
