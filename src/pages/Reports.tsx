@@ -227,6 +227,13 @@ export default function Reports() {
           ],
         };
       }
+      default:
+        return {
+          headers: [],
+          rows: [],
+          count: 0,
+          stats: [],
+        };
     }
   };
 
