@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Users, Plus, Search, UserX, Calendar,
-  DollarSign, Building2, Edit, CheckCircle, XCircle, Clock, Loader2, Printer,
+  DollarSign, Building2, Edit, CheckCircle, XCircle, Download, Loader2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
-const demoDepartments = ['Engineering', 'Sales', 'HR', 'Finance', 'Marketing', 'Operations'];
+// CSV download helper
+function downloadCSV(filename: string, rows: (string | number)[][], headers: string[]) {
+  const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map(r => r.map(escape).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
 // ─── Tanzania 2026 TRA PAYE (monthly taxable income) ──────────────────────
 function calculatePAYE(taxable: number): number {
@@ -51,6 +61,16 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', s.class)}>{s.label}</span>;
 }
 
+// ─── Summary Row ──────────────────────────────────────────────────────────
+function Row({ label, value, bold, color }: { label: string; value: string; bold?: boolean; color?: string }) {
+  return (
+    <div className={cn('flex justify-between', bold && 'font-semibold', color)}>
+      <span className={bold ? '' : 'text-muted-foreground'}>{label}</span>
+      <span>{value}</span>
+    </div>
+  );
+}
+
 // ─── Employee Form ─────────────────────────────────────────────────────────
 
 function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => void }) {
@@ -73,17 +93,57 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
-    if (isDemo) { return; }
-    if (!form.full_name.trim()) return;
+    if (isDemo) { toast.info('Save disabled in demo mode'); return; }
+    if (!form.full_name.trim()) { toast.error('Full name is required'); return; }
     setSaving(true);
     try {
-      const data = { ...form, salary: parseFloat(form.salary) || 0, allowances: parseFloat(form.allowances) || 0 };
+      // Build payload with only columns guaranteed to exist in the DB schema.
+      // department (TEXT) and allowances require the patch SQL to be applied first.
+      const data: Record<string, any> = {
+        full_name: form.full_name.trim(),
+        email: form.email || null,
+        phone: form.phone || null,
+        position: form.position || null,
+        start_date: form.start_date || null,
+        salary: parseFloat(form.salary) || 0,
+        employment_type: form.employment_type,
+        status: form.status,
+        // Patch-SQL columns — included; DB silently ignores if column missing
+        department: form.department || null,
+        allowances: parseFloat(form.allowances) || 0,
+      };
       if (employee?.id) {
         await update.mutateAsync({ id: employee.id, ...data });
       } else {
         await insert.mutateAsync(data);
       }
+      toast.success(employee ? 'Employee updated' : 'Employee added');
       onClose();
+    } catch (err: any) {
+      // If patch SQL not yet applied, retry without the new columns
+      if (err?.message?.includes('column') && (err.message.includes('department') || err.message.includes('allowances'))) {
+        try {
+          const safeData: Record<string, any> = {
+            full_name: form.full_name.trim(),
+            email: form.email || null,
+            phone: form.phone || null,
+            position: form.position || null,
+            start_date: form.start_date || null,
+            salary: parseFloat(form.salary) || 0,
+            employment_type: form.employment_type,
+            status: form.status,
+          };
+          if (employee?.id) await update.mutateAsync({ id: employee.id, ...safeData });
+          else await insert.mutateAsync(safeData);
+          toast.success(employee ? 'Employee updated' : 'Employee added');
+          toast.warning('Run the patch SQL in Supabase to enable department & allowances fields');
+          onClose();
+        } catch (err2: any) {
+          toast.error(err2.message || 'Failed to save employee');
+        }
+      } else {
+        toast.error(err?.message || 'Failed to save employee');
+      }
     } finally {
       setSaving(false);
     }
@@ -114,12 +174,7 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
           </div>
           <div className="space-y-1.5">
             <Label>Department</Label>
-            <Select value={form.department} onValueChange={v => set('department', v)}>
-              <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-              <SelectContent>
-                {demoDepartments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input value={form.department} onChange={e => set('department', e.target.value)} placeholder="e.g. Finance" />
           </div>
           <div className="space-y-1.5">
             <Label>Start Date</Label>
@@ -202,42 +257,58 @@ export default function HR() {
   const activeEmployees = (employees as any[]).filter(e => e.status === 'active');
 
   // ── Tanzania statutory payroll calculation ────────────────────────────────
-  // Salary stored as monthly basic. If it was stored annually, divide by 12.
   const payrollData = activeEmployees.map(e => {
-    const basic = Number(e.salary) || 0;
-    // Support both annual (>100k) and monthly storage — treat as monthly if ≤ 5M
-    const gross = basic;
+    const gross = Number(e.salary) || 0;
     const baseAllowances = Number(e.allowances) || 0;
     const allowances = runAllowances[e.id] ?? baseAllowances;
     const taxable = gross + allowances;           // PAYE base = gross + allowances
     const paye = calculatePAYE(taxable);
-    const nssfEmployee = gross * 0.10;            // 10% deducted from employee
-    const nssfEmployer = gross * 0.10;            // 10% paid by employer
-    const sdl = taxable * 0.035;                  // 3.5% of taxable, employer cost
+    const nssfEmployee = gross * 0.10;            // 10% of gross, deducted from employee
+    const nssfEmployer = gross * 0.10;            // 10% of gross, paid by employer
+    const sdl = gross * 0.035;                    // SDL: 3.5% of GROSS SALARY only
+    const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS SALARY only
     const net = taxable - paye - nssfEmployee;    // take-home
-    const totalEmployerCost = gross + nssfEmployer + sdl;
-    return { ...e, gross, allowances, taxable, paye, band: payeBand(taxable), nssfEmployee, nssfEmployer, sdl, net, totalEmployerCost };
+    const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
+    return { ...e, gross, allowances, taxable, paye, band: payeBand(taxable), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost };
   });
 
-  const totalGross      = payrollData.reduce((s, e) => s + e.gross, 0);
-  const totalAllowances = payrollData.reduce((s, e) => s + e.allowances, 0);
-  const totalTaxable    = payrollData.reduce((s, e) => s + e.taxable, 0);
-  const totalPAYE       = payrollData.reduce((s, e) => s + e.paye, 0);
-  const totalNssfEmp    = payrollData.reduce((s, e) => s + e.nssfEmployee, 0);
-  const totalNssfEmpr   = payrollData.reduce((s, e) => s + e.nssfEmployer, 0);
-  const totalSDL        = payrollData.reduce((s, e) => s + e.sdl, 0);
-  const totalNet        = payrollData.reduce((s, e) => s + e.net, 0);
+  const totalGross        = payrollData.reduce((s, e) => s + e.gross, 0);
+  const totalAllowances   = payrollData.reduce((s, e) => s + e.allowances, 0);
+  const totalTaxable      = payrollData.reduce((s, e) => s + e.taxable, 0);
+  const totalPAYE         = payrollData.reduce((s, e) => s + e.paye, 0);
+  const totalNssfEmp      = payrollData.reduce((s, e) => s + e.nssfEmployee, 0);
+  const totalNssfEmpr     = payrollData.reduce((s, e) => s + e.nssfEmployer, 0);
+  const totalSDL          = payrollData.reduce((s, e) => s + e.sdl, 0);
+  const totalWCF          = payrollData.reduce((s, e) => s + e.wcf, 0);
+  const totalNet          = payrollData.reduce((s, e) => s + e.net, 0);
   const totalEmployerCost = payrollData.reduce((s, e) => s + e.totalEmployerCost, 0);
+
+  const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  const handleDownload = () => {
+    const headers = ['Employee', 'Position', 'Department', 'Basic Salary', 'Allowances', 'Taxable Income', 'PAYE', 'NSSF (Emp 10%)', 'Net Pay', 'NSSF (Empr 10%)', 'SDL (3.5%)', 'WCF (0.5%)', 'Total Employer Cost'];
+    const rows = payrollData.map(e => [
+      e.full_name, e.position || '', e.department || '',
+      e.gross, e.allowances, e.taxable,
+      Math.round(e.paye), Math.round(e.nssfEmployee), Math.round(e.net),
+      Math.round(e.nssfEmployer), Math.round(e.sdl), Math.round(e.wcf),
+      Math.round(e.totalEmployerCost),
+    ]);
+    rows.push(['TOTALS', '', '',
+      Math.round(totalGross), Math.round(totalAllowances), Math.round(totalTaxable),
+      Math.round(totalPAYE), Math.round(totalNssfEmp), Math.round(totalNet),
+      Math.round(totalNssfEmpr), Math.round(totalSDL), Math.round(totalWCF),
+      Math.round(totalEmployerCost),
+    ]);
+    downloadCSV(`payroll-${month.replace(' ', '-')}.csv`, rows, headers);
+    toast.success('Payroll report downloaded');
+  };
 
   const handleLeaveAction = async (id: string, status: 'approved' | 'rejected') => {
     if (isDemo) return;
     await updateLeave.mutateAsync({ id, status });
   };
 
-  const deptCounts = demoDepartments.map(dept => ({
-    dept,
-    count: (employees as any[]).filter(e => e.department === dept).length,
-  }));
 
   return (
     <AppLayout title="HR & Payroll" subtitle="Manage your workforce">
@@ -411,78 +482,68 @@ export default function HR() {
         <TabsContent value="payroll">
           <div className="space-y-4">
 
-            {/* ── KPI Summary ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card className="rounded-xl border-border"><CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Total Gross + Allowances</p>
-                <p className="text-lg font-bold text-foreground">{formatMoney(totalTaxable)}</p>
-              </CardContent></Card>
-              <Card className="rounded-xl border-border"><CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Total PAYE (→ TRA)</p>
-                <p className="text-lg font-bold text-red-500">{formatMoney(totalPAYE)}</p>
-              </CardContent></Card>
-              <Card className="rounded-xl border-border"><CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Net Pay (Take-home)</p>
-                <p className="text-lg font-bold text-indigo-600">{formatMoney(totalNet)}</p>
-              </CardContent></Card>
-              <Card className="rounded-xl border-border"><CardContent className="p-3">
-                <p className="text-xs text-muted-foreground">Total Employer Cost</p>
-                <p className="text-lg font-bold text-amber-600">{formatMoney(totalEmployerCost)}</p>
-              </CardContent></Card>
+            {/* Header + download */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
+                <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
+              </div>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
+                <Download className="w-3.5 h-3.5" /> Download CSV
+              </Button>
             </div>
 
-            {/* ── Payroll Run Table ── */}
+            {/* KPI strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total Gross Salary', value: formatMoney(totalGross), color: 'text-foreground' },
+                { label: 'PAYE → TRA', value: formatMoney(totalPAYE), color: 'text-red-500' },
+                { label: 'Net Pay (Take-home)', value: formatMoney(totalNet), color: 'text-indigo-600' },
+                { label: 'Total Employer Cost', value: formatMoney(totalEmployerCost), color: 'text-amber-600' },
+              ].map(k => (
+                <Card key={k.label} className="rounded-xl border-border">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground">{k.label}</p>
+                    <p className={cn('text-lg font-bold', k.color)}>{k.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Main payroll table */}
             <Card className="rounded-xl border-border">
-              <CardHeader>
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <CardTitle className="text-sm font-semibold">Payroll Run — {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</CardTitle>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => window.print()}>
-                      <Printer className="w-3.5 h-3.5" /> Print Report
-                    </Button>
-                    <Button size="sm" className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Finalize
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
               <CardContent className="p-0">
                 {isLoading ? (
                   <div className="p-6"><Skeleton className="h-32 w-full" /></div>
                 ) : payrollData.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground">Add active employees to run payroll</div>
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p>Add active employees to generate payroll</p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
-                          <th className="text-left px-4 py-2.5 font-medium">Employee</th>
-                          <th className="text-right px-3 py-2.5 font-medium">Basic (TZS)</th>
-                          <th className="text-right px-3 py-2.5 font-medium">Allowances</th>
-                          <th className="text-right px-3 py-2.5 font-medium">Taxable</th>
-                          <th className="text-right px-3 py-2.5 font-medium">PAYE Band</th>
-                          <th className="text-right px-3 py-2.5 font-medium">PAYE</th>
-                          <th className="text-right px-3 py-2.5 font-medium">NSSF (Emp 10%)</th>
-                          <th className="text-right px-3 py-2.5 font-medium text-indigo-600">Net Pay</th>
-                          <th className="text-right px-3 py-2.5 font-medium text-amber-600">NSSF (Empr 10%)</th>
-                          <th className="text-right px-3 py-2.5 font-medium text-amber-600">SDL (3.5%)</th>
+                          <th className="text-left px-4 py-3 font-medium">Employee</th>
+                          <th className="text-right px-3 py-3 font-medium">Basic Salary</th>
+                          <th className="text-right px-3 py-3 font-medium">Allowances</th>
+                          <th className="text-right px-3 py-3 font-medium">PAYE (TRA)</th>
+                          <th className="text-right px-3 py-3 font-medium">NSSF Emp</th>
+                          <th className="text-right px-3 py-3 font-medium text-indigo-600">Net Pay</th>
+                          <th className="text-right px-3 py-3 font-medium text-amber-500">NSSF Empr</th>
+                          <th className="text-right px-3 py-3 font-medium text-amber-500">SDL 3.5%</th>
+                          <th className="text-right px-3 py-3 font-medium text-amber-500">WCF 0.5%</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
                         {payrollData.map((emp: any) => (
                           <tr key={emp.id} className="hover:bg-accent/30 transition-colors">
                             <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
-                                  {(emp.full_name || '?').charAt(0)}
-                                </div>
-                                <div>
-                                  <p className="font-medium text-foreground leading-tight">{emp.full_name}</p>
-                                  <p className="text-muted-foreground">{emp.position}</p>
-                                </div>
-                              </div>
+                              <p className="font-medium text-foreground">{emp.full_name}</p>
+                              <p className="text-muted-foreground">{emp.position || '—'} {emp.department ? `· ${emp.department}` : ''}</p>
                             </td>
-                            <td className="px-3 py-3 text-right text-foreground">{emp.gross.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-foreground">{Math.round(emp.gross).toLocaleString()}</td>
                             <td className="px-3 py-3 text-right">
                               <Input
                                 type="number"
@@ -491,32 +552,29 @@ export default function HR() {
                                 className="w-24 h-7 text-xs text-right ml-auto"
                               />
                             </td>
-                            <td className="px-3 py-3 text-right font-medium text-foreground">{emp.taxable.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right">
-                              <span className="inline-block rounded-full px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-medium">
-                                {emp.band}
-                              </span>
+                            <td className="px-3 py-3 text-right text-red-500 font-medium">
+                              {Math.round(emp.paye).toLocaleString()}
+                              <span className="ml-1 text-muted-foreground">({emp.band})</span>
                             </td>
-                            <td className="px-3 py-3 text-right text-red-500 font-medium">{emp.paye.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right text-orange-500">{emp.nssfEmployee.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right font-bold text-indigo-600">{emp.net.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right text-amber-600">{emp.nssfEmployer.toLocaleString()}</td>
-                            <td className="px-3 py-3 text-right text-amber-600">{emp.sdl.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-orange-500">{Math.round(emp.nssfEmployee).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right font-bold text-indigo-600">{Math.round(emp.net).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.nssfEmployer).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.sdl).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.wcf).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-border bg-muted/30 font-semibold text-xs">
-                          <td className="px-4 py-3 text-foreground">TOTALS</td>
-                          <td className="px-3 py-3 text-right text-foreground">{totalGross.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-foreground">{totalAllowances.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-foreground">{totalTaxable.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right">—</td>
-                          <td className="px-3 py-3 text-right text-red-500">{totalPAYE.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-orange-500">{totalNssfEmp.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-indigo-600">{totalNet.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-amber-600">{totalNssfEmpr.toLocaleString()}</td>
-                          <td className="px-3 py-3 text-right text-amber-600">{totalSDL.toLocaleString()}</td>
+                        <tr className="border-t-2 border-border bg-muted/30 font-semibold">
+                          <td className="px-4 py-3 text-foreground">TOTALS ({payrollData.length} employees)</td>
+                          <td className="px-3 py-3 text-right">{Math.round(totalGross).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right">{Math.round(totalAllowances).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-red-500">{Math.round(totalPAYE).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-orange-500">{Math.round(totalNssfEmp).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-indigo-600">{Math.round(totalNet).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalNssfEmpr).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalSDL).toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalWCF).toLocaleString()}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -525,104 +583,35 @@ export default function HR() {
               </CardContent>
             </Card>
 
-            {/* ── Statutory Payables Summary ── */}
+            {/* Statutory summary */}
             {payrollData.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Employee deductions */}
                 <Card className="rounded-xl border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold">Employee Deductions</CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Employee Deductions Summary</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Gross + Allowances</span>
-                      <span className="font-medium">{formatMoney(totalTaxable)}</span>
-                    </div>
-                    <div className="flex justify-between text-red-500">
-                      <span>PAYE (→ TRA)</span>
-                      <span className="font-medium">− {formatMoney(totalPAYE)}</span>
-                    </div>
-                    <div className="flex justify-between text-orange-500">
-                      <span>NSSF Employee (10%)</span>
-                      <span className="font-medium">− {formatMoney(totalNssfEmp)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-border pt-2 font-semibold">
-                      <span className="text-indigo-600">Net Pay to Employees</span>
-                      <span className="text-indigo-600">{formatMoney(totalNet)}</span>
+                    <Row label="Gross Salary" value={formatMoney(totalGross)} />
+                    <Row label="Allowances" value={formatMoney(totalAllowances)} />
+                    <Row label="Taxable Income" value={formatMoney(totalTaxable)} bold />
+                    <Row label="Less: PAYE (TRA)" value={`− ${formatMoney(totalPAYE)}`} color="text-red-500" />
+                    <Row label="Less: NSSF (Employee 10%)" value={`− ${formatMoney(totalNssfEmp)}`} color="text-orange-500" />
+                    <div className="border-t border-border pt-2">
+                      <Row label="Net Pay to Employees" value={formatMoney(totalNet)} bold color="text-indigo-600" />
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Employer statutory costs */}
                 <Card className="rounded-xl border-border">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold">Employer Statutory Obligations</CardTitle>
-                  </CardHeader>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Employer Statutory Obligations</CardTitle></CardHeader>
                   <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Net Pay to Employees</span>
-                      <span className="font-medium">{formatMoney(totalNet)}</span>
+                    <Row label="Gross Salary (wages bill)" value={formatMoney(totalGross)} />
+                    <Row label="PAYE — remit to TRA" value={formatMoney(totalPAYE)} color="text-red-500" />
+                    <Row label="NSSF Employee — remit" value={formatMoney(totalNssfEmp)} color="text-orange-500" />
+                    <Row label="NSSF Employer (10%)" value={formatMoney(totalNssfEmpr)} color="text-amber-600" />
+                    <Row label="SDL — Skills Dev. Levy (3.5%)" value={formatMoney(totalSDL)} color="text-amber-600" />
+                    <Row label="WCF — Workers Comp. Fund (0.5%)" value={formatMoney(totalWCF)} color="text-amber-600" />
+                    <div className="border-t border-border pt-2">
+                      <Row label="Total Employer Cost" value={formatMoney(totalEmployerCost)} bold color="text-amber-600" />
                     </div>
-                    <div className="flex justify-between text-red-500">
-                      <span>PAYE (remit to TRA)</span>
-                      <span className="font-medium">{formatMoney(totalPAYE)}</span>
-                    </div>
-                    <div className="flex justify-between text-orange-500">
-                      <span>NSSF Employee (remit)</span>
-                      <span className="font-medium">{formatMoney(totalNssfEmp)}</span>
-                    </div>
-                    <div className="flex justify-between text-amber-600">
-                      <span>NSSF Employer (10%)</span>
-                      <span className="font-medium">{formatMoney(totalNssfEmpr)}</span>
-                    </div>
-                    <div className="flex justify-between text-amber-600">
-                      <span>SDL (3.5%)</span>
-                      <span className="font-medium">{formatMoney(totalSDL)}</span>
-                    </div>
-                    <div className="flex justify-between border-t border-border pt-2 font-bold">
-                      <span className="text-amber-600">Total Employer Cost</span>
-                      <span className="text-amber-600">{formatMoney(totalEmployerCost)}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* PAYE band reference */}
-                <Card className="rounded-xl border-border sm:col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-semibold">Tanzania 2026 TRA PAYE Bands (Monthly)</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b border-border text-muted-foreground">
-                            <th className="text-left pb-2 font-medium">Taxable Income (TZS)</th>
-                            <th className="text-left pb-2 font-medium">Rate</th>
-                            <th className="text-left pb-2 font-medium">Tax Formula</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {[
-                            { range: '0 – 270,000', rate: '0%', formula: 'Nil' },
-                            { range: '270,001 – 520,000', rate: '8%', formula: '8% × (income − 270,000)' },
-                            { range: '520,001 – 760,000', rate: '20%', formula: '20,000 + 20% × (income − 520,000)' },
-                            { range: '760,001 – 1,000,000', rate: '25%', formula: '68,000 + 25% × (income − 760,000)' },
-                            { range: 'Above 1,000,000', rate: '30%', formula: '128,000 + 30% × (income − 1,000,000)' },
-                          ].map(r => (
-                            <tr key={r.range} className="hover:bg-accent/30">
-                              <td className="py-2 text-foreground font-medium">{r.range}</td>
-                              <td className="py-2">
-                                <span className="inline-block rounded-full px-2 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold">{r.rate}</span>
-                              </td>
-                              <td className="py-2 text-muted-foreground">{r.formula}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      NSSF: 10% employee + 10% employer of basic gross. SDL: 3.5% of (gross + allowances) — employer only. Source: TRA 2026.
-                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -632,28 +621,38 @@ export default function HR() {
 
         {/* ── Departments ── */}
         <TabsContent value="departments">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">{demoDepartments.length} departments</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {deptCounts.map(({ dept, count }) => (
-                <Card key={dept} className="rounded-xl border-border hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                        <Building2 className="w-4 h-4 text-indigo-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{dept}</p>
-                        <p className="text-xs text-muted-foreground">{count} employee{count !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          {(() => {
+            const deptMap: Record<string, number> = {};
+            (employees as any[]).forEach(e => {
+              const d = (e.department || 'Unassigned').trim();
+              deptMap[d] = (deptMap[d] || 0) + 1;
+            });
+            const depts = Object.entries(deptMap).sort((a, b) => b[1] - a[1]);
+            return (
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">{depts.length} department{depts.length !== 1 ? 's' : ''}</p>
+                {depts.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">Add employees and assign departments to see them here.</div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {depts.map(([dept, count]) => (
+                      <Card key={dept} className="rounded-xl border-border hover:shadow-sm transition-shadow">
+                        <CardContent className="p-4 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                            <Building2 className="w-4 h-4 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-foreground">{dept}</p>
+                            <p className="text-xs text-muted-foreground">{count} employee{count !== 1 ? 's' : ''}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </TabsContent>
       </Tabs>
 
