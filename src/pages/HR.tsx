@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Users, Plus, Search, UserX, Calendar,
-  DollarSign, Building2, Edit, CheckCircle, XCircle, Clock, Loader2,
+  DollarSign, Building2, Edit, CheckCircle, XCircle, Clock, Loader2, Printer,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,23 @@ import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } fro
 import { Skeleton } from '@/components/ui/skeleton';
 
 const demoDepartments = ['Engineering', 'Sales', 'HR', 'Finance', 'Marketing', 'Operations'];
+
+// ─── Tanzania 2026 TRA PAYE (monthly taxable income) ──────────────────────
+function calculatePAYE(taxable: number): number {
+  if (taxable <= 270000) return 0;
+  if (taxable <= 520000) return (taxable - 270000) * 0.08;
+  if (taxable <= 760000) return 20000 + (taxable - 520000) * 0.20;
+  if (taxable <= 1000000) return 68000 + (taxable - 760000) * 0.25;
+  return 128000 + (taxable - 1000000) * 0.30;
+}
+
+function payeBand(taxable: number): string {
+  if (taxable <= 270000) return '0%';
+  if (taxable <= 520000) return '8%';
+  if (taxable <= 760000) return '20%';
+  if (taxable <= 1000000) return '25%';
+  return '30%';
+}
 
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
@@ -49,6 +66,7 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
     department: employee?.department || '',
     start_date: employee?.start_date || '',
     salary: employee?.salary?.toString() || '',
+    allowances: employee?.allowances?.toString() || '',
     employment_type: employee?.employment_type || 'full_time',
     status: employee?.status || 'active',
   });
@@ -59,7 +77,7 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
     if (!form.full_name.trim()) return;
     setSaving(true);
     try {
-      const data = { ...form, salary: parseFloat(form.salary) || 0 };
+      const data = { ...form, salary: parseFloat(form.salary) || 0, allowances: parseFloat(form.allowances) || 0 };
       if (employee?.id) {
         await update.mutateAsync({ id: employee.id, ...data });
       } else {
@@ -108,8 +126,12 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
             <Input value={form.start_date} onChange={e => set('start_date', e.target.value)} type="date" />
           </div>
           <div className="space-y-1.5">
-            <Label>Annual Salary</Label>
-            <Input value={form.salary} onChange={e => set('salary', e.target.value)} type="number" placeholder="60000" />
+            <Label>Monthly Basic Salary (TZS)</Label>
+            <Input value={form.salary} onChange={e => set('salary', e.target.value)} type="number" placeholder="500000" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Monthly Allowances (TZS)</Label>
+            <Input value={form.allowances} onChange={e => set('allowances', e.target.value)} type="number" placeholder="0" />
           </div>
           <div className="space-y-1.5">
             <Label>Employment Type</Label>
@@ -165,6 +187,9 @@ export default function HR() {
   const deleteEmployee = useTenantDelete('employees');
   const updateLeave = useTenantUpdate('leave_requests');
 
+  // Per-run allowance overrides (employee id → monthly allowance)
+  const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
+
   const filtered = (employees as any[]).filter(e =>
     (e.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (e.position || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -176,15 +201,33 @@ export default function HR() {
 
   const activeEmployees = (employees as any[]).filter(e => e.status === 'active');
 
-  const payrollData = activeEmployees.map(e => ({
-    ...e,
-    gross: (Number(e.salary) || 0) / 12,
-    deductions: ((Number(e.salary) || 0) / 12) * 0.15,
-    net: ((Number(e.salary) || 0) / 12) * 0.85,
-  }));
+  // ── Tanzania statutory payroll calculation ────────────────────────────────
+  // Salary stored as monthly basic. If it was stored annually, divide by 12.
+  const payrollData = activeEmployees.map(e => {
+    const basic = Number(e.salary) || 0;
+    // Support both annual (>100k) and monthly storage — treat as monthly if ≤ 5M
+    const gross = basic;
+    const baseAllowances = Number(e.allowances) || 0;
+    const allowances = runAllowances[e.id] ?? baseAllowances;
+    const taxable = gross + allowances;           // PAYE base = gross + allowances
+    const paye = calculatePAYE(taxable);
+    const nssfEmployee = gross * 0.10;            // 10% deducted from employee
+    const nssfEmployer = gross * 0.10;            // 10% paid by employer
+    const sdl = taxable * 0.035;                  // 3.5% of taxable, employer cost
+    const net = taxable - paye - nssfEmployee;    // take-home
+    const totalEmployerCost = gross + nssfEmployer + sdl;
+    return { ...e, gross, allowances, taxable, paye, band: payeBand(taxable), nssfEmployee, nssfEmployer, sdl, net, totalEmployerCost };
+  });
 
-  const totalGross = payrollData.reduce((s, e) => s + e.gross, 0);
-  const totalNet = payrollData.reduce((s, e) => s + e.net, 0);
+  const totalGross      = payrollData.reduce((s, e) => s + e.gross, 0);
+  const totalAllowances = payrollData.reduce((s, e) => s + e.allowances, 0);
+  const totalTaxable    = payrollData.reduce((s, e) => s + e.taxable, 0);
+  const totalPAYE       = payrollData.reduce((s, e) => s + e.paye, 0);
+  const totalNssfEmp    = payrollData.reduce((s, e) => s + e.nssfEmployee, 0);
+  const totalNssfEmpr   = payrollData.reduce((s, e) => s + e.nssfEmployer, 0);
+  const totalSDL        = payrollData.reduce((s, e) => s + e.sdl, 0);
+  const totalNet        = payrollData.reduce((s, e) => s + e.net, 0);
+  const totalEmployerCost = payrollData.reduce((s, e) => s + e.totalEmployerCost, 0);
 
   const handleLeaveAction = async (id: string, status: 'approved' | 'rejected') => {
     if (isDemo) return;
@@ -225,7 +268,7 @@ export default function HR() {
               </CardContent></Card>
               <Card className="rounded-xl border-border"><CardContent className="p-3">
                 <p className="text-xs text-muted-foreground">Monthly Payroll</p>
-                <p className="text-xl font-bold text-indigo-600">{formatMoney(totalGross)}</p>
+                <p className="text-xl font-bold text-indigo-600">{formatMoney(totalTaxable)}</p>
               </CardContent></Card>
             </div>
 
@@ -367,90 +410,113 @@ export default function HR() {
         {/* ── Payroll ── */}
         <TabsContent value="payroll">
           <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="rounded-xl border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Total Gross (Monthly)</p>
-                  <p className="text-xl font-bold text-foreground">{formatMoney(totalGross)}</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Total Deductions (15%)</p>
-                  <p className="text-xl font-bold text-foreground">{formatMoney(totalGross - totalNet)}</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-xl border-border">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground mb-1">Net Payroll</p>
-                  <p className="text-xl font-bold text-indigo-600">{formatMoney(totalNet)}</p>
-                </CardContent>
-              </Card>
+
+            {/* ── KPI Summary ── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="rounded-xl border-border"><CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Total Gross + Allowances</p>
+                <p className="text-lg font-bold text-foreground">{formatMoney(totalTaxable)}</p>
+              </CardContent></Card>
+              <Card className="rounded-xl border-border"><CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Total PAYE (→ TRA)</p>
+                <p className="text-lg font-bold text-red-500">{formatMoney(totalPAYE)}</p>
+              </CardContent></Card>
+              <Card className="rounded-xl border-border"><CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Net Pay (Take-home)</p>
+                <p className="text-lg font-bold text-indigo-600">{formatMoney(totalNet)}</p>
+              </CardContent></Card>
+              <Card className="rounded-xl border-border"><CardContent className="p-3">
+                <p className="text-xs text-muted-foreground">Total Employer Cost</p>
+                <p className="text-lg font-bold text-amber-600">{formatMoney(totalEmployerCost)}</p>
+              </CardContent></Card>
             </div>
 
+            {/* ── Payroll Run Table ── */}
             <Card className="rounded-xl border-border">
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold">Current Payroll Run</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <CardTitle className="text-sm font-semibold">Payroll Run — {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</CardTitle>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1">
-                      <Clock className="w-3.5 h-3.5" /> Save Draft
+                    <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => window.print()}>
+                      <Printer className="w-3.5 h-3.5" /> Print Report
                     </Button>
                     <Button size="sm" className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white gap-1">
-                      <CheckCircle className="w-3.5 h-3.5" /> Finalize Payroll
+                      <CheckCircle className="w-3.5 h-3.5" /> Finalize
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 {isLoading ? (
-                  <Skeleton className="h-32 w-full" />
+                  <div className="p-6"><Skeleton className="h-32 w-full" /></div>
                 ) : payrollData.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Add employees to run payroll</div>
+                  <div className="text-center py-10 text-muted-foreground">Add active employees to run payroll</div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full text-xs">
                       <thead>
-                        <tr className="border-b border-border text-xs text-muted-foreground">
-                          <th className="text-left pb-3 font-medium">Employee</th>
-                          <th className="text-right pb-3 font-medium">Gross</th>
-                          <th className="text-right pb-3 font-medium">Additions</th>
-                          <th className="text-right pb-3 font-medium">Deductions</th>
-                          <th className="text-right pb-3 font-medium">Net Salary</th>
+                        <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                          <th className="text-left px-4 py-2.5 font-medium">Employee</th>
+                          <th className="text-right px-3 py-2.5 font-medium">Basic (TZS)</th>
+                          <th className="text-right px-3 py-2.5 font-medium">Allowances</th>
+                          <th className="text-right px-3 py-2.5 font-medium">Taxable</th>
+                          <th className="text-right px-3 py-2.5 font-medium">PAYE Band</th>
+                          <th className="text-right px-3 py-2.5 font-medium">PAYE</th>
+                          <th className="text-right px-3 py-2.5 font-medium">NSSF (Emp 10%)</th>
+                          <th className="text-right px-3 py-2.5 font-medium text-indigo-600">Net Pay</th>
+                          <th className="text-right px-3 py-2.5 font-medium text-amber-600">NSSF (Empr 10%)</th>
+                          <th className="text-right px-3 py-2.5 font-medium text-amber-600">SDL (3.5%)</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
                         {payrollData.map((emp: any) => (
-                          <tr key={emp.id} className="hover:bg-accent/40 transition-colors">
-                            <td className="py-3">
+                          <tr key={emp.id} className="hover:bg-accent/30 transition-colors">
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                                <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
                                   {(emp.full_name || '?').charAt(0)}
                                 </div>
                                 <div>
-                                  <p className="font-medium text-foreground">{emp.full_name}</p>
-                                  <p className="text-xs text-muted-foreground">{emp.position}</p>
+                                  <p className="font-medium text-foreground leading-tight">{emp.full_name}</p>
+                                  <p className="text-muted-foreground">{emp.position}</p>
                                 </div>
                               </div>
                             </td>
-                            <td className="py-3 text-right text-foreground">{formatMoney(emp.gross)}</td>
-                            <td className="py-3 text-right">
-                              <Input type="number" defaultValue="0" className="w-20 h-7 text-xs text-right ml-auto" />
+                            <td className="px-3 py-3 text-right text-foreground">{emp.gross.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right">
+                              <Input
+                                type="number"
+                                value={runAllowances[emp.id] ?? emp.allowances}
+                                onChange={e => setRunAllowances(prev => ({ ...prev, [emp.id]: Number(e.target.value) }))}
+                                className="w-24 h-7 text-xs text-right ml-auto"
+                              />
                             </td>
-                            <td className="py-3 text-right">
-                              <Input type="number" defaultValue={emp.deductions.toFixed(0)} className="w-24 h-7 text-xs text-right ml-auto" />
+                            <td className="px-3 py-3 text-right font-medium text-foreground">{emp.taxable.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right">
+                              <span className="inline-block rounded-full px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-medium">
+                                {emp.band}
+                              </span>
                             </td>
-                            <td className="py-3 text-right font-semibold text-foreground">{formatMoney(emp.net)}</td>
+                            <td className="px-3 py-3 text-right text-red-500 font-medium">{emp.paye.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-orange-500">{emp.nssfEmployee.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right font-bold text-indigo-600">{emp.net.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-amber-600">{emp.nssfEmployer.toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right text-amber-600">{emp.sdl.toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="border-t-2 border-border">
-                          <td className="pt-3 font-semibold text-foreground">Totals</td>
-                          <td className="pt-3 text-right font-semibold text-foreground">{formatMoney(totalGross)}</td>
-                          <td className="pt-3 text-right font-semibold text-foreground">—</td>
-                          <td className="pt-3 text-right font-semibold text-foreground">{formatMoney(totalGross - totalNet)}</td>
-                          <td className="pt-3 text-right font-semibold text-indigo-600">{formatMoney(totalNet)}</td>
+                        <tr className="border-t-2 border-border bg-muted/30 font-semibold text-xs">
+                          <td className="px-4 py-3 text-foreground">TOTALS</td>
+                          <td className="px-3 py-3 text-right text-foreground">{totalGross.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-foreground">{totalAllowances.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-foreground">{totalTaxable.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right">—</td>
+                          <td className="px-3 py-3 text-right text-red-500">{totalPAYE.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-orange-500">{totalNssfEmp.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-indigo-600">{totalNet.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-amber-600">{totalNssfEmpr.toLocaleString()}</td>
+                          <td className="px-3 py-3 text-right text-amber-600">{totalSDL.toLocaleString()}</td>
                         </tr>
                       </tfoot>
                     </table>
@@ -458,6 +524,109 @@ export default function HR() {
                 )}
               </CardContent>
             </Card>
+
+            {/* ── Statutory Payables Summary ── */}
+            {payrollData.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Employee deductions */}
+                <Card className="rounded-xl border-border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Employee Deductions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Gross + Allowances</span>
+                      <span className="font-medium">{formatMoney(totalTaxable)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-500">
+                      <span>PAYE (→ TRA)</span>
+                      <span className="font-medium">− {formatMoney(totalPAYE)}</span>
+                    </div>
+                    <div className="flex justify-between text-orange-500">
+                      <span>NSSF Employee (10%)</span>
+                      <span className="font-medium">− {formatMoney(totalNssfEmp)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2 font-semibold">
+                      <span className="text-indigo-600">Net Pay to Employees</span>
+                      <span className="text-indigo-600">{formatMoney(totalNet)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Employer statutory costs */}
+                <Card className="rounded-xl border-border">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Employer Statutory Obligations</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Net Pay to Employees</span>
+                      <span className="font-medium">{formatMoney(totalNet)}</span>
+                    </div>
+                    <div className="flex justify-between text-red-500">
+                      <span>PAYE (remit to TRA)</span>
+                      <span className="font-medium">{formatMoney(totalPAYE)}</span>
+                    </div>
+                    <div className="flex justify-between text-orange-500">
+                      <span>NSSF Employee (remit)</span>
+                      <span className="font-medium">{formatMoney(totalNssfEmp)}</span>
+                    </div>
+                    <div className="flex justify-between text-amber-600">
+                      <span>NSSF Employer (10%)</span>
+                      <span className="font-medium">{formatMoney(totalNssfEmpr)}</span>
+                    </div>
+                    <div className="flex justify-between text-amber-600">
+                      <span>SDL (3.5%)</span>
+                      <span className="font-medium">{formatMoney(totalSDL)}</span>
+                    </div>
+                    <div className="flex justify-between border-t border-border pt-2 font-bold">
+                      <span className="text-amber-600">Total Employer Cost</span>
+                      <span className="text-amber-600">{formatMoney(totalEmployerCost)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* PAYE band reference */}
+                <Card className="rounded-xl border-border sm:col-span-2">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Tanzania 2026 TRA PAYE Bands (Monthly)</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b border-border text-muted-foreground">
+                            <th className="text-left pb-2 font-medium">Taxable Income (TZS)</th>
+                            <th className="text-left pb-2 font-medium">Rate</th>
+                            <th className="text-left pb-2 font-medium">Tax Formula</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {[
+                            { range: '0 – 270,000', rate: '0%', formula: 'Nil' },
+                            { range: '270,001 – 520,000', rate: '8%', formula: '8% × (income − 270,000)' },
+                            { range: '520,001 – 760,000', rate: '20%', formula: '20,000 + 20% × (income − 520,000)' },
+                            { range: '760,001 – 1,000,000', rate: '25%', formula: '68,000 + 25% × (income − 760,000)' },
+                            { range: 'Above 1,000,000', rate: '30%', formula: '128,000 + 30% × (income − 1,000,000)' },
+                          ].map(r => (
+                            <tr key={r.range} className="hover:bg-accent/30">
+                              <td className="py-2 text-foreground font-medium">{r.range}</td>
+                              <td className="py-2">
+                                <span className="inline-block rounded-full px-2 bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 font-semibold">{r.rate}</span>
+                              </td>
+                              <td className="py-2 text-muted-foreground">{r.formula}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      NSSF: 10% employee + 10% employer of basic gross. SDL: 3.5% of (gross + allowances) — employer only. Source: TRA 2026.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         </TabsContent>
 
