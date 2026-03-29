@@ -27,14 +27,14 @@ const contactInfo = [
   {
     icon: Mail,
     label: 'Email',
-    value: 'hello@tela-erp.com',
-    sub: 'We reply within 24 hours on business days.',
+    value: 'olomierik@gmail.com',
+    sub: 'Erick.olomi@primeauditors.co.tz',
     color: P,
   },
   {
     icon: MapPin,
     label: 'Location',
-    value: 'Nairobi, Kenya',
+    value: 'Tanga, Tanzania',
     sub: 'Building for Africa and beyond.',
     color: A,
   },
@@ -42,14 +42,14 @@ const contactInfo = [
     icon: Clock,
     label: 'Support Hours',
     value: 'Mon – Fri, 8am – 6pm EAT',
-    sub: 'Enterprise plans include 24/7 support.',
+    sub: 'Reach us via WhatsApp anytime.',
     color: P,
   },
   {
     icon: Phone,
     label: 'Sales Line',
-    value: '+254 700 000 000',
-    sub: 'Available for Growth and Enterprise enquiries.',
+    value: '+255 752 401 012',
+    sub: 'WhatsApp: +255 752 401 012',
     color: A,
   },
 ];
@@ -76,11 +76,17 @@ export default function Contact() {
       return;
     }
     setLoading(true);
-    // Simulate network request
-    await new Promise((res) => setTimeout(res, 1400));
+    await new Promise((res) => setTimeout(res, 600));
+
+    const subject = encodeURIComponent(`TELA-ERP Enquiry from ${form.name}${form.company ? ` (${form.company})` : ''}`);
+    const body = encodeURIComponent(
+      `Name: ${form.name}\nEmail: ${form.email}${form.company ? `\nCompany: ${form.company}` : ''}\n\nMessage:\n${form.message}`
+    );
+    window.open(`mailto:olomierik@gmail.com?subject=${subject}&body=${body}`, '_blank');
+
     setLoading(false);
     setForm({ name: '', email: '', company: '', message: '' });
-    toast.success("Message sent! We'll respond within 24 hours.");
+    toast.success("Your email client has opened — please send the pre-filled message!");
   };
 
   return (
@@ -299,7 +305,7 @@ export default function Contact() {
       {/* FOOTER */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© {new Date().getFullYear()} TELA-ERP. Open-source ERP for Africa.</span>
+          <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
           <div className="flex gap-4">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>

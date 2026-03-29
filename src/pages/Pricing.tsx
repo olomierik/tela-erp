@@ -407,7 +407,7 @@ export default function Pricing() {
       {/* FOOTER */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© {new Date().getFullYear()} TELA-ERP. Open-source ERP for Africa.</span>
+          <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
           <div className="flex gap-4">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
