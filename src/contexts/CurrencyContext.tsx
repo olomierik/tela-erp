@@ -19,6 +19,7 @@ interface CurrencyContextType {
   defaultCurrency: string;
   displayCurrency: string;
   setDisplayCurrency: (c: string) => void;
+  saveDefaultCurrency: (code: string) => Promise<void>;
   formatMoney: (amount: number) => string;
   convertAmount: (amount: number) => number;
   rates: Record<string, number>;
@@ -33,9 +34,17 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   const { tenant, isDemo } = useAuth();
   const [rates, setRates] = useState<Record<string, number>>({});
   const [displayCurrency, setDisplayCurrency] = useState('USD');
+  const [defaultCurrency, setDefaultCurrencyState] = useState('USD');
   const [loading, setLoading] = useState(true);
 
-  const defaultCurrency = (tenant as any)?.default_currency || 'USD';
+  // Sync defaultCurrency from tenant (on login / tenant load)
+  useEffect(() => {
+    const tenantCurrency = (tenant as any)?.default_currency || 'USD';
+    setDefaultCurrencyState(tenantCurrency);
+    // Only update displayCurrency from tenant if no localStorage override
+    const saved = localStorage.getItem('tela_display_currency');
+    if (!saved) setDisplayCurrency(tenantCurrency);
+  }, [(tenant as any)?.default_currency]);
 
   // Load rates from DB
   useEffect(() => {
@@ -54,17 +63,29 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     loadRates();
   }, []);
 
-  // Sync display currency from localStorage
+  // Init displayCurrency from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('tela_display_currency');
     if (saved) setDisplayCurrency(saved);
-    else setDisplayCurrency(defaultCurrency);
-  }, [defaultCurrency]);
+  }, []);
 
   const handleSetDisplay = useCallback((c: string) => {
     setDisplayCurrency(c);
     localStorage.setItem('tela_display_currency', c);
   }, []);
+
+  // Save new default currency to Supabase and sync all state immediately
+  const saveDefaultCurrency = useCallback(async (code: string) => {
+    if (!isDemo && tenant?.id) {
+      const { error } = await (supabase.from('tenants') as any)
+        .update({ default_currency: code })
+        .eq('id', tenant.id);
+      if (error) throw error;
+    }
+    setDefaultCurrencyState(code);
+    setDisplayCurrency(code);
+    localStorage.setItem('tela_display_currency', code);
+  }, [tenant?.id, isDemo]);
 
   const convertAmount = useCallback((amountInDefault: number): number => {
     if (displayCurrency === defaultCurrency) return amountInDefault;
@@ -87,6 +108,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
       defaultCurrency,
       displayCurrency,
       setDisplayCurrency: handleSetDisplay,
+      saveDefaultCurrency,
       formatMoney,
       convertAmount,
       rates,

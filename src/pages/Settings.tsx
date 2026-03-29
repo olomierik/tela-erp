@@ -27,7 +27,7 @@ const integrations = [
 ];
 
 export default function SettingsPage() {
-  const { popularCurrencies, currencySymbol, defaultCurrency } = useCurrency();
+  const { popularCurrencies, currencySymbol, defaultCurrency, saveDefaultCurrency } = useCurrency();
   const { tenant, isDemo } = useAuth();
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
   const [syncing, setSyncing] = useState(false);
@@ -66,12 +66,13 @@ export default function SettingsPage() {
   }, [tenant?.id, isDemo]);
 
   const handleSaveCurrency = async () => {
-    if (isDemo || !tenant?.id) { toast.info('Settings save disabled in demo'); return; }
-    const { error } = await (supabase.from('tenants') as any)
-      .update({ default_currency: selectedCurrency })
-      .eq('id', tenant.id);
-    if (error) toast.error(error.message);
-    else toast.success(`Default currency changed to ${selectedCurrency}`);
+    if (isDemo) { toast.info('Settings save disabled in demo'); return; }
+    try {
+      await saveDefaultCurrency(selectedCurrency);
+      toast.success(`Currency changed to ${selectedCurrency} — all pages updated`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   };
 
   const handleSyncRates = async () => {
