@@ -296,12 +296,18 @@ export default function Reports() {
               formatMoney(hrTotals.nssfEmpr), formatMoney(hrTotals.sdl), formatMoney(hrTotals.wcf)],
           ],
           count: payrollRows.length,
-          stats: [
-            { label: 'Total Gross Payroll', value: formatMoney(hrTotals.gross) },
-            { label: 'PAYE → TRA', value: formatMoney(hrTotals.paye) },
-            { label: 'Net Pay (Take-home)', value: formatMoney(hrTotals.net) },
-            { label: 'Total Employer Cost', value: formatMoney(hrTotals.cost) },
-          ],
+          stats: (() => {
+            const totalNssf = hrTotals.nssfEmp + hrTotals.nssfEmpr;
+            const totalCash = hrTotals.net + hrTotals.paye + totalNssf + hrTotals.sdl + hrTotals.wcf;
+            return [
+              { label: 'Net Salaries (Pay to employees)', value: formatMoney(hrTotals.net) },
+              { label: 'PAYE (Remit to TRA)', value: formatMoney(hrTotals.paye) },
+              { label: 'NSSF 20% of basic (Submit to NSSF)', value: formatMoney(totalNssf) },
+              { label: 'SDL 3.5% of gross (Remit to VETA)', value: formatMoney(hrTotals.sdl) },
+              { label: 'WCF 0.5% of gross (Remit to WCF Board)', value: formatMoney(hrTotals.wcf) },
+              { label: 'TOTAL CASH REQUIRED', value: formatMoney(totalCash) },
+            ];
+          })(),
         };
       }
       case 'crm': {
@@ -387,13 +393,19 @@ export default function Reports() {
       {/* HR Payroll Summary — real data */}
       {reportType === 'hr' && (
         <div className="mb-5 space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: 'Active Employees', value: String(activeEmployees.length), color: 'text-foreground' },
-              { label: 'Total Gross Payroll', value: formatMoney(hrTotals.gross), color: 'text-foreground' },
-              { label: 'Net Pay (Take-home)', value: formatMoney(hrTotals.net), color: 'text-indigo-600' },
-              { label: 'Total Employer Cost', value: formatMoney(hrTotals.cost), color: 'text-amber-600' },
-            ].map(k => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {(() => {
+              const totalNssf = hrTotals.nssfEmp + hrTotals.nssfEmpr;
+              const totalCash = hrTotals.net + hrTotals.paye + totalNssf + hrTotals.sdl + hrTotals.wcf;
+              return [
+                { label: 'Active Employees', value: String(activeEmployees.length), color: 'text-foreground' },
+                { label: 'Net Salaries (Pay to employees)', value: formatMoney(hrTotals.net), color: 'text-indigo-600' },
+                { label: 'PAYE → TRA', value: formatMoney(hrTotals.paye), color: 'text-red-500' },
+                { label: 'NSSF 20% of basic', value: formatMoney(totalNssf), color: 'text-orange-500' },
+                { label: 'SDL + WCF', value: formatMoney(hrTotals.sdl + hrTotals.wcf), color: 'text-amber-600' },
+                { label: 'Total Cash Required', value: formatMoney(totalCash), color: 'text-foreground font-bold' },
+              ];
+            })().map(k => (
               <div key={k.label} className="rounded-xl border border-border bg-card p-4">
                 <p className="text-xs text-muted-foreground">{k.label}</p>
                 <p className={`text-xl font-bold mt-1 ${k.color}`}>{k.value}</p>

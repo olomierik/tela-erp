@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { onProductionCompleted } from '@/hooks/use-cross-module';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { cn } from '@/lib/utils';
@@ -139,6 +140,24 @@ export default function Production() {
   useRealtimeSync('production_orders');
   useRealtimeSync('inventory_items');
 
+  /** Intercepts status changes so that completing a production order
+   *  triggers the cross-module inventory + accounting integration. */
+  const handleStatusChange = (order: any, newStatus: string) => {
+    updateMutation.mutate({ id: order.id, status: newStatus }, {
+      onSuccess: () => {
+        if (newStatus === 'completed' && tenant?.id) {
+          onProductionCompleted(tenant.id, {
+            id: order.id,
+            order_number: order.order_number,
+            product_name: order.product_name,
+            quantity: Number(order.quantity),
+            item_id: order.item_id ?? null,
+          });
+        }
+      },
+    });
+  };
+
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
 
@@ -242,7 +261,7 @@ export default function Production() {
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-1">
                             {canUpdate && (
-                              <Select onValueChange={(v) => updateMutation.mutate({ id: o.id, status: v })}>
+                              <Select onValueChange={(v) => handleStatusChange(o, v)}>
                                 <SelectTrigger className="h-7 w-28 text-[11px]"><SelectValue placeholder="Action" /></SelectTrigger>
                                 <SelectContent>
                                   {o.status === 'draft' && <SelectItem value="in_progress">Start</SelectItem>}

@@ -19,6 +19,7 @@ import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
+import { onSalesOrderCreated, onSalesOrderCancelled, type SaleLineItem } from '@/hooks/use-cross-module';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -86,7 +87,7 @@ function CreateOrderSheet({
   inventoryItems, customers, onClose, isPending, onCreate,
 }: {
   inventoryItems: any[]; customers: any[]; onClose: () => void;
-  isPending: boolean; onCreate: (row: Record<string, any>) => void;
+  isPending: boolean; onCreate: (row: Record<string, any>, lineItems: SaleLineItem[]) => void;
 }) {
   const [form, setForm] = useState({
     order_number: `ORD-${String(Date.now()).slice(-6)}`,
@@ -122,18 +123,40 @@ function CreateOrderSheet({
 
   const handleSubmit = () => {
     if (!form.customer_name && !form.customer_id) { toast.error('Customer is required'); return; }
-    if (lineItems.every(li => !li.item_id)) { toast.error('Add at least one item'); return; }
-    const firstItem = lineItems.find(li => li.item_id);
-    onCreate({
-      order_number: form.order_number,
-      customer_name: form.customer_name,
-      customer_email: form.customer_email,
-      customer_id: form.customer_id || null,
-      item_id: firstItem?.item_id,
-      quantity: lineItems.reduce((s, li) => s + li.quantity, 0),
-      total_amount: total,
-      status: form.status,
-    });
+    const validLines = lineItems.filter(li => li.item_id);
+    if (validLines.length === 0) { toast.error('Add at least one item'); return; }
+
+    // Validate stock availability before submitting
+    for (const li of validLines) {
+      const invItem = inventoryItems.find((it: any) => it.id === li.item_id);
+      if (invItem && invItem.quantity < li.quantity) {
+        toast.error(`Insufficient stock for "${invItem.name}": ${invItem.quantity} available, ${li.quantity} requested`);
+        return;
+      }
+    }
+
+    const saleLines: SaleLineItem[] = validLines.map(li => ({
+      item_id: li.item_id,
+      item_name: li.item_name,
+      quantity: li.quantity,
+      unit_price: li.unit_price,
+    }));
+
+    const firstItem = validLines[0];
+    onCreate(
+      {
+        order_number: form.order_number,
+        customer_name: form.customer_name,
+        customer_email: form.customer_email,
+        customer_id: form.customer_id || null,
+        item_id: firstItem?.item_id,
+        quantity: validLines.reduce((s, li) => s + li.quantity, 0),
+        total_amount: total,
+        status: form.status,
+        custom_fields: { line_items: saleLines },
+      },
+      saleLines
+    );
     onClose();
   };
 
@@ -270,14 +293,44 @@ export default function Sales() {
     return matchSearch && matchStatus;
   });
 
-  const handleCreate = (row: Record<string, any>) => {
+  const handleCreate = (row: Record<string, any>, lineItems: SaleLineItem[]) => {
     insertMutation.mutate(row, {
       onSuccess: (data: any) => {
-        if (row.item_id && tenant?.id && data?.id) {
+        if (!tenant?.id || !data?.id) return;
+
+        // Reserve inventory for each line item
+        lineItems.filter(li => li.item_id).forEach(li => {
           (supabase.from('inventory_reservations') as any).insert({
-            tenant_id: tenant.id, item_id: row.item_id, sales_order_id: data.id,
-            quantity: row.quantity || 1, status: 'reserved',
+            tenant_id: tenant.id, item_id: li.item_id, sales_order_id: data.id,
+            quantity: li.quantity, status: 'reserved',
           }).then(() => {});
+        });
+
+        // Cross-module: deduct inventory + COGS + revenue entry
+        onSalesOrderCreated(tenant.id, {
+          id: data.id,
+          order_number: data.order_number,
+          customer_name: data.customer_name,
+          total_amount: Number(data.total_amount),
+        }, lineItems);
+      },
+    });
+  };
+
+  const handleStatusChange = (order: any, newStatus: string) => {
+    updateMutation.mutate({ id: order.id, status: newStatus }, {
+      onSuccess: () => {
+        if (newStatus === 'cancelled' && tenant?.id) {
+          // Restore inventory on cancellation
+          const lineItems: SaleLineItem[] =
+            (order.custom_fields?.line_items as SaleLineItem[] | undefined) ?? [];
+          if (lineItems.length > 0) {
+            onSalesOrderCancelled(tenant.id, {
+              id: order.id,
+              order_number: order.order_number,
+              total_amount: Number(order.total_amount),
+            }, lineItems);
+          }
         }
       },
     });
@@ -379,7 +432,7 @@ export default function Sales() {
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
                           {!['delivered', 'cancelled'].includes(o.status) && (
-                            <Select onValueChange={(v) => updateMutation.mutate({ id: o.id, status: v })}>
+                            <Select onValueChange={(v) => handleStatusChange(o, v)}>
                               <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
                               <SelectContent>
                                 {o.status === 'pending' && <SelectItem value="confirmed">Confirm</SelectItem>}
@@ -422,7 +475,7 @@ export default function Sales() {
             customers={customers}
             onClose={() => setCreateOpen(false)}
             isPending={insertMutation.isPending}
-            onCreate={handleCreate}
+            onCreate={(row, lineItems) => handleCreate(row, lineItems)}
           />
         </SheetContent>
       </Sheet>

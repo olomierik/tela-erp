@@ -583,39 +583,57 @@ export default function HR() {
               </CardContent>
             </Card>
 
-            {/* Statutory summary */}
-            {payrollData.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Payables Summary */}
+            {payrollData.length > 0 && (() => {
+              const totalNssf = totalNssfEmp + totalNssfEmpr; // employer submits full 20%
+              const totalCash = totalNet + totalPAYE + totalNssf + totalSDL + totalWCF;
+              const payables = [
+                { label: 'Net Salaries', sublabel: 'Pay to employees', value: totalNet, color: 'text-indigo-600' },
+                { label: 'PAYE', sublabel: 'Remit to TRA', value: totalPAYE, color: 'text-red-500' },
+                { label: 'NSSF (20% of basic)', sublabel: 'Employee 10% + Employer 10% — submit to NSSF', value: totalNssf, color: 'text-orange-500' },
+                { label: 'SDL (3.5% of gross)', sublabel: 'Skills & Dev. Levy — remit to VETA', value: totalSDL, color: 'text-amber-600' },
+                { label: 'WCF (0.5% of gross)', sublabel: "Workers' Comp. Fund — remit to WCF Board", value: totalWCF, color: 'text-amber-600' },
+              ];
+              return (
                 <Card className="rounded-xl border-border">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Employee Deductions Summary</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <Row label="Gross Salary" value={formatMoney(totalGross)} />
-                    <Row label="Allowances" value={formatMoney(totalAllowances)} />
-                    <Row label="Gross Salary (Basic + Allowances)" value={formatMoney(totalGross)} bold />
-                    <Row label="Less: PAYE (TRA)" value={`− ${formatMoney(totalPAYE)}`} color="text-red-500" />
-                    <Row label="Less: NSSF (Employee 10%)" value={`− ${formatMoney(totalNssfEmp)}`} color="text-orange-500" />
-                    <div className="border-t border-border pt-2">
-                      <Row label="Net Pay to Employees" value={formatMoney(totalNet)} bold color="text-indigo-600" />
-                    </div>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-semibold">Payroll Payables Summary — {month}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                          <th className="text-left px-4 py-2.5 font-medium">Obligation</th>
+                          <th className="text-left px-4 py-2.5 font-medium">Payable To</th>
+                          <th className="text-right px-4 py-2.5 font-medium">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {payables.map(p => (
+                          <tr key={p.label} className="hover:bg-accent/30">
+                            <td className="px-4 py-3">
+                              <p className={`font-medium ${p.color}`}>{p.label}</p>
+                            </td>
+                            <td className="px-4 py-3 text-xs text-muted-foreground">{p.sublabel}</td>
+                            <td className={`px-4 py-3 text-right font-semibold ${p.color}`}>{formatMoney(p.value)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-border bg-muted/30">
+                          <td className="px-4 py-3 font-bold text-foreground">Total Cash Required</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">All obligations this month</td>
+                          <td className="px-4 py-3 text-right font-bold text-lg text-foreground">{formatMoney(totalCash)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                    <p className="px-4 py-2.5 text-xs text-muted-foreground border-t border-border">
+                      Note: NSSF — employer collects 10% from each employee's pay and adds own 10%, then submits the combined 20% to NSSF.
+                    </p>
                   </CardContent>
                 </Card>
-
-                <Card className="rounded-xl border-border">
-                  <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold">Employer Statutory Obligations</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <Row label="Gross Salary (wages bill)" value={formatMoney(totalGross)} />
-                    <Row label="PAYE — remit to TRA" value={formatMoney(totalPAYE)} color="text-red-500" />
-                    <Row label="NSSF Employee — remit" value={formatMoney(totalNssfEmp)} color="text-orange-500" />
-                    <Row label="NSSF Employer (10%)" value={formatMoney(totalNssfEmpr)} color="text-amber-600" />
-                    <Row label="SDL — Skills Dev. Levy (3.5%)" value={formatMoney(totalSDL)} color="text-amber-600" />
-                    <Row label="WCF — Workers Comp. Fund (0.5%)" value={formatMoney(totalWCF)} color="text-amber-600" />
-                    <div className="border-t border-border pt-2">
-                      <Row label="Total Employer Cost" value={formatMoney(totalEmployerCost)} bold color="text-amber-600" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </TabsContent>
 
