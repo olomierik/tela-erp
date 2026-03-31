@@ -116,7 +116,7 @@ export default function AICFOAssistant() {
   ];
 
   return (
-    <AppLayout title="AI CFO Assistant" subtitle="Powered by Claude AI — Your intelligent financial advisor">
+    <AppLayout title="AI CFO Assistant" subtitle="Powered by Lovable AI — Your intelligent financial advisor">
       <div className="max-w-7xl">
         <PageHeader
           title="AI CFO Assistant"
