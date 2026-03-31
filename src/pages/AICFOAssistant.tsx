@@ -116,7 +116,7 @@ export default function AICFOAssistant() {
   ];
 
   return (
-    <AppLayout title="AI CFO Assistant" subtitle="Powered by Claude AI — Your intelligent financial advisor">
+    <AppLayout title="AI CFO Assistant" subtitle="Powered by Lovable AI — Your intelligent financial advisor">
       <div className="max-w-7xl">
         <PageHeader
           title="AI CFO Assistant"
@@ -154,7 +154,7 @@ export default function AICFOAssistant() {
               <CardHeader className="pb-2 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Brain className="w-4 h-4 text-violet-500" /> AI Financial Analysis
-                  <Badge variant="secondary" className="text-[10px]">claude-sonnet-4-6</Badge>
+                  <Badge variant="secondary" className="text-[10px]">Lovable AI</Badge>
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={loadInsights} disabled={insightsLoading}>
                   <RefreshCw className={cn('w-3 h-3 mr-1', insightsLoading && 'animate-spin')} />
@@ -178,7 +178,7 @@ export default function AICFOAssistant() {
                     </div>
                     <p className="text-xs text-amber-700 dark:text-amber-400">{apiError}</p>
                     <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-1">
-                      Add your Anthropic API key in Settings → AI Settings to enable AI insights.
+                      AI is powered by Lovable AI. Please try again later.
                     </p>
                   </div>
                 ) : insights ? (
