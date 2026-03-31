@@ -154,7 +154,7 @@ export default function AICFOAssistant() {
               <CardHeader className="pb-2 flex-row items-center justify-between">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Brain className="w-4 h-4 text-violet-500" /> AI Financial Analysis
-                  <Badge variant="secondary" className="text-[10px]">claude-sonnet-4-6</Badge>
+                  <Badge variant="secondary" className="text-[10px]">Lovable AI</Badge>
                 </CardTitle>
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={loadInsights} disabled={insightsLoading}>
                   <RefreshCw className={cn('w-3 h-3 mr-1', insightsLoading && 'animate-spin')} />
