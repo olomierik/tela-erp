@@ -16,9 +16,12 @@ import Dashboard from '@/pages/Dashboard';
 // Finance
 import Accounts           from '@/pages/finance/Accounts';
 import Invoices           from '@/pages/finance/Invoices';
+import InvoiceForm        from '@/pages/finance/InvoiceForm';
 import Bills              from '@/pages/finance/Bills';
+import BillForm           from '@/pages/finance/BillForm';
 import Payments           from '@/pages/finance/Payments';
 import FinanceReports     from '@/pages/finance/Reports';
+import AgingReport        from '@/pages/finance/AgingReport';
 import JournalEntries     from '@/pages/finance/JournalEntries';
 import JournalEntryForm   from '@/pages/finance/JournalEntryForm';
 
@@ -73,9 +76,14 @@ function ProtectedApp() {
         {/* Finance */}
         <Route path="/finance/accounts"                 element={<Accounts />} />
         <Route path="/finance/invoices"                 element={<Invoices />} />
+        <Route path="/finance/invoices/new"             element={<InvoiceForm />} />
+        <Route path="/finance/invoices/:id"             element={<InvoiceForm />} />
         <Route path="/finance/bills"                    element={<Bills />} />
+        <Route path="/finance/bills/new"                element={<BillForm />} />
+        <Route path="/finance/bills/:id"                element={<BillForm />} />
         <Route path="/finance/payments"                 element={<Payments />} />
         <Route path="/finance/reports"                  element={<FinanceReports />} />
+        <Route path="/finance/reports/aging"            element={<AgingReport />} />
         <Route path="/finance/journal-entries"          element={<JournalEntries />} />
         <Route path="/finance/journal-entries/new"      element={<JournalEntryForm />} />
         <Route path="/finance/journal-entries/:id"      element={<JournalEntryForm />} />
