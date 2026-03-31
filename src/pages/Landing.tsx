@@ -126,6 +126,9 @@ export default function Landing() {
                 <Link to="/login">Sign In</Link>
               </Button>
             </div>
+            <div className="mt-6 flex justify-center lg:justify-start">
+              <UserCountWidget />
+            </div>
           </motion.div>
 
           <motion.div className="flex-1 max-w-2xl" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.2 }}>
