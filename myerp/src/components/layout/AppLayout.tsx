@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import AiAssistant from './AiAssistant';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -34,6 +35,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
           © {new Date().getFullYear()} myERP — All rights reserved
         </footer>
       </div>
+      <AiAssistant />
     </div>
   );
 }
