@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import UserCountWidget from '@/components/ui/UserCountWidget';
 import heroImg from '@/assets/hero-dashboard.png';
 import paymentQr from '@/assets/payment-qr.jpeg';
 
