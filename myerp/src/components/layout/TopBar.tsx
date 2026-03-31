@@ -24,6 +24,8 @@ const ROUTE_LABELS: Record<string, string[]> = {
   '/finance/bills':                   ['Finance', 'Bills'],
   '/finance/payments':                ['Finance', 'Payments'],
   '/finance/reports':                 ['Finance', 'Reports'],
+  '/finance/journal-entries':        ['Finance', 'Journal Entries'],
+  '/finance/journal-entries/new':    ['Finance', 'Journal Entries', 'New Entry'],
   '/sales/leads':                     ['Sales & CRM', 'Leads'],
   '/sales/customers':                 ['Sales & CRM', 'Customers'],
   '/sales/quotes':                    ['Sales & CRM', 'Quotes'],

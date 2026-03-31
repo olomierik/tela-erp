@@ -23,11 +23,12 @@ const NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   {
     label: 'Finance', icon: BarChart2, children: [
-      { label: 'Accounts',  path: '/finance/accounts' },
-      { label: 'Invoices',  path: '/finance/invoices' },
-      { label: 'Bills',     path: '/finance/bills' },
-      { label: 'Payments',  path: '/finance/payments' },
-      { label: 'Reports',   path: '/finance/reports' },
+      { label: 'Accounts',        path: '/finance/accounts' },
+      { label: 'Journal Entries', path: '/finance/journal-entries' },
+      { label: 'Invoices',        path: '/finance/invoices' },
+      { label: 'Bills',           path: '/finance/bills' },
+      { label: 'Payments',        path: '/finance/payments' },
+      { label: 'Reports',         path: '/finance/reports' },
     ],
   },
   {

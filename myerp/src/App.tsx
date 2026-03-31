@@ -14,11 +14,13 @@ import ForgotPassword from '@/pages/auth/ForgotPassword';
 import Dashboard from '@/pages/Dashboard';
 
 // Finance
-import Accounts        from '@/pages/finance/Accounts';
-import Invoices        from '@/pages/finance/Invoices';
-import Bills           from '@/pages/finance/Bills';
-import Payments        from '@/pages/finance/Payments';
-import FinanceReports  from '@/pages/finance/Reports';
+import Accounts           from '@/pages/finance/Accounts';
+import Invoices           from '@/pages/finance/Invoices';
+import Bills              from '@/pages/finance/Bills';
+import Payments           from '@/pages/finance/Payments';
+import FinanceReports     from '@/pages/finance/Reports';
+import JournalEntries     from '@/pages/finance/JournalEntries';
+import JournalEntryForm   from '@/pages/finance/JournalEntryForm';
 
 // Sales & CRM
 import Leads     from '@/pages/sales/Leads';
@@ -69,11 +71,14 @@ function ProtectedApp() {
         <Route path="/" element={<Dashboard />} />
 
         {/* Finance */}
-        <Route path="/finance/accounts"  element={<Accounts />} />
-        <Route path="/finance/invoices"  element={<Invoices />} />
-        <Route path="/finance/bills"     element={<Bills />} />
-        <Route path="/finance/payments"  element={<Payments />} />
-        <Route path="/finance/reports"   element={<FinanceReports />} />
+        <Route path="/finance/accounts"                 element={<Accounts />} />
+        <Route path="/finance/invoices"                 element={<Invoices />} />
+        <Route path="/finance/bills"                    element={<Bills />} />
+        <Route path="/finance/payments"                 element={<Payments />} />
+        <Route path="/finance/reports"                  element={<FinanceReports />} />
+        <Route path="/finance/journal-entries"          element={<JournalEntries />} />
+        <Route path="/finance/journal-entries/new"      element={<JournalEntryForm />} />
+        <Route path="/finance/journal-entries/:id"      element={<JournalEntryForm />} />
 
         {/* Sales & CRM */}
         <Route path="/sales/leads"     element={<Leads />} />
