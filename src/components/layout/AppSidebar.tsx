@@ -109,7 +109,7 @@ export default function AppSidebar() {
         )}
         <item.icon className={cn(
           'w-[17px] h-[17px] shrink-0 transition-colors duration-100',
-          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-white'
+          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
         )} />
         <AnimatePresence initial={false}>
           {!collapsed && (
