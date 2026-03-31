@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, Handshake, Truck, Box, Users, Factory,
   ClipboardList, Building2, BarChart3, Settings, ChevronDown, ChevronRight,
-  Boxes, TrendingUp,
+  Boxes, TrendingUp, Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -81,8 +81,9 @@ const NAV: NavItem[] = [
       { label: 'Depreciation',    path: '/assets/depreciation' },
     ],
   },
-  { label: 'Reports',  icon: BarChart3, path: '/reports' },
-  { label: 'Settings', icon: Settings,  path: '/settings' },
+  { label: 'Reports',    icon: BarChart3, path: '/reports' },
+  { label: 'Settings',   icon: Settings,  path: '/settings' },
+  { label: 'Components', icon: Layers,    path: '/components/demo' },
 ];
 
 // ─── SectionItem (collapsible group) ────────────────────────────────────────

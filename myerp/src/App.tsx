@@ -58,8 +58,9 @@ import AssetRegister from '@/pages/assets/AssetRegister';
 import Depreciation  from '@/pages/assets/Depreciation';
 
 // Top-level
-import Reports  from '@/pages/Reports';
-import Settings from '@/pages/Settings';
+import Reports         from '@/pages/Reports';
+import Settings        from '@/pages/Settings';
+import ComponentsDemo  from '@/pages/ComponentsDemo';
 
 function ProtectedApp() {
   return (
@@ -112,8 +113,9 @@ function ProtectedApp() {
         <Route path="/assets/depreciation" element={<Depreciation />} />
 
         {/* Top-level */}
-        <Route path="/reports"  element={<Reports />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/reports"            element={<Reports />} />
+        <Route path="/settings"           element={<Settings />} />
+        <Route path="/components/demo"    element={<ComponentsDemo />} />
 
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
