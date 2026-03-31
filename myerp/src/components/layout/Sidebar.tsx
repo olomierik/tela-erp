@@ -3,10 +3,11 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, Handshake, Truck, Box, Users, Factory,
   ClipboardList, Building2, BarChart3, Settings, ChevronDown, ChevronRight,
-  Boxes, TrendingUp,
+  Boxes, TrendingUp, Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,11 +23,12 @@ const NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   {
     label: 'Finance', icon: BarChart2, children: [
-      { label: 'Accounts',  path: '/finance/accounts' },
-      { label: 'Invoices',  path: '/finance/invoices' },
-      { label: 'Bills',     path: '/finance/bills' },
-      { label: 'Payments',  path: '/finance/payments' },
-      { label: 'Reports',   path: '/finance/reports' },
+      { label: 'Accounts',        path: '/finance/accounts' },
+      { label: 'Journal Entries', path: '/finance/journal-entries' },
+      { label: 'Invoices',        path: '/finance/invoices' },
+      { label: 'Bills',           path: '/finance/bills' },
+      { label: 'Payments',        path: '/finance/payments' },
+      { label: 'Reports',         path: '/finance/reports' },
     ],
   },
   {
@@ -80,8 +82,9 @@ const NAV: NavItem[] = [
       { label: 'Depreciation',    path: '/assets/depreciation' },
     ],
   },
-  { label: 'Reports',  icon: BarChart3, path: '/reports' },
-  { label: 'Settings', icon: Settings,  path: '/settings' },
+  { label: 'Reports',    icon: BarChart3, path: '/reports' },
+  { label: 'Settings',   icon: Settings,  path: '/settings' },
+  { label: 'Components', icon: Layers,    path: '/components/demo' },
 ];
 
 // ─── SectionItem (collapsible group) ────────────────────────────────────────
@@ -183,6 +186,16 @@ function LeafItem({ item }: { item: NavItem & { path: string } }) {
 
 export function SidebarContent() {
   const { collapsed } = useSidebar();
+  const { profile, user } = useAuth();
+
+  const displayName = profile?.full_name ?? user?.email?.split('@')[0] ?? 'User';
+  const companyName = profile?.company_name ?? 'myERP';
+  const initials = displayName
+    .split(' ')
+    .map(w => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <div className="flex flex-col h-full bg-sidebar-background text-sidebar-foreground">
@@ -211,16 +224,16 @@ export function SidebarContent() {
       <div className={cn('border-t border-sidebar-border p-3 shrink-0', collapsed && 'p-2')}>
         {collapsed ? (
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-sidebar-primary mx-auto">
-            JD
+            {initials}
           </div>
         ) : (
           <div className="flex items-center gap-2.5 px-1">
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-sidebar-primary shrink-0">
-              JD
+              {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-sidebar-accent-foreground truncate">John Doe</p>
-              <p className="text-[11px] text-sidebar-muted truncate">Admin</p>
+              <p className="text-xs font-semibold text-sidebar-accent-foreground truncate">{displayName}</p>
+              <p className="text-[11px] text-sidebar-muted truncate">{companyName}</p>
             </div>
           </div>
         )}
