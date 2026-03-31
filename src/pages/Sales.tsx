@@ -298,6 +298,19 @@ export default function Sales() {
       onSuccess: (data: any) => {
         if (!tenant?.id || !data?.id) return;
 
+        // Persist line items to sales_order_lines table
+        if (lineItems.length > 0) {
+          const lines = lineItems.map(li => ({
+            tenant_id: tenant.id,
+            sales_order_id: data.id,
+            item_id: li.item_id || null,
+            description: li.item_name || '',
+            quantity: li.quantity,
+            unit_price: li.unit_price,
+          }));
+          (supabase.from('sales_order_lines') as any).insert(lines).then(() => {});
+        }
+
         // Reserve inventory for each line item
         lineItems.filter(li => li.item_id).forEach(li => {
           (supabase.from('inventory_reservations') as any).insert({

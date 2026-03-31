@@ -18,6 +18,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { onPayrollApproved } from '@/hooks/use-cross-module';
 
 // CSV download helper
 function downloadCSV(filename: string, rows: (string | number)[][], headers: string[]) {
@@ -231,7 +232,7 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
 
 export default function HR() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [employeeSheet, setEmployeeSheet] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
@@ -307,6 +308,36 @@ export default function HR() {
   const handleLeaveAction = async (id: string, status: 'approved' | 'rejected') => {
     if (isDemo) return;
     await updateLeave.mutateAsync({ id, status });
+  };
+
+  const [postingPayroll, setPostingPayroll] = useState(false);
+
+  const handlePostToAccounting = async () => {
+    if (isDemo || !tenant?.id || payrollData.length === 0) return;
+    setPostingPayroll(true);
+    try {
+      const runId = `payroll-${new Date().toISOString().slice(0, 7)}`;
+      const lines = payrollData.map((e: any) => ({
+        employee_id: e.id,
+        gross_salary: e.gross,
+        net_salary: e.net,
+        paye: e.paye,
+        nssf_employee: e.nssfEmployee,
+        nssf_employer: e.nssfEmployer,
+        sdl: e.sdl,
+        wcf: e.wcf,
+      }));
+      await onPayrollApproved(
+        tenant.id,
+        { id: runId, month: new Date().getMonth() + 1, year: new Date().getFullYear() },
+        lines,
+      );
+      toast.success(`Payroll posted to accounting — ${formatMoney(totalNet)} net salaries + deductions`);
+    } catch (err: any) {
+      toast.error(`Failed to post payroll: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setPostingPayroll(false);
+    }
   };
 
 
@@ -488,9 +519,20 @@ export default function HR() {
                 <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
                 <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
-                <Download className="w-3.5 h-3.5" /> Download CSV
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
+                  <Download className="w-3.5 h-3.5" /> Download CSV
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  onClick={handlePostToAccounting}
+                  disabled={payrollData.length === 0 || postingPayroll || isDemo}
+                >
+                  {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                  Post to Accounting
+                </Button>
+              </div>
             </div>
 
             {/* KPI strip */}
