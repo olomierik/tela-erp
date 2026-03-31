@@ -99,8 +99,8 @@ export default function AppSidebar() {
         className={cn(
           'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
           active
-            ? 'bg-sidebar-accent text-white font-semibold'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white'
+            ? 'bg-sidebar-accent text-sidebar-foreground font-semibold'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         )}
         title={collapsed ? item.label : undefined}
       >
@@ -109,7 +109,7 @@ export default function AppSidebar() {
         )}
         <item.icon className={cn(
           'w-[17px] h-[17px] shrink-0 transition-colors duration-100',
-          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-white'
+          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
         )} />
         <AnimatePresence initial={false}>
           {!collapsed && (
@@ -140,7 +140,7 @@ export default function AppSidebar() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-[52px] border-b border-sidebar-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(172,66%,50%)] to-[hsl(172,66%,35%)] flex items-center justify-center shrink-0 shadow-lg shadow-[hsl(172,66%,50%)/0.25]">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 shadow-lg shadow-[hsl(172,66%,40%)/0.25]">
           <Building2 className="w-4 h-4 text-white" />
         </div>
         <AnimatePresence initial={false}>
@@ -211,7 +211,7 @@ export default function AppSidebar() {
 
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
           <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-sidebar-accent/60 transition-colors cursor-pointer group">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,50%)] to-[hsl(172,66%,35%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
             <AnimatePresence initial={false}>
@@ -288,7 +288,7 @@ export default function AppSidebar() {
       <motion.aside
         animate={{ width: collapsed ? 64 : 230 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-xl shadow-black/20"
+        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-lg shadow-black/5"
       >
         {sidebarContent}
         <button
