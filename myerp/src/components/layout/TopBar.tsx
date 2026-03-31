@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Search, Bell, Sun, Moon, Menu, User, Settings, LogOut,
   ChevronRight,
@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -67,9 +68,25 @@ interface TopBarProps {
 export default function TopBar({ title }: TopBarProps) {
   const { collapsed, setCollapsed, mobileOpen, setMobileOpen } = useSidebar();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const [search, setSearch] = useState('');
+
+  const displayName = profile?.full_name ?? user?.email?.split('@')[0] ?? 'User';
+  const email = user?.email ?? '';
+  const initials = displayName
+    .split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  async function handleSignOut() {
+    await signOut();
+    navigate('/login', { replace: true });
+  }
 
   const crumbs = ROUTE_LABELS[location.pathname] ?? [title ?? 'Dashboard'];
   const unread = MOCK_NOTIFICATIONS.filter(n => !n.read).length;
@@ -190,24 +207,24 @@ export default function TopBar({ title }: TopBarProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="w-8 h-8">
-                <AvatarFallback className="text-xs font-semibold">JD</AvatarFallback>
+                <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             <DropdownMenuLabel>
-              <p className="font-semibold text-sm">John Doe</p>
-              <p className="text-xs text-muted-foreground font-normal">john.doe@myerp.com</p>
+              <p className="font-semibold text-sm">{displayName}</p>
+              <p className="text-xs text-muted-foreground font-normal truncate">{email}</p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
               <User className="w-4 h-4" /> Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
               <Settings className="w-4 h-4" /> Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem destructive>
+            <DropdownMenuItem destructive onClick={handleSignOut}>
               <LogOut className="w-4 h-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
