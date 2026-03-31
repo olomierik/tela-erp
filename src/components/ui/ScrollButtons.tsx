@@ -2,30 +2,42 @@ import { useState, useEffect } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function ScrollButtons() {
-  const [atTop, setAtTop] = useState(true);
+  const [showUp, setShowUp] = useState(false);
+  const [showDown, setShowDown] = useState(true);
 
   useEffect(() => {
-    const check = () => setAtTop(window.scrollY < 200);
+    const check = () => {
+      const scrollY = window.scrollY;
+      const docH = document.documentElement.scrollHeight;
+      const winH = window.innerHeight;
+      setShowUp(scrollY > 100);
+      setShowDown(scrollY + winH < docH - 100);
+    };
     check();
     window.addEventListener('scroll', check, { passive: true });
     return () => window.removeEventListener('scroll', check);
   }, []);
 
-  const handleClick = () => {
-    if (atTop) {
-      window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
   return (
-    <button
-      onClick={handleClick}
-      className="fixed bottom-24 md:bottom-6 left-4 md:left-6 z-40 w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all duration-200 cursor-pointer"
-      aria-label={atTop ? 'Scroll down' : 'Scroll to top'}
-    >
-      {atTop ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-    </button>
+    <div className="fixed right-1 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-1.5">
+      {showUp && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="w-7 h-7 rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/40 text-foreground/70 hover:text-foreground flex items-center justify-center transition-all duration-150 backdrop-blur-sm"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="w-4 h-4" />
+        </button>
+      )}
+      {showDown && (
+        <button
+          onClick={() => window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' })}
+          className="w-7 h-7 rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/40 text-foreground/70 hover:text-foreground flex items-center justify-center transition-all duration-150 backdrop-blur-sm"
+          aria-label="Scroll down"
+        >
+          <ChevronDown className="w-4 h-4" />
+        </button>
+      )}
+    </div>
   );
 }
