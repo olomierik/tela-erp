@@ -288,7 +288,7 @@ export default function AppSidebar() {
       <motion.aside
         animate={{ width: collapsed ? 64 : 230 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-xl shadow-black/20"
+        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-lg shadow-black/5"
       >
         {sidebarContent}
         <button
