@@ -58,16 +58,16 @@ a[href*="lovable.app"] {
     --ring:             230 65% 52%;
     --radius:           0.625rem;
 
-    /* Sidebar — rich dark teal-charcoal */
-    --sidebar-background: 210 25% 8%;
-    --sidebar-foreground: 210 15% 82%;
-    --sidebar-primary:    172 66% 50%;
+    /* Sidebar — clean light theme */
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 210 25% 10%;
+    --sidebar-primary:    172 66% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:     210 20% 15%;
-    --sidebar-accent-foreground: 210 15% 95%;
-    --sidebar-border:     210 18% 14%;
-    --sidebar-ring:       172 66% 50%;
-    --sidebar-muted:      210 10% 55%;
+    --sidebar-accent:     210 15% 92%;
+    --sidebar-accent-foreground: 210 25% 10%;
+    --sidebar-border:     210 15% 88%;
+    --sidebar-ring:       172 66% 40%;
+    --sidebar-muted:      210 10% 45%;
   }
 
   .dark {
