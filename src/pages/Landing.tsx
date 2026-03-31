@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import UserCountWidget from '@/components/ui/UserCountWidget';
 import heroImg from '@/assets/hero-dashboard.png';
 import paymentQr from '@/assets/payment-qr.jpeg';
 
@@ -124,6 +125,9 @@ export default function Landing() {
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
                 <Link to="/login">Sign In</Link>
               </Button>
+            </div>
+            <div className="mt-6 flex justify-center lg:justify-start">
+              <UserCountWidget />
             </div>
           </motion.div>
 
