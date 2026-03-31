@@ -296,7 +296,7 @@ export default function Procurement() {
           quantity: li.quantity,
           unit_cost: li.unit_price,
         }));
-        (supabase.from('purchase_order_lines') as any).insert(lines).then(() => {});
+        (supabase as any).from('purchase_order_lines').insert(lines).then(() => {});
       },
     });
   };
