@@ -75,6 +75,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <WhatsAppButton />
+            <ScrollButtons />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
