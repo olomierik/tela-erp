@@ -9,13 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatDate, genId, today } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, FolderOpen, CheckCircle2, DollarSign, TrendingUp } from 'lucide-react';
+import { Pencil, Trash2, FolderOpen, CheckCircle2, DollarSign, TrendingUp, Loader2 } from 'lucide-react';
 
 type ProjectStatus = 'planning' | 'active' | 'on_hold' | 'completed';
 
-interface Project {
+interface Project extends Record<string, unknown> {
   id: string;
   name: string;
   client: string;
@@ -28,19 +29,10 @@ interface Project {
   notes: string;
 }
 
-const INITIAL_PROJECTS: Project[] = [
-  { id: '1', name: 'ERP Implementation',    client: 'Acme Corp',       manager: 'Alice Johnson', start_date: '2026-01-10', end_date: '2026-06-30', budget: 120000, spent: 74000,  status: 'active',    notes: 'Phase 2 in progress'         },
-  { id: '2', name: 'Website Redesign',       client: 'BlueWave LLC',    manager: 'Grace Turner',  start_date: '2026-02-01', end_date: '2026-04-30', budget: 35000,  spent: 28000,  status: 'active',    notes: 'Final review pending'        },
-  { id: '3', name: 'Mobile App v2',          client: 'TechNova Inc',    manager: 'Eva Chen',      start_date: '2026-01-15', end_date: '2026-05-15', budget: 80000,  spent: 45000,  status: 'active',    notes: 'UI complete, API in progress' },
-  { id: '4', name: 'Data Migration',         client: 'RetailPlus',      manager: 'Henry Park',    start_date: '2026-03-01', end_date: '2026-03-31', budget: 15000,  spent: 15200,  status: 'completed', notes: 'Delivered on time'           },
-  { id: '5', name: 'Security Audit',         client: 'FinGroup Ltd',    manager: 'James Brown',   start_date: '2026-02-15', end_date: '2026-03-15', budget: 22000,  spent: 21500,  status: 'completed', notes: 'Report submitted'            },
-  { id: '6', name: 'Cloud Infrastructure',   client: 'StartupXYZ',      manager: 'Bob Martinez',  start_date: '2026-04-01', end_date: '2026-07-31', budget: 60000,  spent: 0,      status: 'planning',  notes: 'Kickoff scheduled April 1'   },
-  { id: '7', name: 'Analytics Dashboard',    client: 'MegaRetail',      manager: 'Grace Turner',  start_date: '2026-03-10', end_date: '2026-05-10', budget: 40000,  spent: 12000,  status: 'on_hold',   notes: 'Awaiting client sign-off'    },
-  { id: '8', name: 'API Integration Suite',  client: 'Globalex Co',     manager: 'Eva Chen',      start_date: '2026-04-15', end_date: '2026-08-15', budget: 55000,  spent: 0,      status: 'planning',  notes: 'Requirements gathering'      },
-];
+type ProjectForm = { name: string; client: string; manager: string; start_date: string; end_date: string; budget: number; status: ProjectStatus; notes: string; };
 
-const BLANK: Omit<Project, 'id' | 'spent'> = {
-  name: '', client: '', manager: '', start_date: today(), end_date: today(), budget: 0, status: 'planning', notes: '',
+const BLANK: ProjectForm = {
+  name: '', client: '', manager: '', start_date: '', end_date: '', budget: 0, status: 'planning', notes: '',
 };
 
 const statusVariant: Record<ProjectStatus, 'secondary' | 'info' | 'warning' | 'success'> = {
@@ -52,16 +44,16 @@ const statusLabel: Record<ProjectStatus, string> = {
 };
 
 export default function Projects() {
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const { rows: items, loading, insert, update, remove } = useTable<Project>('myerp_projects');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Project | null>(null);
-  const [form, setForm] = useState<Omit<Project, 'id' | 'spent'>>(BLANK);
+  const [form, setForm] = useState<ProjectForm>(BLANK);
 
-  const activeCount   = projects.filter(p => p.status === 'active').length;
-  const completedCount = projects.filter(p => p.status === 'completed').length;
-  const totalBudget   = projects.reduce((s, p) => s + p.budget, 0);
-  const totalSpent    = projects.reduce((s, p) => s + p.spent, 0);
-  const remaining     = totalBudget - totalSpent;
+  const activeCount    = items.filter(p => p.status === 'active').length;
+  const completedCount = items.filter(p => p.status === 'completed').length;
+  const totalBudget    = items.reduce((s, p) => s + p.budget, 0);
+  const totalSpent     = items.reduce((s, p) => s + p.spent, 0);
+  const remaining      = totalBudget - totalSpent;
 
   function openNew() {
     setEditing(null);
@@ -75,25 +67,43 @@ export default function Projects() {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) { toast.error('Project name is required'); return; }
-    if (editing) {
-      setProjects(prev => prev.map(p => p.id === editing.id ? { ...editing, ...form } : p));
-      toast.success('Project updated');
-    } else {
-      setProjects(prev => [...prev, { id: genId(), spent: 0, ...form }]);
-      toast.success('Project created');
+    try {
+      if (editing) {
+        await update(editing.id, form);
+        toast.success('Project updated');
+      } else {
+        await insert({ ...form, spent: 0 });
+        toast.success('Project created');
+      }
+      setOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Save failed');
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setProjects(prev => prev.filter(p => p.id !== id));
-    toast.success('Project removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Project removed');
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Delete failed');
+    }
   }
 
-  function field(key: keyof typeof form, value: string | number) {
+  function field(key: keyof ProjectForm, value: string | number) {
     setForm(f => ({ ...f, [key]: value }));
+  }
+
+  if (loading) {
+    return (
+      <AppLayout title="Projects">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -102,10 +112,10 @@ export default function Projects() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Active Projects',   value: activeCount,             icon: FolderOpen,   color: 'text-info'    },
-          { label: 'Completed',         value: completedCount,          icon: CheckCircle2, color: 'text-success' },
-          { label: 'Total Budget',      value: formatCurrency(totalBudget), icon: DollarSign,   color: 'text-primary' },
-          { label: 'Budget Remaining',  value: formatCurrency(remaining),   icon: TrendingUp,   color: remaining >= 0 ? 'text-success' : 'text-destructive' },
+          { label: 'Active Projects',   value: activeCount,              icon: FolderOpen,   color: 'text-info'    },
+          { label: 'Completed',         value: completedCount,           icon: CheckCircle2, color: 'text-success' },
+          { label: 'Total Budget',      value: formatCurrency(totalBudget),  icon: DollarSign,   color: 'text-primary' },
+          { label: 'Budget Remaining',  value: formatCurrency(remaining),    icon: TrendingUp,   color: remaining >= 0 ? 'text-success' : 'text-destructive' },
         ].map(kpi => (
           <Card key={kpi.label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -136,7 +146,7 @@ export default function Projects() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {projects.map(project => {
+              {items.map(project => {
                 const pct = project.budget > 0 ? Math.min(100, Math.round((project.spent / project.budget) * 100)) : 0;
                 const barColor = pct >= 100 ? 'bg-destructive' : pct >= 80 ? 'bg-warning' : 'bg-success';
                 return (

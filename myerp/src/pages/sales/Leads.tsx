@@ -9,14 +9,15 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId, formatCurrency, formatDate } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, TrendingUp, Target, Trophy, Layers } from 'lucide-react';
+import { Pencil, Trash2, TrendingUp, Target, Trophy, Layers, Loader2 } from 'lucide-react';
 
 type LeadSource = 'website' | 'referral' | 'linkedin' | 'cold_call' | 'event';
 type LeadStage = 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost';
 
-interface Lead {
+interface Lead extends Record<string, unknown> {
   id: string;
   name: string;
   company: string;
@@ -28,19 +29,6 @@ interface Lead {
   assigned_to: string;
   created_at: string;
 }
-
-const INITIAL_LEADS: Lead[] = [
-  { id: '1', name: 'Ryan Mitchell', company: 'Vertex Solutions', email: 'r.mitchell@vertex.com', phone: '+1 650 555 0281', source: 'website', stage: 'qualified', value: 42000, assigned_to: 'Sarah Chen', created_at: '2025-01-10' },
-  { id: '2', name: 'Amara Osei', company: 'BrightPath Consulting', email: 'amara@brightpath.co', phone: '+233 24 555 0193', source: 'referral', stage: 'proposal', value: 87500, assigned_to: 'Marcus Johnson', created_at: '2025-01-18' },
-  { id: '3', name: 'Lena Hoffmann', company: 'Eurotech GmbH', email: 'l.hoffmann@eurotech.de', phone: '+49 89 555 0447', source: 'linkedin', stage: 'won', value: 134000, assigned_to: 'Elena Petrova', created_at: '2024-12-05' },
-  { id: '4', name: 'Kevin Park', company: 'SkyNet Logistics', email: 'k.park@skynet.kr', phone: '+82 2 555 0639', source: 'cold_call', stage: 'contacted', value: 28000, assigned_to: 'Sarah Chen', created_at: '2025-02-01' },
-  { id: '5', name: 'Isabella Romano', company: 'Medici Pharma', email: 'i.romano@medici.it', phone: '+39 02 555 0752', source: 'event', stage: 'new', value: 55000, assigned_to: 'Marcus Johnson', created_at: '2025-02-14' },
-  { id: '6', name: 'Omar Al-Farsi', company: 'Desert Tech', email: 'o.alfarsi@deserttech.ae', phone: '+971 50 555 0284', source: 'linkedin', stage: 'qualified', value: 72000, assigned_to: 'Elena Petrova', created_at: '2025-02-20' },
-  { id: '7', name: 'Sophie Blanc', company: 'Lumiere Media', email: 's.blanc@lumiere.fr', phone: '+33 6 55 00 1932', source: 'referral', stage: 'lost', value: 19500, assigned_to: 'Sarah Chen', created_at: '2025-01-05' },
-  { id: '8', name: 'Daniel Ferreira', company: 'Rio Capital', email: 'd.ferreira@riocapital.br', phone: '+55 11 9 5555 0384', source: 'website', stage: 'proposal', value: 96000, assigned_to: 'Marcus Johnson', created_at: '2025-03-02' },
-  { id: '9', name: 'Mei Ling Wu', company: 'Pacific Trade Co.', email: 'm.wu@pacifictrade.hk', phone: '+852 2555 0916', source: 'event', stage: 'new', value: 38000, assigned_to: 'Elena Petrova', created_at: '2025-03-10' },
-  { id: '10', name: 'Finn Larsen', company: 'Nordic Innovations', email: 'f.larsen@nordic.no', phone: '+47 22 55 09 18', source: 'cold_call', stage: 'contacted', value: 44500, assigned_to: 'Sarah Chen', created_at: '2025-03-18' },
-];
 
 const STAGE_BADGE: Record<LeadStage, 'secondary' | 'info' | 'default' | 'warning' | 'success' | 'outline'> = {
   new: 'secondary',
@@ -71,14 +59,15 @@ const emptyForm = {
 };
 
 export default function Leads() {
-  const [leads, setLeads] = useState<Lead[]>(INITIAL_LEADS);
+  const { rows: items, loading, insert, update, remove } = useTable<Lead>('myerp_leads');
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = leads.filter(l => {
+  const filtered = items.filter(l => {
     const matchSearch =
       l.name.toLowerCase().includes(search.toLowerCase()) ||
       l.company.toLowerCase().includes(search.toLowerCase()) ||
@@ -87,9 +76,9 @@ export default function Leads() {
     return matchSearch && matchStage;
   });
 
-  const qualifiedCount = leads.filter(l => l.stage === 'qualified' || l.stage === 'proposal').length;
-  const wonCount = leads.filter(l => l.stage === 'won').length;
-  const pipelineValue = leads.filter(l => l.stage !== 'won' && l.stage !== 'lost').reduce((s, l) => s + l.value, 0);
+  const qualifiedCount = items.filter(l => l.stage === 'qualified' || l.stage === 'proposal').length;
+  const wonCount = items.filter(l => l.stage === 'won').length;
+  const pipelineValue = items.filter(l => l.stage !== 'won' && l.stage !== 'lost').reduce((s, l) => s + l.value, 0);
 
   function openCreate() {
     setEditId(null);
@@ -103,37 +92,32 @@ export default function Leads() {
     setSheetOpen(true);
   }
 
-  function handleDelete(id: string) {
-    setLeads(prev => prev.filter(l => l.id !== id));
-    toast.success('Lead deleted');
+  async function handleDelete(id: string) {
+    try { await remove(id); toast.success('Lead deleted'); }
+    catch { toast.error('Failed to delete'); }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) {
       toast.error('Name is required');
       return;
     }
     const valueNum = typeof form.value === 'string' ? parseFloat(form.value) || 0 : form.value;
-    if (editId) {
-      setLeads(prev => prev.map(l => l.id === editId ? { ...l, name: form.name, company: form.company, email: form.email, phone: form.phone, source: form.source, stage: form.stage, value: valueNum, assigned_to: form.assigned_to } : l));
-      toast.success('Lead updated');
-    } else {
-      const newLead: Lead = {
-        id: genId(),
-        name: form.name,
-        company: form.company,
-        email: form.email,
-        phone: form.phone,
-        source: form.source,
-        stage: form.stage,
-        value: valueNum,
-        assigned_to: form.assigned_to,
-        created_at: new Date().toISOString().split('T')[0],
-      };
-      setLeads(prev => [newLead, ...prev]);
-      toast.success('Lead created');
+    setSaving(true);
+    try {
+      if (editId) {
+        await update(editId, { name: form.name, company: form.company, email: form.email, phone: form.phone, source: form.source, stage: form.stage, value: valueNum, assigned_to: form.assigned_to });
+        toast.success('Lead updated');
+      } else {
+        await insert({ name: form.name, company: form.company, email: form.email, phone: form.phone, source: form.source, stage: form.stage, value: valueNum, assigned_to: form.assigned_to });
+        toast.success('Lead created');
+      }
+      setSheetOpen(false);
+    } catch {
+      toast.error('Failed to save lead');
+    } finally {
+      setSaving(false);
     }
-    setSheetOpen(false);
   }
 
   return (
@@ -152,7 +136,7 @@ export default function Leads() {
           </CardHeader>
           <CardContent className="px-4 pb-4">
             <div className="flex items-end gap-2">
-              <span className="text-2xl font-bold">{leads.length}</span>
+              <span className="text-2xl font-bold">{items.length}</span>
               <TrendingUp className="w-4 h-4 text-muted-foreground mb-1" />
             </div>
           </CardContent>
@@ -214,55 +198,62 @@ export default function Leads() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead className="text-right">Est. Value</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="w-20">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 && (
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading leads…</span>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-10">No leads found.</TableCell>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Stage</TableHead>
+                  <TableHead className="text-right">Est. Value</TableHead>
+                  <TableHead>Assigned To</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="w-20">Actions</TableHead>
                 </TableRow>
-              )}
-              {filtered.map(l => (
-                <TableRow key={l.id}>
-                  <TableCell>
-                    <div className="font-medium">{l.name}</div>
-                    <div className="text-xs text-muted-foreground">{l.email}</div>
-                  </TableCell>
-                  <TableCell>{l.company}</TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">{SOURCE_LABELS[l.source]}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={STAGE_BADGE[l.stage]}>{l.stage}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(l.value)}</TableCell>
-                  <TableCell>{l.assigned_to || '—'}</TableCell>
-                  <TableCell>{formatDate(l.created_at)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(l)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(l.id)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-10">No leads found.</TableCell>
+                  </TableRow>
+                )}
+                {filtered.map(l => (
+                  <TableRow key={l.id}>
+                    <TableCell>
+                      <div className="font-medium">{l.name}</div>
+                      <div className="text-xs text-muted-foreground">{l.email}</div>
+                    </TableCell>
+                    <TableCell>{l.company}</TableCell>
+                    <TableCell>
+                      <span className="text-sm text-muted-foreground">{SOURCE_LABELS[l.source]}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STAGE_BADGE[l.stage]}>{l.stage}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">{formatCurrency(l.value)}</TableCell>
+                    <TableCell>{l.assigned_to || '—'}</TableCell>
+                    <TableCell>{formatDate(l.created_at)}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(l)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDelete(l.id)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -321,7 +312,10 @@ export default function Leads() {
           </div>
           <SheetFooter className="mt-8 gap-2">
             <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editId ? 'Save Changes' : 'Create Lead'}</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+              {editId ? 'Save Changes' : 'Create Lead'}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

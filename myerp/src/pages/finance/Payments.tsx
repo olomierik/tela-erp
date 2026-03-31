@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
 import { Eye } from 'lucide-react';
 
@@ -15,7 +16,7 @@ type PaymentType   = 'incoming' | 'outgoing';
 type PaymentMethod = 'bank' | 'cash' | 'card' | 'cheque';
 type PaymentStatus = 'pending' | 'cleared' | 'failed';
 
-interface Payment {
+interface Payment extends Record<string, unknown> {
   id: string;
   reference: string;
   type: PaymentType;
@@ -25,19 +26,6 @@ interface Payment {
   method: PaymentMethod;
   status: PaymentStatus;
 }
-
-const PAYMENTS: Payment[] = [
-  { id: '1',  reference: 'PAY-0001', type: 'incoming', party: 'Acme Corp',           date: '2026-02-05', amount: 12400.00, method: 'bank',   status: 'cleared'  },
-  { id: '2',  reference: 'PAY-0002', type: 'outgoing', party: 'Eastside Properties', date: '2026-02-10', amount: 18500.00, method: 'bank',   status: 'cleared'  },
-  { id: '3',  reference: 'PAY-0003', type: 'incoming', party: 'TechVision Ltd',      date: '2026-02-12', amount:  8750.50, method: 'bank',   status: 'cleared'  },
-  { id: '4',  reference: 'PAY-0004', type: 'outgoing', party: 'PowerGrid Utilities', date: '2026-02-18', amount:  4200.00, method: 'bank',   status: 'cleared'  },
-  { id: '5',  reference: 'PAY-0005', type: 'incoming', party: 'Sunrise Retail',      date: '2026-03-01', amount:  5500.00, method: 'card',   status: 'cleared'  },
-  { id: '6',  reference: 'PAY-0006', type: 'outgoing', party: 'OfficePro Supplies',  date: '2026-03-05', amount:  1340.50, method: 'cash',   status: 'cleared'  },
-  { id: '7',  reference: 'PAY-0007', type: 'incoming', party: 'BlueSky Ventures',    date: '2026-03-12', amount: 16800.00, method: 'bank',   status: 'pending'  },
-  { id: '8',  reference: 'PAY-0008', type: 'outgoing', party: 'TechGear Depot',      date: '2026-03-15', amount:  8450.00, method: 'cheque', status: 'pending'  },
-  { id: '9',  reference: 'PAY-0009', type: 'incoming', party: 'GlobalMart',          date: '2026-03-20', amount: 31500.00, method: 'bank',   status: 'pending'  },
-  { id: '10', reference: 'PAY-0010', type: 'outgoing', party: 'CloudBase Solutions', date: '2026-03-22', amount:  6750.00, method: 'card',   status: 'failed'   },
-];
 
 const TYPE_BADGE: Record<PaymentType, 'success' | 'destructive'> = {
   incoming: 'success',
@@ -51,15 +39,16 @@ const STATUS_BADGE: Record<PaymentStatus, 'warning' | 'success' | 'destructive'>
 };
 
 export default function Payments() {
+  const { rows: items, loading } = useTable<Payment>('myerp_payments');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
-  const totalIn     = PAYMENTS.filter(p => p.type === 'incoming').reduce((s, p) => s + p.amount, 0);
-  const totalOut    = PAYMENTS.filter(p => p.type === 'outgoing').reduce((s, p) => s + p.amount, 0);
-  const net         = totalIn - totalOut;
-  const pendingCount = PAYMENTS.filter(p => p.status === 'pending').length;
+  const totalIn      = items.filter(p => p.type === 'incoming').reduce((s, p) => s + p.amount, 0);
+  const totalOut     = items.filter(p => p.type === 'outgoing').reduce((s, p) => s + p.amount, 0);
+  const net          = totalIn - totalOut;
+  const pendingCount = items.filter(p => p.status === 'pending').length;
 
-  const filtered = PAYMENTS.filter(p => {
+  const filtered = items.filter(p => {
     const matchSearch = p.reference.toLowerCase().includes(search.toLowerCase()) ||
       p.party.toLowerCase().includes(search.toLowerCase());
     const matchType = typeFilter === 'all' || p.type === typeFilter;
@@ -133,57 +122,63 @@ export default function Payments() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reference</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Party</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    No payments match your filters.
-                  </TableCell>
+                  <TableHead>Reference</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Party</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filtered.map(pmt => (
-                  <TableRow key={pmt.id}>
-                    <TableCell className="font-medium">{pmt.reference}</TableCell>
-                    <TableCell>
-                      <Badge variant={TYPE_BADGE[pmt.type]} className="capitalize">{pmt.type}</Badge>
-                    </TableCell>
-                    <TableCell>{pmt.party}</TableCell>
-                    <TableCell>{formatDate(pmt.date)}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{formatCurrency(pmt.amount)}</TableCell>
-                    <TableCell className="capitalize">{pmt.method}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[pmt.status]} className="capitalize">{pmt.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 w-7 p-0"
-                          onClick={() => handleView(pmt.reference)}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                      No payments match your filters.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filtered.map(pmt => (
+                    <TableRow key={pmt.id}>
+                      <TableCell className="font-medium">{pmt.reference}</TableCell>
+                      <TableCell>
+                        <Badge variant={TYPE_BADGE[pmt.type]} className="capitalize">{pmt.type}</Badge>
+                      </TableCell>
+                      <TableCell>{pmt.party}</TableCell>
+                      <TableCell>{formatDate(pmt.date)}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{formatCurrency(pmt.amount)}</TableCell>
+                      <TableCell className="capitalize">{pmt.method}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_BADGE[pmt.status]} className="capitalize">{pmt.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 w-7 p-0"
+                            onClick={() => handleView(pmt.reference)}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </AppLayout>

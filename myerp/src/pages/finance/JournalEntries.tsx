@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
-import { DataTable, StatusBadge, type Column } from '@/components/erp/DataTable';
+import { DataTable, type Column } from '@/components/erp/DataTable';
 import { ConfirmModal } from '@/components/erp/Modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDate } from '@/lib/mock';
-import { JOURNAL_ENTRIES, type JournalEntry, type JEStatus } from '@/lib/finance-data';
+import { type JournalEntry, type JEStatus } from '@/lib/finance-data';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { BookOpen, FileText, CheckCircle2, TrendingUp } from 'lucide-react';
 
@@ -32,15 +34,33 @@ function JEStatusBadge({ status }: { status: JEStatus }) {
 
 export default function JournalEntries() {
   const navigate = useNavigate();
-  const [entries, setEntries] = useState(JOURNAL_ENTRIES);
+  const { user } = useAuth();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    async function load() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('myerp_journal_entries')
+        .select('*, lines:myerp_journal_lines(*)')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      if (error) toast.error('Failed to load journal entries');
+      else setEntries((data ?? []) as JournalEntry[]);
+      setLoading(false);
+    }
+    load();
+  }, [user]);
 
   // ── KPI values ──────────────────────────────────────────────────────────────
   const totalEntries   = entries.length;
   const postedEntries  = entries.filter(e => e.status === 'posted');
   const draftEntries   = entries.filter(e => e.status === 'draft');
   const totalPostedVal = postedEntries.reduce(
-    (sum, e) => sum + e.lines.reduce((s, l) => s + l.debit, 0),
+    (sum, e) => sum + ((e.lines as { debit: number }[]) ?? []).reduce((s, l) => s + l.debit, 0),
     0,
   );
 
@@ -73,7 +93,7 @@ export default function JournalEntries() {
       key: 'lines',
       header: 'Lines',
       render: (row) => (
-        <span className="text-muted-foreground text-xs">{row.lines.length} lines</span>
+        <span className="text-muted-foreground text-xs">{((row.lines as unknown[]) ?? []).length} lines</span>
       ),
     },
     {
@@ -82,7 +102,7 @@ export default function JournalEntries() {
       align: 'right',
       render: (row) => (
         <span className="tabular-nums font-medium">
-          {formatCurrency(row.lines.reduce((s, l) => s + l.debit, 0))}
+          {formatCurrency(((row.lines as { debit: number }[]) ?? []).reduce((s, l) => s + l.debit, 0))}
         </span>
       ),
     },
@@ -92,7 +112,7 @@ export default function JournalEntries() {
       align: 'right',
       render: (row) => (
         <span className="tabular-nums font-medium">
-          {formatCurrency(row.lines.reduce((s, l) => s + l.credit, 0))}
+          {formatCurrency(((row.lines as { credit: number }[]) ?? []).reduce((s, l) => s + l.credit, 0))}
         </span>
       ),
     },
@@ -100,29 +120,20 @@ export default function JournalEntries() {
       key: 'status',
       header: 'Status',
       sortable: true,
-      render: (row) => <JEStatusBadge status={row.status} />,
+      render: (row) => <JEStatusBadge status={row.status as JEStatus} />,
     },
   ];
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
-  function handleView(row: JournalEntry) {
-    navigate(`/finance/journal-entries/${row.id}`);
-  }
+  function handleView(row: JournalEntry) { navigate(`/finance/journal-entries/${row.id}`); }
+  function handleEdit(row: JournalEntry) { if (row.status !== 'posted') navigate(`/finance/journal-entries/${row.id}`); }
+  function handleDeleteRequest(row: JournalEntry) { if (row.status !== 'posted') setConfirmDelete(row.id as string); }
 
-  function handleEdit(row: JournalEntry) {
-    if (row.status !== 'posted') {
-      navigate(`/finance/journal-entries/${row.id}`);
-    }
-  }
-
-  function handleDeleteRequest(row: JournalEntry) {
-    if (row.status !== 'posted') {
-      setConfirmDelete(row.id);
-    }
-  }
-
-  function handleDeleteConfirm() {
+  async function handleDeleteConfirm() {
     if (!confirmDelete) return;
+    await supabase.from('myerp_journal_lines').delete().eq('entry_id', confirmDelete);
+    const { error } = await supabase.from('myerp_journal_entries').delete().eq('id', confirmDelete);
+    if (error) { toast.error('Failed to delete entry'); return; }
     setEntries(prev => prev.filter(e => e.id !== confirmDelete));
     toast.success('Journal entry deleted.');
     setConfirmDelete(null);

@@ -9,13 +9,14 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatDate, genId, today } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Users, UserCheck, UserMinus, DollarSign } from 'lucide-react';
+import { Pencil, Trash2, Users, UserCheck, UserMinus, DollarSign, Loader2 } from 'lucide-react';
 
 type EmployeeStatus = 'active' | 'on_leave' | 'terminated';
 
-interface Employee {
+interface Employee extends Record<string, unknown> {
   id: string;
   full_name: string;
   employee_id: string;
@@ -28,24 +29,21 @@ interface Employee {
   status: EmployeeStatus;
 }
 
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: '1', full_name: 'Alice Johnson',   employee_id: 'EMP001', department: 'Engineering', position: 'Senior Engineer',       email: 'alice@myerp.io',    phone: '555-0101', hire_date: '2021-03-15', salary: 95000,  status: 'active'     },
-  { id: '2', full_name: 'Bob Martinez',    employee_id: 'EMP002', department: 'Sales',       position: 'Sales Manager',         email: 'bob@myerp.io',      phone: '555-0102', hire_date: '2020-07-01', salary: 78000,  status: 'active'     },
-  { id: '3', full_name: 'Carol Smith',     employee_id: 'EMP003', department: 'HR',          position: 'HR Specialist',         email: 'carol@myerp.io',    phone: '555-0103', hire_date: '2022-01-10', salary: 62000,  status: 'active'     },
-  { id: '4', full_name: 'David Lee',       employee_id: 'EMP004', department: 'Finance',     position: 'Financial Analyst',     email: 'david@myerp.io',    phone: '555-0104', hire_date: '2019-11-20', salary: 72000,  status: 'on_leave'   },
-  { id: '5', full_name: 'Eva Chen',        employee_id: 'EMP005', department: 'Engineering', position: 'Frontend Developer',    email: 'eva@myerp.io',      phone: '555-0105', hire_date: '2023-02-14', salary: 85000,  status: 'active'     },
-  { id: '6', full_name: 'Frank Wilson',    employee_id: 'EMP006', department: 'Operations',  position: 'Operations Lead',       email: 'frank@myerp.io',    phone: '555-0106', hire_date: '2018-06-30', salary: 68000,  status: 'active'     },
-  { id: '7', full_name: 'Grace Turner',    employee_id: 'EMP007', department: 'Marketing',   position: 'Marketing Manager',     email: 'grace@myerp.io',    phone: '555-0107', hire_date: '2021-09-05', salary: 74000,  status: 'active'     },
-  { id: '8', full_name: 'Henry Park',      employee_id: 'EMP008', department: 'Engineering', position: 'Backend Developer',     email: 'henry@myerp.io',    phone: '555-0108', hire_date: '2022-04-18', salary: 88000,  status: 'active'     },
-  { id: '9', full_name: 'Isabella Davis',  employee_id: 'EMP009', department: 'Sales',       position: 'Account Executive',     email: 'isabella@myerp.io', phone: '555-0109', hire_date: '2023-07-22', salary: 58000,  status: 'on_leave'   },
-  { id: '10', full_name: 'James Brown',    employee_id: 'EMP010', department: 'Finance',     position: 'Senior Accountant',     email: 'james@myerp.io',    phone: '555-0110', hire_date: '2017-12-01', salary: 80000,  status: 'active'     },
-  { id: '11', full_name: 'Karen White',    employee_id: 'EMP011', department: 'HR',          position: 'Recruiter',             email: 'karen@myerp.io',    phone: '555-0111', hire_date: '2024-01-08', salary: 55000,  status: 'active'     },
-  { id: '12', full_name: 'Leo Garcia',     employee_id: 'EMP012', department: 'Operations',  position: 'Logistics Coordinator', email: 'leo@myerp.io',      phone: '555-0112', hire_date: '2020-03-25', salary: 52000,  status: 'terminated' },
-];
+interface EmployeeForm {
+  full_name: string;
+  employee_id: string;
+  department: string;
+  position: string;
+  email: string;
+  phone: string;
+  hire_date: string;
+  salary: number;
+  status: EmployeeStatus;
+}
 
-const BLANK: Omit<Employee, 'id'> = {
+const BLANK: EmployeeForm = {
   full_name: '', employee_id: '', department: 'Engineering', position: '',
-  email: '', phone: '', hire_date: today(), salary: 0, status: 'active',
+  email: '', phone: '', hire_date: new Date().toISOString().slice(0, 10), salary: 0, status: 'active',
 };
 
 const statusVariant: Record<EmployeeStatus, 'success' | 'warning' | 'destructive'> = {
@@ -57,15 +55,15 @@ const statusLabel: Record<EmployeeStatus, string> = {
 };
 
 export default function Employees() {
-  const [employees, setEmployees] = useState<Employee[]>(INITIAL_EMPLOYEES);
+  const { rows: items, loading, insert, update, remove } = useTable<Employee>('myerp_employees');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
-  const [form, setForm] = useState<Omit<Employee, 'id'>>(BLANK);
+  const [form, setForm] = useState<EmployeeForm>(BLANK);
 
-  const total = employees.length;
-  const active = employees.filter(e => e.status === 'active').length;
-  const onLeave = employees.filter(e => e.status === 'on_leave').length;
-  const avgSalary = employees.length ? employees.reduce((s, e) => s + e.salary, 0) / employees.length : 0;
+  const total = items.length;
+  const active = items.filter(e => e.status === 'active').length;
+  const onLeave = items.filter(e => e.status === 'on_leave').length;
+  const avgSalary = items.length ? items.reduce((s, e) => s + e.salary, 0) / items.length : 0;
 
   function openNew() {
     setEditing(null);
@@ -75,28 +73,46 @@ export default function Employees() {
 
   function openEdit(emp: Employee) {
     setEditing(emp);
-    setForm({ full_name: emp.full_name, employee_id: emp.employee_id, department: emp.department, position: emp.position, email: emp.email, phone: emp.phone, hire_date: emp.hire_date, salary: emp.salary, status: emp.status });
+    setForm({
+      full_name: emp.full_name as string,
+      employee_id: emp.employee_id as string,
+      department: emp.department as string,
+      position: emp.position as string,
+      email: emp.email as string,
+      phone: emp.phone as string,
+      hire_date: emp.hire_date as string,
+      salary: emp.salary as number,
+      status: emp.status as EmployeeStatus,
+    });
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.full_name.trim()) { toast.error('Full name is required'); return; }
-    if (editing) {
-      setEmployees(prev => prev.map(e => e.id === editing.id ? { ...editing, ...form } : e));
-      toast.success('Employee updated');
-    } else {
-      setEmployees(prev => [...prev, { id: genId(), ...form }]);
-      toast.success('Employee added');
+    try {
+      if (editing) {
+        await update(editing.id, { full_name: form.full_name, employee_id: form.employee_id, department: form.department, position: form.position, email: form.email, phone: form.phone, hire_date: form.hire_date, salary: form.salary, status: form.status });
+        toast.success('Employee updated');
+      } else {
+        await insert({ full_name: form.full_name, employee_id: form.employee_id, department: form.department, position: form.position, email: form.email, phone: form.phone, hire_date: form.hire_date, salary: form.salary, status: form.status });
+        toast.success('Employee added');
+      }
+      setOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to save employee');
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setEmployees(prev => prev.filter(e => e.id !== id));
-    toast.success('Employee removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Employee removed');
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to remove employee');
+    }
   }
 
-  function field(key: keyof Omit<Employee, 'id'>, value: string | number) {
+  function field(key: keyof EmployeeForm, value: string | number) {
     setForm(f => ({ ...f, [key]: value }));
   }
 
@@ -125,41 +141,47 @@ export default function Employees() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Full Name</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Position</TableHead>
-                <TableHead>Hire Date</TableHead>
-                <TableHead>Salary</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.map(emp => (
-                <TableRow key={emp.id}>
-                  <TableCell className="font-mono text-xs">{emp.employee_id}</TableCell>
-                  <TableCell className="font-medium">{emp.full_name}</TableCell>
-                  <TableCell>{emp.department}</TableCell>
-                  <TableCell>{emp.position}</TableCell>
-                  <TableCell>{formatDate(emp.hire_date)}</TableCell>
-                  <TableCell>{formatCurrency(emp.salary)}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[emp.status]}>{statusLabel[emp.status]}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(emp)}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(emp.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Full Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Hire Date</TableHead>
+                  <TableHead>Salary</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map(emp => (
+                  <TableRow key={emp.id}>
+                    <TableCell className="font-mono text-xs">{emp.employee_id}</TableCell>
+                    <TableCell className="font-medium">{emp.full_name}</TableCell>
+                    <TableCell>{emp.department}</TableCell>
+                    <TableCell>{emp.position}</TableCell>
+                    <TableCell>{formatDate(emp.hire_date)}</TableCell>
+                    <TableCell>{formatCurrency(emp.salary)}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[emp.status]}>{statusLabel[emp.status]}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="outline" onClick={() => openEdit(emp)}><Pencil className="w-3.5 h-3.5" /></Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDelete(emp.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

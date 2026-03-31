@@ -9,11 +9,11 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Building2, Globe, Star, Users } from 'lucide-react';
+import { Pencil, Trash2, Building2, Globe, Star, Users, Loader2 } from 'lucide-react';
 
-interface Vendor {
+interface Vendor extends Record<string, unknown> {
   id: string;
   name: string;
   contact_person: string;
@@ -26,21 +26,14 @@ interface Vendor {
   status: 'active' | 'inactive' | 'blacklisted';
 }
 
-const INITIAL_VENDORS: Vendor[] = [
-  { id: genId(), name: 'Apex Raw Materials Ltd', contact_person: 'James Okafor', email: 'james@apexraw.com', phone: '+1-555-0101', country: 'USA', category: 'Raw Materials', payment_terms: 'Net 30', rating: 4.5, status: 'active' },
-  { id: genId(), name: 'TechParts Global', contact_person: 'Lin Wei', email: 'lin.wei@techparts.cn', phone: '+86-21-5500-1234', country: 'China', category: 'Electronics', payment_terms: 'Net 60', rating: 4.1, status: 'active' },
-  { id: genId(), name: 'OfficeWorld Supplies', contact_person: 'Priya Sharma', email: 'priya@officeworld.in', phone: '+91-80-4100-5678', country: 'India', category: 'Office Supplies', payment_terms: 'COD', rating: 3.8, status: 'active' },
-  { id: genId(), name: 'FastFreight Logistics', contact_person: 'Carlos Mendez', email: 'carlos@fastfreight.mx', phone: '+52-55-1234-5678', country: 'Mexico', category: 'Logistics', payment_terms: 'Net 30', rating: 4.7, status: 'active' },
-  { id: genId(), name: 'ProServ Consulting', contact_person: 'Sophie Laurent', email: 'sophie@proserv.fr', phone: '+33-1-4200-9900', country: 'France', category: 'Services', payment_terms: 'Net 90', rating: 3.5, status: 'inactive' },
-  { id: genId(), name: 'NorthStar Materials', contact_person: 'Erik Hansen', email: 'erik@northstar.no', phone: '+47-21-00-1234', country: 'Norway', category: 'Raw Materials', payment_terms: 'Net 60', rating: 4.3, status: 'active' },
-  { id: genId(), name: 'CircuitBase Inc', contact_person: 'Tomoko Nakamura', email: 'tnakamura@circuitbase.jp', phone: '+81-3-5555-9876', country: 'Japan', category: 'Electronics', payment_terms: 'Net 30', rating: 4.9, status: 'active' },
-  { id: genId(), name: 'QuickShip Co', contact_person: 'Ahmed Al-Rashid', email: 'ahmed@quickship.ae', phone: '+971-4-555-0099', country: 'UAE', category: 'Logistics', payment_terms: 'COD', rating: 2.1, status: 'blacklisted' },
-  { id: genId(), name: 'Stationery Hub', contact_person: 'Amara Diallo', email: 'amara@stationeryhub.ng', phone: '+234-1-555-2345', country: 'Nigeria', category: 'Office Supplies', payment_terms: 'Net 30', rating: 3.9, status: 'active' },
-  { id: genId(), name: 'Global Consult Group', contact_person: 'Lena Becker', email: 'lena@globalconsult.de', phone: '+49-30-1234-5678', country: 'Germany', category: 'Services', payment_terms: 'Net 60', rating: 4.0, status: 'inactive' },
-];
-
 const CATEGORIES = ['Raw Materials', 'Electronics', 'Office Supplies', 'Logistics', 'Services'];
 const PAYMENT_TERMS = ['Net 30', 'Net 60', 'Net 90', 'COD'];
+
+type VendorForm = {
+  name: string; contact_person: string; email: string; phone: string;
+  country: string; category: string; payment_terms: string; rating: number;
+  status: 'active' | 'inactive' | 'blacklisted';
+};
 
 const statusVariant: Record<Vendor['status'], 'success' | 'secondary' | 'destructive'> = {
   active: 'success',
@@ -49,10 +42,10 @@ const statusVariant: Record<Vendor['status'], 'success' | 'secondary' | 'destruc
 };
 
 export default function Vendors() {
-  const [vendors, setVendors] = useState<Vendor[]>(INITIAL_VENDORS);
+  const { rows: vendors, loading, insert, update, remove } = useTable<Vendor>('myerp_vendors');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Vendor | null>(null);
-  const [form, setForm] = useState<Omit<Vendor, 'id'>>({
+  const [form, setForm] = useState<VendorForm>({
     name: '', contact_person: '', email: '', phone: '',
     country: '', category: 'Raw Materials', payment_terms: 'Net 30',
     rating: 4.0, status: 'active',
@@ -71,31 +64,52 @@ export default function Vendors() {
 
   function openEdit(vendor: Vendor) {
     setEditing(vendor);
-    const { id: _id, ...rest } = vendor;
-    setForm(rest);
+    setForm({
+      name: vendor.name, contact_person: vendor.contact_person, email: vendor.email,
+      phone: vendor.phone, country: vendor.country, category: vendor.category,
+      payment_terms: vendor.payment_terms, rating: vendor.rating, status: vendor.status,
+    });
     setSheetOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) { toast.error('Vendor name is required'); return; }
-    if (editing) {
-      setVendors(vs => vs.map(v => v.id === editing.id ? { ...form, id: editing.id } : v));
-      toast.success('Vendor updated');
-    } else {
-      setVendors(vs => [...vs, { ...form, id: genId() }]);
-      toast.success('Vendor added');
+    try {
+      if (editing) {
+        await update(editing.id, form);
+        toast.success('Vendor updated');
+      } else {
+        await insert(form);
+        toast.success('Vendor added');
+      }
+      setSheetOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save vendor');
     }
-    setSheetOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setVendors(vs => vs.filter(v => v.id !== id));
-    toast.success('Vendor removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Vendor removed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete vendor');
+    }
   }
 
-  const set = (key: keyof typeof form) =>
+  const set = (key: keyof VendorForm) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm(f => ({ ...f, [key]: e.target.value }));
+
+  if (loading) {
+    return (
+      <AppLayout title="Vendors">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Vendors">
@@ -174,7 +188,7 @@ export default function Vendors() {
                     <TableCell>
                       <span className="flex items-center gap-1 text-sm font-medium text-warning">
                         <Star className="w-3.5 h-3.5 fill-warning" />
-                        {v.rating.toFixed(1)}
+                        {Number(v.rating).toFixed(1)}
                       </span>
                     </TableCell>
                     <TableCell>

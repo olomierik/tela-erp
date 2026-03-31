@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   ChevronRight,
   ChevronDown,
@@ -21,19 +21,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Modal } from '@/components/erp/Modal';
 
-import {
-  CHART_OF_ACCOUNTS,
-  Account,
-  AccountType,
-  TYPE_COLORS,
-  TYPE_LABELS,
-} from '@/lib/finance-data';
-import { formatCurrency, genId } from '@/lib/mock';
+import { Account, AccountType, TYPE_COLORS, TYPE_LABELS } from '@/lib/finance-data';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatCurrency } from '@/lib/mock';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getChildren(accounts: Account[], parentId: string | null): Account[] {
-  return accounts.filter(a => a.parentId === parentId);
+  return accounts.filter(a => a.parent_id === parentId);
 }
 
 /** Collects the IDs of every ancestor of the given matched IDs. */
@@ -43,10 +39,11 @@ function getAncestorIds(accounts: Account[], matchIds: Set<string>): Set<string>
 
   function addAncestors(id: string) {
     const acct = idMap.get(id);
-    if (!acct || acct.parentId === null) return;
-    if (!result.has(acct.parentId)) {
-      result.add(acct.parentId);
-      addAncestors(acct.parentId);
+    if (!acct || acct.parent_id === null) return;
+    const pid = acct.parent_id as string;
+    if (!result.has(pid)) {
+      result.add(pid);
+      addAncestors(pid);
     }
   }
 
@@ -113,14 +110,14 @@ function AccountTreeNode({
         <div className="flex-1 min-w-0 py-2.5 pr-3">
           <span
             className={
-              account.isHeader
+              account.is_header
                 ? 'text-sm font-semibold text-foreground'
                 : 'text-sm text-foreground'
             }
           >
             {account.name}
           </span>
-          {account.description && !account.isHeader && (
+          {account.description && !account.is_header && (
             <span className="hidden lg:inline text-xs text-muted-foreground ml-2 truncate">
               — {account.description}
             </span>
@@ -141,7 +138,7 @@ function AccountTreeNode({
 
         {/* Balance — 130px right-aligned */}
         <div className="w-[130px] shrink-0 py-2.5 pr-4 text-right">
-          {account.isHeader ? (
+          {account.is_header ? (
             <span className="text-xs text-muted-foreground">—</span>
           ) : (
             <span
@@ -206,10 +203,29 @@ const TYPE_OPTIONS: { value: AccountType; label: string }[] = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState<Account[]>(CHART_OF_ACCOUNTS);
-  const [expanded, setExpanded] = useState<Set<string>>(
-    new Set(['1000', '2000', '3000', '4000', '5000']),
-  );
+  const { user } = useAuth();
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set<string>());
+
+  useEffect(() => {
+    if (!user) return;
+    async function load() {
+      setLoading(true);
+      const { data } = await supabase
+        .from('myerp_accounts')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('code');
+      const accts = (data ?? []) as Account[];
+      setAccounts(accts);
+      // Auto-expand top-level accounts (no parent)
+      const topIds = accts.filter(a => a.parent_id === null).map(a => a.id as string);
+      setExpanded(new Set(topIds));
+      setLoading(false);
+    }
+    load();
+  }, [user]);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [addOpen, setAddOpen] = useState(false);
@@ -223,7 +239,7 @@ export default function Accounts() {
   const totalAssets = useMemo(
     () =>
       accounts
-        .filter(a => a.type === 'asset' && !a.isHeader)
+        .filter(a => a.type === 'asset' && !a.is_header)
         .reduce((s, a) => s + a.balance, 0),
     [accounts],
   );
@@ -231,7 +247,7 @@ export default function Accounts() {
   const totalLiabilities = useMemo(
     () =>
       accounts
-        .filter(a => a.type === 'liability' && !a.isHeader)
+        .filter(a => a.type === 'liability' && !a.is_header)
         .reduce((s, a) => s + a.balance, 0),
     [accounts],
   );
@@ -279,9 +295,9 @@ export default function Accounts() {
     const auto = new Set<string>(expanded);
     visibleIds.forEach(id => {
       let current = accounts.find(a => a.id === id);
-      while (current?.parentId) {
-        auto.add(current.parentId);
-        current = accounts.find(a => a.id === current!.parentId);
+      while (current?.parent_id) {
+        auto.add(current.parent_id as string);
+        current = accounts.find(a => a.id === current!.parent_id);
       }
     });
     return auto;
@@ -299,8 +315,8 @@ export default function Accounts() {
   const rootAccounts = useMemo(
     () =>
       accounts
-        .filter(a => a.parentId === null)
-        .filter(a => visibleIds === null || visibleIds.has(a.id)),
+        .filter(a => a.parent_id === null)
+        .filter(a => visibleIds === null || visibleIds.has(a.id as string)),
     [accounts, visibleIds],
   );
 
@@ -317,7 +333,7 @@ export default function Accounts() {
     const errors: Partial<Record<keyof AddAccountForm, string>> = {};
     if (!form.code.trim()) {
       errors.code = 'Account code is required';
-    } else if (accounts.some(a => a.code === form.code.trim())) {
+    } else if (accounts.some(a => (a.code as string) === form.code.trim())) {
       errors.code = 'Account code already exists';
     }
     if (!form.name.trim()) errors.name = 'Account name is required';
@@ -326,22 +342,28 @@ export default function Accounts() {
     return Object.keys(errors).length === 0;
   }
 
-  function handleAddSubmit() {
-    if (!validateForm()) return;
+  async function handleAddSubmit() {
+    if (!validateForm() || !user) return;
 
-    const newAccount: Account = {
-      id: genId(),
-      code: form.code.trim(),
-      name: form.name.trim(),
-      type: form.type as AccountType,
-      parentId: form.parentId || null,
-      currency: form.currency,
-      balance: 0,
-      isHeader: false,
-      description: form.description.trim(),
-    };
+    const { data, error } = await supabase
+      .from('myerp_accounts')
+      .insert({
+        user_id:     user.id,
+        code:        form.code.trim(),
+        name:        form.name.trim(),
+        type:        form.type as AccountType,
+        parent_id:   form.parentId || null,
+        currency:    form.currency,
+        balance:     0,
+        is_header:   false,
+        description: form.description.trim(),
+      })
+      .select()
+      .single();
 
-    setAccounts(prev => [...prev, newAccount]);
+    if (error) { toast.error(error.message); return; }
+
+    setAccounts(prev => [...prev, data as Account].sort((a, b) => (a.code as string).localeCompare(b.code as string)));
     toast.success('Account created');
     setAddOpen(false);
     setForm(EMPTY_FORM);
@@ -521,9 +543,13 @@ export default function Accounts() {
 
         {/* Tree */}
         <div className="overflow-x-auto">
-          {rootAccounts.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : rootAccounts.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground">
-              No accounts match your filters.
+              {accounts.length === 0 ? 'No accounts yet. Add your first account to get started.' : 'No accounts match your filters.'}
             </div>
           ) : (
             rootAccounts.map(root => (

@@ -10,13 +10,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId, today, formatCurrency, formatDate } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
 import { Pencil, Trash2, CheckCircle } from 'lucide-react';
 
 type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 
-interface Invoice {
+interface Invoice extends Record<string, unknown> {
   id: string;
   number: string;
   customer: string;
@@ -25,22 +26,8 @@ interface Invoice {
   amount: number;
   status: InvoiceStatus;
   items_count: number;
+  notes: string;
 }
-
-const INITIAL_INVOICES: Invoice[] = [
-  { id: '1',  number: 'INV-0001', customer: 'Acme Corp',        issue_date: '2026-01-05', due_date: '2026-02-05', amount: 12400.00, status: 'paid',      items_count: 4 },
-  { id: '2',  number: 'INV-0002', customer: 'TechVision Ltd',   issue_date: '2026-01-12', due_date: '2026-02-12', amount:  8750.50, status: 'paid',      items_count: 3 },
-  { id: '3',  number: 'INV-0003', customer: 'GlobalMart',       issue_date: '2026-01-20', due_date: '2026-02-20', amount: 23100.00, status: 'overdue',   items_count: 7 },
-  { id: '4',  number: 'INV-0004', customer: 'Sunrise Retail',   issue_date: '2026-02-01', due_date: '2026-03-01', amount:  5500.00, status: 'paid',      items_count: 2 },
-  { id: '5',  number: 'INV-0005', customer: 'BlueSky Ventures', issue_date: '2026-02-08', due_date: '2026-03-08', amount: 16800.00, status: 'sent',      items_count: 5 },
-  { id: '6',  number: 'INV-0006', customer: 'Pinnacle Group',   issue_date: '2026-02-14', due_date: '2026-03-14', amount:  3200.00, status: 'overdue',   items_count: 1 },
-  { id: '7',  number: 'INV-0007', customer: 'Acme Corp',        issue_date: '2026-02-20', due_date: '2026-03-20', amount: 19500.00, status: 'sent',      items_count: 6 },
-  { id: '8',  number: 'INV-0008', customer: 'Nexus Industries', issue_date: '2026-03-01', due_date: '2026-03-31', amount:  7860.00, status: 'draft',     items_count: 3 },
-  { id: '9',  number: 'INV-0009', customer: 'TechVision Ltd',   issue_date: '2026-03-05', due_date: '2026-04-05', amount: 11200.00, status: 'sent',      items_count: 4 },
-  { id: '10', number: 'INV-0010', customer: 'Omega Solutions',  issue_date: '2026-03-10', due_date: '2026-04-10', amount:  4950.00, status: 'draft',     items_count: 2 },
-  { id: '11', number: 'INV-0011', customer: 'GlobalMart',       issue_date: '2026-03-15', due_date: '2026-04-15', amount: 31500.00, status: 'sent',      items_count: 9 },
-  { id: '12', number: 'INV-0012', customer: 'Sunrise Retail',   issue_date: '2026-03-20', due_date: '2026-04-20', amount:  2200.00, status: 'cancelled', items_count: 1 },
-];
 
 const STATUS_BADGE: Record<InvoiceStatus, 'secondary' | 'info' | 'success' | 'destructive' | 'outline'> = {
   draft:     'secondary',
@@ -57,22 +44,23 @@ interface InvoiceForm {
   notes: string;
 }
 
-const EMPTY_FORM: InvoiceForm = { customer: '', issue_date: today(), due_date: '', notes: '' };
+const EMPTY_FORM: InvoiceForm = { customer: '', issue_date: '', due_date: '', notes: '' };
 
 export default function Invoices() {
-  const [invoices, setInvoices] = useState<Invoice[]>(INITIAL_INVOICES);
+  const { rows: items, loading, insert, update, remove } = useTable<Invoice>('myerp_invoices');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<InvoiceForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
-  const totalInvoiced = invoices.reduce((s, i) => s + i.amount, 0);
-  const totalPaid     = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0);
-  const outstanding   = invoices.filter(i => i.status === 'sent' || i.status === 'overdue').reduce((s, i) => s + i.amount, 0);
-  const overdueCount  = invoices.filter(i => i.status === 'overdue').length;
+  const totalInvoiced = items.reduce((s, i) => s + i.amount, 0);
+  const totalPaid     = items.filter(i => i.status === 'paid').reduce((s, i) => s + i.amount, 0);
+  const outstanding   = items.filter(i => i.status === 'sent' || i.status === 'overdue').reduce((s, i) => s + i.amount, 0);
+  const overdueCount  = items.filter(i => i.status === 'overdue').length;
 
-  const filtered = invoices.filter(i => {
+  const filtered = items.filter(i => {
     const matchSearch = i.number.toLowerCase().includes(search.toLowerCase()) ||
       i.customer.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || i.status === statusFilter;
@@ -87,47 +75,62 @@ export default function Invoices() {
 
   function openEdit(inv: Invoice) {
     setEditId(inv.id);
-    setForm({ customer: inv.customer, issue_date: inv.issue_date, due_date: inv.due_date, notes: '' });
+    setForm({ customer: inv.customer, issue_date: inv.issue_date, due_date: inv.due_date, notes: inv.notes ?? '' });
     setSheetOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.customer.trim() || !form.issue_date || !form.due_date) {
       toast.error('Please fill in all required fields.');
       return;
     }
-    if (editId) {
-      setInvoices(prev => prev.map(i =>
-        i.id === editId
-          ? { ...i, customer: form.customer, issue_date: form.issue_date, due_date: form.due_date }
-          : i,
-      ));
-      toast.success('Invoice updated successfully.');
-    } else {
-      const next: Invoice = {
-        id: genId(),
-        number: `INV-${String(invoices.length + 1).padStart(4, '0')}`,
-        customer: form.customer,
-        issue_date: form.issue_date,
-        due_date: form.due_date,
-        amount: 0,
-        status: 'draft',
-        items_count: 0,
-      };
-      setInvoices(prev => [next, ...prev]);
-      toast.success('Invoice created successfully.');
+    setSaving(true);
+    try {
+      if (editId) {
+        await update(editId, {
+          customer: form.customer,
+          issue_date: form.issue_date,
+          due_date: form.due_date,
+          notes: form.notes,
+        });
+        toast.success('Invoice updated successfully.');
+      } else {
+        await insert({
+          number: `INV-${String(items.length + 1).padStart(4, '0')}`,
+          customer: form.customer,
+          issue_date: form.issue_date,
+          due_date: form.due_date,
+          amount: 0,
+          status: 'draft',
+          items_count: 0,
+          notes: form.notes,
+        });
+        toast.success('Invoice created successfully.');
+      }
+      setSheetOpen(false);
+    } catch {
+      toast.error('Failed to save invoice.');
+    } finally {
+      setSaving(false);
     }
-    setSheetOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setInvoices(prev => prev.filter(i => i.id !== id));
-    toast.success('Invoice deleted.');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Invoice deleted.');
+    } catch {
+      toast.error('Failed to delete invoice.');
+    }
   }
 
-  function handleMarkPaid(id: string) {
-    setInvoices(prev => prev.map(i => i.id === id ? { ...i, status: 'paid' } : i));
-    toast.success('Invoice marked as paid.');
+  async function handleMarkPaid(id: string) {
+    try {
+      await update(id, { status: 'paid' });
+      toast.success('Invoice marked as paid.');
+    } catch {
+      toast.error('Failed to update invoice.');
+    }
   }
 
   return (
@@ -195,69 +198,75 @@ export default function Invoices() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Issue Date</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-center">Items</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    No invoices match your filters.
-                  </TableCell>
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Issue Date</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-center">Items</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filtered.map(inv => (
-                  <TableRow key={inv.id}>
-                    <TableCell className="font-medium">{inv.number}</TableCell>
-                    <TableCell>{inv.customer}</TableCell>
-                    <TableCell>{formatDate(inv.issue_date)}</TableCell>
-                    <TableCell>{formatDate(inv.due_date)}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{formatCurrency(inv.amount)}</TableCell>
-                    <TableCell className="text-center">{inv.items_count}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[inv.status]} className="capitalize">{inv.status}</Badge>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                      No invoices match your filters.
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        {(inv.status === 'sent' || inv.status === 'overdue') && (
+                  </TableRow>
+                ) : (
+                  filtered.map(inv => (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-medium">{inv.number}</TableCell>
+                      <TableCell>{inv.customer}</TableCell>
+                      <TableCell>{formatDate(inv.issue_date)}</TableCell>
+                      <TableCell>{formatDate(inv.due_date)}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{formatCurrency(inv.amount)}</TableCell>
+                      <TableCell className="text-center">{inv.items_count}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_BADGE[inv.status]} className="capitalize">{inv.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          {(inv.status === 'sent' || inv.status === 'overdue') && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs gap-1"
+                              onClick={() => handleMarkPaid(inv.id)}
+                            >
+                              <CheckCircle className="w-3 h-3" />
+                              Mark Paid
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(inv)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 px-2 text-xs gap-1"
-                            onClick={() => handleMarkPaid(inv.id)}
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(inv.id)}
                           >
-                            <CheckCircle className="w-3 h-3" />
-                            Mark Paid
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(inv)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(inv.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -308,7 +317,7 @@ export default function Invoices() {
           </div>
           <SheetFooter className="mt-6 gap-2">
             <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editId ? 'Save Changes' : 'Create Invoice'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{editId ? 'Save Changes' : 'Create Invoice'}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

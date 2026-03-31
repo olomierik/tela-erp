@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
@@ -8,14 +8,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { genId, today, formatCurrency } from '@/lib/mock';
-import {
-  JOURNAL_ENTRIES,
-  CHART_OF_ACCOUNTS,
-  nextJEReference,
-  type JournalEntry,
-  type JEStatus,
-} from '@/lib/finance-data';
+import { today, formatCurrency } from '@/lib/mock';
+import { nextJEReference, type Account, type JEStatus } from '@/lib/finance-data';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Plus,
@@ -54,39 +50,88 @@ const JE_STATUS_LABEL: Record<JEStatus, string> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const NON_HEADER_ACCOUNTS = CHART_OF_ACCOUNTS.filter(a => !a.isHeader);
-
+let lineCounter = 0;
 function emptyLine(): FormLine {
-  return { id: genId(), accountId: '', description: '', debit: '', credit: '', department: '' };
+  return { id: `line-${++lineCounter}`, accountId: '', description: '', debit: '', credit: '', department: '' };
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JournalEntryForm() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
 
-  const isNew          = !id || id === 'new';
-  const existingEntry  = isNew ? null : (JOURNAL_ENTRIES.find(e => e.id === id) ?? null);
-  const isPosted       = existingEntry?.status === 'posted';
+  const isNew = !id || id === 'new';
 
-  // ── State ────────────────────────────────────────────────────────────────
-  const [date, setDate]               = useState(existingEntry?.date ?? today());
-  const [reference, setReference]     = useState(existingEntry?.reference ?? nextJEReference(JOURNAL_ENTRIES));
-  const [description, setDescription] = useState(existingEntry?.description ?? '');
-  const [lines, setLines]             = useState<FormLine[]>(() => {
-    if (existingEntry) {
-      return existingEntry.lines.map(l => ({
-        id:          l.id,
-        accountId:   l.accountId,
-        description: l.description,
-        debit:       l.debit  > 0 ? String(l.debit)  : '',
-        credit:      l.credit > 0 ? String(l.credit) : '',
-        department:  l.department,
-      }));
+  // ── Data from Supabase ────────────────────────────────────────────────────
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingEntry, setLoadingEntry] = useState(!isNew);
+  const [entryStatus, setEntryStatus] = useState<JEStatus>('draft');
+  const [saving, setSaving] = useState(false);
+
+  const [date, setDate]               = useState(today());
+  const [reference, setReference]     = useState('');
+  const [description, setDescription] = useState('');
+  const [lines, setLines]             = useState<FormLine[]>([emptyLine(), emptyLine()]);
+
+  // Load accounts
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('myerp_accounts')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_header', false)
+      .order('code')
+      .then(({ data }) => setAccounts((data ?? []) as Account[]));
+  }, [user]);
+
+  // Load next reference for new entry
+  useEffect(() => {
+    if (!isNew || !user) return;
+    supabase
+      .from('myerp_journal_entries')
+      .select('reference')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        setReference(nextJEReference((data ?? []) as { reference: string }[]));
+      });
+  }, [isNew, user]);
+
+  // Load existing entry
+  useEffect(() => {
+    if (isNew || !id || !user) return;
+    async function loadEntry() {
+      setLoadingEntry(true);
+      const { data } = await supabase
+        .from('myerp_journal_entries')
+        .select('*, lines:myerp_journal_lines(*)')
+        .eq('id', id)
+        .single();
+      if (data) {
+        setDate(data.date as string);
+        setReference(data.reference as string);
+        setDescription(data.description as string);
+        setEntryStatus(data.status as JEStatus);
+        const dbLines = (data.lines as { id: string; account_id: string; description: string; debit: number; credit: number; department: string }[]) ?? [];
+        setLines(dbLines.length > 0
+          ? dbLines.map(l => ({
+              id: l.id,
+              accountId: l.account_id,
+              description: l.description,
+              debit: l.debit > 0 ? String(l.debit) : '',
+              credit: l.credit > 0 ? String(l.credit) : '',
+              department: l.department,
+            }))
+          : [emptyLine(), emptyLine()]);
+      }
+      setLoadingEntry(false);
     }
-    return [emptyLine(), emptyLine()];
-  });
+    loadEntry();
+  }, [isNew, id, user]);
+
+  const isPosted = !isNew && entryStatus === 'posted';
 
   // ── Computed ─────────────────────────────────────────────────────────────
   const totalDebit  = lines.reduce((s, l) => s + (parseFloat(l.debit)  || 0), 0);
@@ -110,26 +155,59 @@ export default function JournalEntryForm() {
   }
 
   // ── Save handlers ────────────────────────────────────────────────────────
-  function handleSave(status: 'draft' | 'posted') {
-    if (!date || !reference.trim()) {
-      toast.error('Date and reference are required.');
-      return;
-    }
-    if (lines.every(l => !l.accountId)) {
-      toast.error('At least one line with an account is required.');
-      return;
-    }
-    if (status === 'posted' && !isBalanced) {
-      toast.error('Entry must be balanced before posting.');
-      return;
-    }
+  async function handleSave(status: 'draft' | 'posted') {
+    if (!date || !reference.trim()) { toast.error('Date and reference are required.'); return; }
+    if (lines.every(l => !l.accountId)) { toast.error('At least one line with an account is required.'); return; }
+    if (status === 'posted' && !isBalanced) { toast.error('Entry must be balanced before posting.'); return; }
+    if (!user) return;
 
-    if (status === 'posted') {
-      toast.success(`Entry ${reference} posted successfully.`);
-    } else {
-      toast.success(`Entry ${reference} saved as draft.`);
+    setSaving(true);
+    try {
+      const filledLines = lines.filter(l => l.accountId);
+      const linePayloads = filledLines.map(l => {
+        const acct = accounts.find(a => a.id === l.accountId);
+        return {
+          account_id:   l.accountId,
+          account_code: acct?.code ?? '',
+          account_name: acct?.name ?? '',
+          description:  l.description,
+          debit:        parseFloat(l.debit) || 0,
+          credit:       parseFloat(l.credit) || 0,
+          department:   l.department,
+        };
+      });
+
+      if (isNew) {
+        const { data: entry, error: entryErr } = await supabase
+          .from('myerp_journal_entries')
+          .insert({ user_id: user.id, reference, date, description, status })
+          .select()
+          .single();
+        if (entryErr) throw entryErr;
+        const { error: linesErr } = await supabase
+          .from('myerp_journal_lines')
+          .insert(linePayloads.map(l => ({ ...l, entry_id: (entry as { id: string }).id })));
+        if (linesErr) throw linesErr;
+      } else {
+        const { error: entryErr } = await supabase
+          .from('myerp_journal_entries')
+          .update({ reference, date, description, status })
+          .eq('id', id);
+        if (entryErr) throw entryErr;
+        await supabase.from('myerp_journal_lines').delete().eq('entry_id', id);
+        const { error: linesErr } = await supabase
+          .from('myerp_journal_lines')
+          .insert(linePayloads.map(l => ({ ...l, entry_id: id })));
+        if (linesErr) throw linesErr;
+      }
+
+      toast.success(status === 'posted' ? `Entry ${reference} posted.` : `Entry ${reference} saved as draft.`);
+      navigate('/finance/journal-entries');
+    } catch (err: unknown) {
+      toast.error((err as Error).message ?? 'Failed to save entry');
+    } finally {
+      setSaving(false);
     }
-    navigate('/finance/journal-entries');
   }
 
   // ── Breadcrumbs ──────────────────────────────────────────────────────────
@@ -159,9 +237,9 @@ export default function JournalEntryForm() {
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold text-foreground">Entry Details</h2>
-            {existingEntry && (
-              <Badge variant={JE_STATUS_VARIANT[existingEntry.status]}>
-                {JE_STATUS_LABEL[existingEntry.status]}
+            {!isNew && (
+              <Badge variant={JE_STATUS_VARIANT[entryStatus]}>
+                {JE_STATUS_LABEL[entryStatus]}
               </Badge>
             )}
           </div>
@@ -239,7 +317,7 @@ export default function JournalEntryForm() {
 
               <tbody>
                 {lines.map((line, index) => {
-                  const selectedAccount = NON_HEADER_ACCOUNTS.find(a => a.id === line.accountId);
+                  const selectedAccount = accounts.find(a => a.id === line.accountId);
                   return (
                     <tr
                       key={line.id}
@@ -261,7 +339,7 @@ export default function JournalEntryForm() {
                           className="h-9 text-xs w-full"
                         >
                           <option value="">— Select account —</option>
-                          {NON_HEADER_ACCOUNTS.map(acct => (
+                          {accounts.map(acct => (
                             <option key={acct.id} value={acct.id}>
                               {acct.code} — {acct.name}
                             </option>
@@ -443,7 +521,7 @@ export default function JournalEntryForm() {
             variant="outline"
             size="sm"
             onClick={() => handleSave('draft')}
-            disabled={isPosted}
+            disabled={isPosted || saving}
             className="gap-1.5"
           >
             <Save className="w-4 h-4" />
@@ -455,11 +533,11 @@ export default function JournalEntryForm() {
             type="button"
             size="sm"
             onClick={() => handleSave('posted')}
-            disabled={!isBalanced || isPosted}
+            disabled={!isBalanced || isPosted || saving}
             className="gap-1.5"
           >
             <SendHorizonal className="w-4 h-4" />
-            Post Entry
+            {saving ? 'Posting…' : 'Post Entry'}
           </Button>
         </div>
       </div>

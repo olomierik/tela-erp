@@ -10,14 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId, today, formatCurrency, formatDate } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
 import { Pencil, Trash2 } from 'lucide-react';
 
 type BillStatus = 'received' | 'approved' | 'paid' | 'overdue';
 type BillCategory = 'General' | 'Utilities' | 'Rent' | 'Supplies' | 'Services';
 
-interface Bill {
+interface Bill extends Record<string, unknown> {
   id: string;
   number: string;
   vendor: string;
@@ -27,19 +28,6 @@ interface Bill {
   status: BillStatus;
   category: BillCategory;
 }
-
-const INITIAL_BILLS: Bill[] = [
-  { id: '1',  number: 'BILL-0001', vendor: 'PowerGrid Utilities',   bill_date: '2026-01-03', due_date: '2026-02-03', amount:  4200.00, status: 'paid',     category: 'Utilities' },
-  { id: '2',  number: 'BILL-0002', vendor: 'Eastside Properties',   bill_date: '2026-01-10', due_date: '2026-02-10', amount: 18500.00, status: 'paid',     category: 'Rent'      },
-  { id: '3',  number: 'BILL-0003', vendor: 'OfficePro Supplies',    bill_date: '2026-01-18', due_date: '2026-02-18', amount:  1340.50, status: 'paid',     category: 'Supplies'  },
-  { id: '4',  number: 'BILL-0004', vendor: 'CloudBase Solutions',   bill_date: '2026-02-02', due_date: '2026-03-02', amount:  6750.00, status: 'overdue',  category: 'Services'  },
-  { id: '5',  number: 'BILL-0005', vendor: 'PowerGrid Utilities',   bill_date: '2026-02-05', due_date: '2026-03-05', amount:  3980.00, status: 'overdue',  category: 'Utilities' },
-  { id: '6',  number: 'BILL-0006', vendor: 'Eastside Properties',   bill_date: '2026-02-10', due_date: '2026-03-10', amount: 18500.00, status: 'approved', category: 'Rent'      },
-  { id: '7',  number: 'BILL-0007', vendor: 'Pinnacle Freight Co',   bill_date: '2026-02-20', due_date: '2026-03-20', amount:  2100.00, status: 'received', category: 'Services'  },
-  { id: '8',  number: 'BILL-0008', vendor: 'TechGear Depot',        bill_date: '2026-03-01', due_date: '2026-03-31', amount:  8450.00, status: 'received', category: 'Supplies'  },
-  { id: '9',  number: 'BILL-0009', vendor: 'Metro Cleaning Group',  bill_date: '2026-03-10', due_date: '2026-04-10', amount:   980.00, status: 'received', category: 'General'   },
-  { id: '10', number: 'BILL-0010', vendor: 'CloudBase Solutions',   bill_date: '2026-03-15', due_date: '2026-04-15', amount:  6750.00, status: 'approved', category: 'Services'  },
-];
 
 const STATUS_BADGE: Record<BillStatus, 'info' | 'warning' | 'success' | 'destructive'> = {
   received: 'info',
@@ -58,25 +46,26 @@ interface BillForm {
 }
 
 const EMPTY_FORM: BillForm = {
-  vendor: '', bill_date: today(), due_date: '', amount: '', category: 'General', notes: '',
+  vendor: '', bill_date: '', due_date: '', amount: '', category: 'General', notes: '',
 };
 
 export default function Bills() {
-  const [bills, setBills] = useState<Bill[]>(INITIAL_BILLS);
+  const { rows: items, loading, insert, update, remove } = useTable<Bill>('myerp_bills');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<BillForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
-  const totalBills    = bills.reduce((s, b) => s + b.amount, 0);
-  const unpaid        = bills.filter(b => b.status === 'received' || b.status === 'approved').reduce((s, b) => s + b.amount, 0);
-  const overdueAmount = bills.filter(b => b.status === 'overdue').reduce((s, b) => s + b.amount, 0);
-  const paidThisMonth = bills
+  const totalBills    = items.reduce((s, b) => s + b.amount, 0);
+  const unpaid        = items.filter(b => b.status === 'received' || b.status === 'approved').reduce((s, b) => s + b.amount, 0);
+  const overdueAmount = items.filter(b => b.status === 'overdue').reduce((s, b) => s + b.amount, 0);
+  const paidThisMonth = items
     .filter(b => b.status === 'paid' && b.bill_date.startsWith('2026-03'))
     .reduce((s, b) => s + b.amount, 0);
 
-  const filtered = bills.filter(b => {
+  const filtered = items.filter(b => {
     const matchSearch = b.number.toLowerCase().includes(search.toLowerCase()) ||
       b.vendor.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || b.status === statusFilter;
@@ -102,7 +91,7 @@ export default function Bills() {
     setSheetOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.vendor.trim() || !form.bill_date || !form.due_date || !form.amount) {
       toast.error('Please fill in all required fields.');
       return;
@@ -112,33 +101,44 @@ export default function Bills() {
       toast.error('Please enter a valid amount.');
       return;
     }
-    if (editId) {
-      setBills(prev => prev.map(b =>
-        b.id === editId
-          ? { ...b, vendor: form.vendor, bill_date: form.bill_date, due_date: form.due_date, amount: parsedAmount, category: form.category }
-          : b,
-      ));
-      toast.success('Bill updated successfully.');
-    } else {
-      const next: Bill = {
-        id: genId(),
-        number: `BILL-${String(bills.length + 1).padStart(4, '0')}`,
-        vendor: form.vendor,
-        bill_date: form.bill_date,
-        due_date: form.due_date,
-        amount: parsedAmount,
-        status: 'received',
-        category: form.category,
-      };
-      setBills(prev => [next, ...prev]);
-      toast.success('Bill created successfully.');
+    setSaving(true);
+    try {
+      if (editId) {
+        await update(editId, {
+          vendor: form.vendor,
+          bill_date: form.bill_date,
+          due_date: form.due_date,
+          amount: parsedAmount,
+          category: form.category,
+        });
+        toast.success('Bill updated successfully.');
+      } else {
+        await insert({
+          number: `BILL-${String(items.length + 1).padStart(4, '0')}`,
+          vendor: form.vendor,
+          bill_date: form.bill_date,
+          due_date: form.due_date,
+          amount: parsedAmount,
+          status: 'received',
+          category: form.category,
+        });
+        toast.success('Bill created successfully.');
+      }
+      setSheetOpen(false);
+    } catch {
+      toast.error('Failed to save bill.');
+    } finally {
+      setSaving(false);
     }
-    setSheetOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setBills(prev => prev.filter(b => b.id !== id));
-    toast.success('Bill deleted.');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Bill deleted.');
+    } catch {
+      toast.error('Failed to delete bill.');
+    }
   }
 
   return (
@@ -205,58 +205,64 @@ export default function Bills() {
       {/* Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bill #</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Bill Date</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    No bills match your filters.
-                  </TableCell>
+                  <TableHead>Bill #</TableHead>
+                  <TableHead>Vendor</TableHead>
+                  <TableHead>Bill Date</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : (
-                filtered.map(bill => (
-                  <TableRow key={bill.id}>
-                    <TableCell className="font-medium">{bill.number}</TableCell>
-                    <TableCell>{bill.vendor}</TableCell>
-                    <TableCell>{formatDate(bill.bill_date)}</TableCell>
-                    <TableCell>{formatDate(bill.due_date)}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{formatCurrency(bill.amount)}</TableCell>
-                    <TableCell>{bill.category}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[bill.status]} className="capitalize">{bill.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(bill)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(bill.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                      No bills match your filters.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filtered.map(bill => (
+                    <TableRow key={bill.id}>
+                      <TableCell className="font-medium">{bill.number}</TableCell>
+                      <TableCell>{bill.vendor}</TableCell>
+                      <TableCell>{formatDate(bill.bill_date)}</TableCell>
+                      <TableCell>{formatDate(bill.due_date)}</TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">{formatCurrency(bill.amount)}</TableCell>
+                      <TableCell>{bill.category}</TableCell>
+                      <TableCell>
+                        <Badge variant={STATUS_BADGE[bill.status]} className="capitalize">{bill.status}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={() => openEdit(bill)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                            onClick={() => handleDelete(bill.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -333,7 +339,7 @@ export default function Bills() {
           </div>
           <SheetFooter className="mt-6 gap-2">
             <Button variant="outline" onClick={() => setSheetOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editId ? 'Save Changes' : 'Create Bill'}</Button>
+            <Button onClick={handleSave} disabled={saving}>{editId ? 'Save Changes' : 'Create Bill'}</Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>

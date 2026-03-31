@@ -10,14 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, genId, today } from '@/lib/mock';
+import { formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Clock, CheckCircle, CalendarDays, UserCheck } from 'lucide-react';
+import { Clock, CheckCircle, CalendarDays, UserCheck, Loader2 } from 'lucide-react';
 
 type LeaveType = 'annual' | 'sick' | 'maternity' | 'unpaid';
 type LeaveStatus = 'pending' | 'approved' | 'rejected';
 
-interface LeaveRequest {
+interface LeaveRequest extends Record<string, unknown> {
   id: string;
   employee: string;
   type: LeaveType;
@@ -28,20 +29,18 @@ interface LeaveRequest {
   note: string;
 }
 
-const INITIAL_LEAVES: LeaveRequest[] = [
-  { id: '1',  employee: 'Alice Johnson',  type: 'annual',    from_date: '2026-03-28', to_date: '2026-04-01', days: 5,  status: 'approved', note: 'Family vacation'       },
-  { id: '2',  employee: 'David Lee',      type: 'sick',      from_date: '2026-03-25', to_date: '2026-03-27', days: 3,  status: 'approved', note: 'Medical appointment'   },
-  { id: '3',  employee: 'Eva Chen',       type: 'annual',    from_date: '2026-04-07', to_date: '2026-04-09', days: 3,  status: 'pending',  note: 'Personal travel'       },
-  { id: '4',  employee: 'Isabella Davis', type: 'maternity', from_date: '2026-03-01', to_date: '2026-05-31', days: 91, status: 'approved', note: 'Maternity leave'       },
-  { id: '5',  employee: 'Frank Wilson',   type: 'sick',      from_date: '2026-04-02', to_date: '2026-04-02', days: 1,  status: 'pending',  note: 'Doctor visit'          },
-  { id: '6',  employee: 'Grace Turner',   type: 'annual',    from_date: '2026-04-14', to_date: '2026-04-18', days: 5,  status: 'pending',  note: 'Spring break'          },
-  { id: '7',  employee: 'James Brown',    type: 'unpaid',    from_date: '2026-03-20', to_date: '2026-03-21', days: 2,  status: 'approved', note: 'Personal matter'       },
-  { id: '8',  employee: 'Henry Park',     type: 'annual',    from_date: '2026-04-21', to_date: '2026-04-25', days: 5,  status: 'pending',  note: 'Holiday'               },
-  { id: '9',  employee: 'Karen White',    type: 'sick',      from_date: '2026-04-03', to_date: '2026-04-03', days: 1,  status: 'rejected', note: 'Requested too late'    },
-  { id: '10', employee: 'Bob Martinez',   type: 'annual',    from_date: '2026-05-01', to_date: '2026-05-05', days: 5,  status: 'pending',  note: 'Pre-approved verbally' },
-];
+const today = () => new Date().toISOString().slice(0, 10);
 
-const BLANK: Omit<LeaveRequest, 'id' | 'status'> = {
+interface LeaveForm {
+  employee: string;
+  type: LeaveType;
+  from_date: string;
+  to_date: string;
+  days: number;
+  note: string;
+}
+
+const BLANK: LeaveForm = {
   employee: '', type: 'annual', from_date: today(), to_date: today(), days: 1, note: '',
 };
 
@@ -54,33 +53,48 @@ const typeLabel: Record<LeaveType, string> = {
 };
 
 export default function Leave() {
-  const [leaves, setLeaves] = useState<LeaveRequest[]>(INITIAL_LEAVES);
+  const { rows: items, loading, insert, update } = useTable<LeaveRequest>('myerp_leave_requests');
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Omit<LeaveRequest, 'id' | 'status'>>(BLANK);
+  const [form, setForm] = useState<LeaveForm>(BLANK);
 
-  const pending        = leaves.filter(l => l.status === 'pending').length;
-  const approvedMonth  = leaves.filter(l => l.status === 'approved' && l.from_date.startsWith('2026-03')).length;
-  const totalDaysOut   = leaves.filter(l => l.status === 'approved').reduce((s, l) => s + l.days, 0);
-  const onLeaveToday   = leaves.filter(l => l.status === 'approved' && l.from_date <= today() && l.to_date >= today()).length;
+  const todayStr = today();
+  const currentMonth = new Date().toISOString().slice(0, 7);
 
-  function handleApprove(id: string) {
-    setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'approved' } : l));
-    toast.success('Leave approved');
+  const pending        = items.filter(l => l.status === 'pending').length;
+  const approvedMonth  = items.filter(l => l.status === 'approved' && l.from_date.startsWith(currentMonth)).length;
+  const totalDaysOut   = items.filter(l => l.status === 'approved').reduce((s, l) => s + l.days, 0);
+  const onLeaveToday   = items.filter(l => l.status === 'approved' && l.from_date <= todayStr && l.to_date >= todayStr).length;
+
+  async function handleApprove(id: string) {
+    try {
+      await update(id, { status: 'approved' });
+      toast.success('Leave approved');
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to approve leave');
+    }
   }
 
-  function handleReject(id: string) {
-    setLeaves(prev => prev.map(l => l.id === id ? { ...l, status: 'rejected' } : l));
-    toast.error('Leave rejected');
+  async function handleReject(id: string) {
+    try {
+      await update(id, { status: 'rejected' });
+      toast.error('Leave rejected');
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to reject leave');
+    }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.employee.trim()) { toast.error('Employee name is required'); return; }
-    setLeaves(prev => [...prev, { id: genId(), status: 'pending', ...form }]);
-    toast.success('Leave request created');
-    setOpen(false);
+    try {
+      await insert({ employee: form.employee, type: form.type, from_date: form.from_date, to_date: form.to_date, days: form.days, note: form.note, status: 'pending' });
+      toast.success('Leave request created');
+      setOpen(false);
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to create leave request');
+    }
   }
 
-  function field(key: keyof typeof form, value: string | number) {
+  function field(key: keyof LeaveForm, value: string | number) {
     setForm(f => ({ ...f, [key]: value }));
   }
 
@@ -113,45 +127,51 @@ export default function Leave() {
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaves.map(l => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.employee}</TableCell>
-                  <TableCell>{typeLabel[l.type]}</TableCell>
-                  <TableCell>{formatDate(l.from_date)}</TableCell>
-                  <TableCell>{formatDate(l.to_date)}</TableCell>
-                  <TableCell>{l.days}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[l.status]} className="capitalize">{l.status}</Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[180px] truncate text-muted-foreground text-sm">{l.note}</TableCell>
-                  <TableCell className="text-right">
-                    {l.status === 'pending' ? (
-                      <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10" onClick={() => handleApprove(l.id)}>Approve</Button>
-                        <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => handleReject(l.id)}>Reject</Button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>From</TableHead>
+                  <TableHead>To</TableHead>
+                  <TableHead>Days</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {items.map(l => (
+                  <TableRow key={l.id}>
+                    <TableCell className="font-medium">{l.employee}</TableCell>
+                    <TableCell>{typeLabel[l.type]}</TableCell>
+                    <TableCell>{formatDate(l.from_date)}</TableCell>
+                    <TableCell>{formatDate(l.to_date)}</TableCell>
+                    <TableCell>{l.days}</TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[l.status]} className="capitalize">{l.status}</Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[180px] truncate text-muted-foreground text-sm">{l.note}</TableCell>
+                    <TableCell className="text-right">
+                      {l.status === 'pending' ? (
+                        <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="outline" className="text-success border-success/40 hover:bg-success/10" onClick={() => handleApprove(l.id)}>Approve</Button>
+                          <Button size="sm" variant="outline" className="text-destructive border-destructive/40 hover:bg-destructive/10" onClick={() => handleReject(l.id)}>Reject</Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

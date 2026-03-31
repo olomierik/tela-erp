@@ -8,23 +8,14 @@ import TopCustomers from '@/components/dashboard/TopCustomers';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import PendingApprovals from '@/components/dashboard/PendingApprovals';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CHART_OF_ACCOUNTS } from '@/lib/finance-data';
 import { formatCurrency } from '@/lib/mock';
 
-// ─── Finance widget data (derived from Chart of Accounts) ─────────────────────
-
-function sumBalance(codes: string[]) {
-  return CHART_OF_ACCOUNTS
-    .filter(a => codes.includes(a.id) && !a.isHeader)
-    .reduce((s, a) => s + a.balance, 0);
-}
-
-const cashBalance  = sumBalance(['1111', '1112', '1113', '1114']);
-const arBalance    = sumBalance(['1120']);
-const apBalance    = sumBalance(['2110']);
-const revenue      = sumBalance(['4110', '4120', '4210', '4220']);
-const expenses     = sumBalance(['5100', '5210', '5220', '5230', '5240', '5250', '5260', '5270', '5310', '5320', '5330']);
-const netProfit    = revenue - expenses;
+// ─── Finance widget data — pulled live from Supabase via the Accounts page. ───
+// Dashboard uses static KPI placeholders; real values come from module pages.
+const cashBalance = 183000;
+const arBalance   = 34200;
+const apBalance   = 48200;
+const netProfit   = 62800;
 
 // ─── KPI cards (top row) ──────────────────────────────────────────────────────
 

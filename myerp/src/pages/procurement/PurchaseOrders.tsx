@@ -9,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId, today, formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
+import { formatCurrency, formatDate } from '@/lib/mock';
 import { toast } from 'sonner';
-import { Pencil, Trash2, ClipboardList, Clock, CheckCircle, DollarSign } from 'lucide-react';
+import { Pencil, Trash2, ClipboardList, Clock, CheckCircle, DollarSign, Loader2 } from 'lucide-react';
 
-interface PurchaseOrder {
+interface PurchaseOrder extends Record<string, unknown> {
   id: string;
   po_number: string;
   vendor: string;
@@ -23,21 +24,6 @@ interface PurchaseOrder {
   status: 'draft' | 'submitted' | 'approved' | 'received' | 'cancelled';
   items_count: number;
 }
-
-const INITIAL_POS: PurchaseOrder[] = [
-  { id: genId(), po_number: 'PO-2024-001', vendor: 'Apex Raw Materials Ltd',   order_date: '2024-01-05', expected_date: '2024-01-20', total: 12500.00, status: 'received',   items_count: 5 },
-  { id: genId(), po_number: 'PO-2024-002', vendor: 'TechParts Global',          order_date: '2024-01-10', expected_date: '2024-02-01', total: 48200.50, status: 'approved',   items_count: 8 },
-  { id: genId(), po_number: 'PO-2024-003', vendor: 'OfficeWorld Supplies',      order_date: '2024-01-15', expected_date: '2024-01-25', total: 1350.75,  status: 'submitted',  items_count: 3 },
-  { id: genId(), po_number: 'PO-2024-004', vendor: 'FastFreight Logistics',     order_date: '2024-01-18', expected_date: '2024-02-10', total: 7800.00,  status: 'submitted',  items_count: 2 },
-  { id: genId(), po_number: 'PO-2024-005', vendor: 'NorthStar Materials',       order_date: '2024-01-22', expected_date: '2024-02-15', total: 33400.00, status: 'draft',      items_count: 6 },
-  { id: genId(), po_number: 'PO-2024-006', vendor: 'CircuitBase Inc',           order_date: '2024-02-01', expected_date: '2024-02-28', total: 92100.25, status: 'approved',   items_count: 12 },
-  { id: genId(), po_number: 'PO-2024-007', vendor: 'Stationery Hub',            order_date: '2024-02-05', expected_date: '2024-02-12', total: 620.00,   status: 'received',   items_count: 4 },
-  { id: genId(), po_number: 'PO-2024-008', vendor: 'Global Consult Group',      order_date: '2024-02-08', expected_date: '2024-03-01', total: 15000.00, status: 'cancelled',  items_count: 1 },
-  { id: genId(), po_number: 'PO-2024-009', vendor: 'ProServ Consulting',        order_date: '2024-02-12', expected_date: '2024-03-05', total: 8750.00,  status: 'submitted',  items_count: 2 },
-  { id: genId(), po_number: 'PO-2024-010', vendor: 'TechParts Global',          order_date: '2024-02-18', expected_date: '2024-03-10', total: 56800.00, status: 'approved',   items_count: 9 },
-  { id: genId(), po_number: 'PO-2024-011', vendor: 'Apex Raw Materials Ltd',    order_date: '2024-02-20', expected_date: '2024-03-15', total: 21300.50, status: 'draft',      items_count: 7 },
-  { id: genId(), po_number: 'PO-2024-012', vendor: 'FastFreight Logistics',     order_date: '2024-02-25', expected_date: '2024-03-20', total: 4900.00,  status: 'submitted',  items_count: 3 },
-];
 
 type POStatus = PurchaseOrder['status'];
 
@@ -50,19 +36,19 @@ const statusVariant: Record<POStatus, 'secondary' | 'info' | 'success' | 'defaul
 };
 
 export default function PurchaseOrders() {
-  const [orders, setOrders] = useState<PurchaseOrder[]>(INITIAL_POS);
+  const { rows: orders, loading, insert, update, remove } = useTable<PurchaseOrder>('myerp_purchase_orders');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<PurchaseOrder | null>(null);
-  const [form, setForm] = useState({ vendor: '', order_date: today(), expected_date: '', notes: '' });
+  const [form, setForm] = useState({ vendor: '', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
 
   const totalPOs = orders.length;
   const pendingApproval = orders.filter(o => o.status === 'submitted').length;
   const approved = orders.filter(o => o.status === 'approved').length;
-  const totalValue = orders.reduce((s, o) => s + o.total, 0);
+  const totalValue = orders.reduce((s, o) => s + Number(o.total), 0);
 
   function openCreate() {
     setEditing(null);
-    setForm({ vendor: '', order_date: today(), expected_date: '', notes: '' });
+    setForm({ vendor: '', order_date: new Date().toISOString().split('T')[0], expected_date: '', notes: '' });
     setSheetOpen(true);
   }
 
@@ -72,39 +58,58 @@ export default function PurchaseOrders() {
     setSheetOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.vendor.trim()) { toast.error('Vendor is required'); return; }
     if (!form.expected_date) { toast.error('Expected delivery date is required'); return; }
-    if (editing) {
-      setOrders(os => os.map(o => o.id === editing.id
-        ? { ...o, vendor: form.vendor, order_date: form.order_date, expected_date: form.expected_date }
-        : o));
-      toast.success('Purchase order updated');
-    } else {
-      const next = orders.length + 1;
-      setOrders(os => [...os, {
-        id: genId(),
-        po_number: `PO-2024-${String(next).padStart(3, '0')}`,
-        vendor: form.vendor,
-        order_date: form.order_date,
-        expected_date: form.expected_date,
-        total: 0,
-        status: 'draft',
-        items_count: 0,
-      }]);
-      toast.success('Purchase order created');
+    try {
+      if (editing) {
+        await update(editing.id, {
+          vendor: form.vendor,
+          order_date: form.order_date,
+          expected_date: form.expected_date,
+        });
+        toast.success('Purchase order updated');
+      } else {
+        const next = orders.length + 1;
+        await insert({
+          po_number: `PO-${new Date().getFullYear()}-${String(next).padStart(3, '0')}`,
+          vendor: form.vendor,
+          order_date: form.order_date,
+          expected_date: form.expected_date,
+          total: 0,
+          status: 'draft',
+          items_count: 0,
+        });
+        toast.success('Purchase order created');
+      }
+      setSheetOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save purchase order');
     }
-    setSheetOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setOrders(os => os.filter(o => o.id !== id));
-    toast.success('Purchase order deleted');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Purchase order deleted');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete purchase order');
+    }
   }
 
   const set = (key: keyof typeof form) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm(f => ({ ...f, [key]: e.target.value }));
+
+  if (loading) {
+    return (
+      <AppLayout title="Purchase Orders">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Purchase Orders">
@@ -177,7 +182,7 @@ export default function PurchaseOrders() {
                     <TableCell>{formatDate(o.order_date)}</TableCell>
                     <TableCell>{formatDate(o.expected_date)}</TableCell>
                     <TableCell>{o.items_count}</TableCell>
-                    <TableCell className="font-medium">{formatCurrency(o.total)}</TableCell>
+                    <TableCell className="font-medium">{formatCurrency(Number(o.total))}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[o.status]} className="capitalize">{o.status}</Badge>
                     </TableCell>

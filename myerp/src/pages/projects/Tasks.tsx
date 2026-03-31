@@ -9,14 +9,15 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, genId, today } from '@/lib/mock';
+import { formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, LayoutList, Circle, Loader, CheckCircle2 } from 'lucide-react';
+import { Pencil, Trash2, LayoutList, Circle, Loader, CheckCircle2, Loader2 } from 'lucide-react';
 
 type TaskPriority = 'low' | 'medium' | 'high' | 'critical';
 type TaskStatus   = 'todo' | 'in_progress' | 'review' | 'done';
 
-interface Task {
+interface Task extends Record<string, unknown> {
   id: string;
   title: string;
   project: string;
@@ -26,23 +27,10 @@ interface Task {
   status: TaskStatus;
 }
 
-const INITIAL_TASKS: Task[] = [
-  { id: '1',  title: 'Design wireframes',         project: 'Website Redesign',      assigned_to: 'Grace Turner',  due_date: '2026-04-05', priority: 'high',     status: 'done'        },
-  { id: '2',  title: 'Setup CI/CD pipeline',      project: 'ERP Implementation',    assigned_to: 'Henry Park',    due_date: '2026-04-10', priority: 'critical', status: 'in_progress' },
-  { id: '3',  title: 'Write unit tests',           project: 'Mobile App v2',         assigned_to: 'Eva Chen',      due_date: '2026-04-08', priority: 'medium',   status: 'todo'        },
-  { id: '4',  title: 'Database schema review',     project: 'ERP Implementation',    assigned_to: 'James Brown',   due_date: '2026-04-03', priority: 'high',     status: 'review'      },
-  { id: '5',  title: 'User acceptance testing',    project: 'Website Redesign',      assigned_to: 'Alice Johnson', due_date: '2026-04-15', priority: 'high',     status: 'todo'        },
-  { id: '6',  title: 'Migrate legacy data',        project: 'Data Migration',        assigned_to: 'Henry Park',    due_date: '2026-03-31', priority: 'critical', status: 'done'        },
-  { id: '7',  title: 'API endpoint documentation', project: 'API Integration Suite', assigned_to: 'Eva Chen',      due_date: '2026-04-20', priority: 'low',      status: 'todo'        },
-  { id: '8',  title: 'Security penetration test',  project: 'Security Audit',        assigned_to: 'James Brown',   due_date: '2026-03-20', priority: 'critical', status: 'done'        },
-  { id: '9',  title: 'Dashboard UI components',    project: 'Analytics Dashboard',   assigned_to: 'Grace Turner',  due_date: '2026-04-25', priority: 'medium',   status: 'in_progress' },
-  { id: '10', title: 'Load testing',               project: 'Cloud Infrastructure',  assigned_to: 'Bob Martinez',  due_date: '2026-05-01', priority: 'medium',   status: 'todo'        },
-  { id: '11', title: 'Stakeholder demo prep',      project: 'Mobile App v2',         assigned_to: 'Alice Johnson', due_date: '2026-04-12', priority: 'high',     status: 'review'      },
-  { id: '12', title: 'Release notes drafting',     project: 'Website Redesign',      assigned_to: 'Grace Turner',  due_date: '2026-04-28', priority: 'low',      status: 'todo'        },
-];
+type TaskForm = { title: string; project: string; assigned_to: string; due_date: string; priority: TaskPriority; status: TaskStatus; };
 
-const BLANK: Omit<Task, 'id'> = {
-  title: '', project: '', assigned_to: '', due_date: today(), priority: 'medium', status: 'todo',
+const BLANK: TaskForm = {
+  title: '', project: '', assigned_to: '', due_date: '', priority: 'medium', status: 'todo',
 };
 
 const priorityVariant: Record<TaskPriority, 'secondary' | 'info' | 'warning' | 'destructive'> = {
@@ -58,15 +46,15 @@ const statusLabel: Record<TaskStatus, string> = {
 };
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
+  const { rows: items, loading, insert, update, remove } = useTable<Task>('myerp_tasks');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Task | null>(null);
-  const [form, setForm] = useState<Omit<Task, 'id'>>(BLANK);
+  const [form, setForm] = useState<TaskForm>(BLANK);
 
-  const total      = tasks.length;
-  const todoCount  = tasks.filter(t => t.status === 'todo').length;
-  const inProgress = tasks.filter(t => t.status === 'in_progress').length;
-  const doneCount  = tasks.filter(t => t.status === 'done').length;
+  const total      = items.length;
+  const todoCount  = items.filter(t => t.status === 'todo').length;
+  const inProgress = items.filter(t => t.status === 'in_progress').length;
+  const doneCount  = items.filter(t => t.status === 'done').length;
 
   function openNew() {
     setEditing(null);
@@ -80,25 +68,43 @@ export default function Tasks() {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.title.trim()) { toast.error('Title is required'); return; }
-    if (editing) {
-      setTasks(prev => prev.map(t => t.id === editing.id ? { ...editing, ...form } : t));
-      toast.success('Task updated');
-    } else {
-      setTasks(prev => [...prev, { id: genId(), ...form }]);
-      toast.success('Task created');
+    try {
+      if (editing) {
+        await update(editing.id, form);
+        toast.success('Task updated');
+      } else {
+        await insert(form);
+        toast.success('Task created');
+      }
+      setOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Save failed');
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setTasks(prev => prev.filter(t => t.id !== id));
-    toast.success('Task removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Task removed');
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Delete failed');
+    }
   }
 
-  function field(key: keyof typeof form, value: string) {
+  function field(key: keyof TaskForm, value: string) {
     setForm(f => ({ ...f, [key]: value }));
+  }
+
+  if (loading) {
+    return (
+      <AppLayout title="Tasks">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -139,7 +145,7 @@ export default function Tasks() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tasks.map(task => (
+              {items.map(task => (
                 <TableRow key={task.id}>
                   <TableCell className="font-medium">{task.title}</TableCell>
                   <TableCell>{task.project}</TableCell>
@@ -214,4 +220,3 @@ export default function Tasks() {
     </AppLayout>
   );
 }
-

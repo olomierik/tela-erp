@@ -9,14 +9,15 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatCurrency, formatDate, genId, today } from '@/lib/mock';
+import { formatCurrency, formatDate } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Package, DollarSign, TrendingDown, BarChart3 } from 'lucide-react';
+import { Pencil, Trash2, Package, DollarSign, TrendingDown, BarChart3, Loader2 } from 'lucide-react';
 
 type AssetCondition = 'excellent' | 'good' | 'fair' | 'poor';
 type AssetStatus    = 'active' | 'disposed' | 'under_maintenance';
 
-interface Asset {
+interface Asset extends Record<string, unknown> {
   id: string;
   asset_number: string;
   name: string;
@@ -29,21 +30,10 @@ interface Asset {
   status: AssetStatus;
 }
 
-const INITIAL_ASSETS: Asset[] = [
-  { id: '1',  asset_number: 'AST-001', name: 'Dell PowerEdge Server',   category: 'IT Equipment', purchase_date: '2022-01-15', purchase_cost: 12000, current_value: 8400,  location: 'Server Room A',   condition: 'good',      status: 'active'            },
-  { id: '2',  asset_number: 'AST-002', name: 'Ford Transit Van',         category: 'Vehicles',     purchase_date: '2021-06-20', purchase_cost: 35000, current_value: 22000, location: 'Parking Bay 3',   condition: 'good',      status: 'active'            },
-  { id: '3',  asset_number: 'AST-003', name: 'MacBook Pro 16"',          category: 'IT Equipment', purchase_date: '2023-03-10', purchase_cost: 2800,  current_value: 2100,  location: 'Office Floor 2',  condition: 'excellent', status: 'active'            },
-  { id: '4',  asset_number: 'AST-004', name: 'Executive Desk Set',       category: 'Furniture',    purchase_date: '2020-08-05', purchase_cost: 4500,  current_value: 2700,  location: 'Office Floor 1',  condition: 'good',      status: 'active'            },
-  { id: '5',  asset_number: 'AST-005', name: 'CNC Milling Machine',      category: 'Machinery',    purchase_date: '2019-11-30', purchase_cost: 85000, current_value: 51000, location: 'Production Hall', condition: 'fair',      status: 'under_maintenance' },
-  { id: '6',  asset_number: 'AST-006', name: 'Warehouse Building',       category: 'Buildings',    purchase_date: '2015-04-01', purchase_cost: 500000,current_value: 420000,location: 'Industrial Zone', condition: 'good',      status: 'active'            },
-  { id: '7',  asset_number: 'AST-007', name: 'HP LaserJet Printer',      category: 'IT Equipment', purchase_date: '2021-09-14', purchase_cost: 1200,  current_value: 600,   location: 'Office Floor 2',  condition: 'fair',      status: 'active'            },
-  { id: '8',  asset_number: 'AST-008', name: 'Toyota Hiace Bus',         category: 'Vehicles',     purchase_date: '2018-02-28', purchase_cost: 42000, current_value: 18000, location: 'Parking Bay 1',   condition: 'fair',      status: 'active'            },
-  { id: '9',  asset_number: 'AST-009', name: 'Old Fax Machine',          category: 'IT Equipment', purchase_date: '2014-05-10', purchase_cost: 800,   current_value: 0,     location: 'Storage',         condition: 'poor',      status: 'disposed'          },
-  { id: '10', asset_number: 'AST-010', name: 'Conveyor Belt System',     category: 'Machinery',    purchase_date: '2020-07-22', purchase_cost: 28000, current_value: 19600, location: 'Production Hall', condition: 'excellent', status: 'active'            },
-];
+type AssetForm = { asset_number: string; name: string; category: string; purchase_date: string; purchase_cost: number; current_value: number; location: string; condition: AssetCondition; status: AssetStatus; };
 
-const BLANK: Omit<Asset, 'id'> = {
-  asset_number: '', name: '', category: 'IT Equipment', purchase_date: today(),
+const BLANK: AssetForm = {
+  asset_number: '', name: '', category: 'IT Equipment', purchase_date: '',
   purchase_cost: 0, current_value: 0, location: '', condition: 'good', status: 'active',
 };
 
@@ -60,12 +50,12 @@ const statusLabel: Record<AssetStatus, string> = {
 };
 
 export default function AssetRegister() {
-  const [assets, setAssets] = useState<Asset[]>(INITIAL_ASSETS);
+  const { rows: assets, loading, insert, update, remove } = useTable<Asset>('myerp_assets');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Asset | null>(null);
-  const [form, setForm] = useState<Omit<Asset, 'id'>>(BLANK);
+  const [form, setForm] = useState<AssetForm>(BLANK);
 
-  const totalAssets      = assets.length;
+  const totalAssets       = assets.length;
   const totalPurchaseCost = assets.reduce((s, a) => s + a.purchase_cost, 0);
   const totalCurrentValue = assets.reduce((s, a) => s + a.current_value, 0);
   const totalDepreciated  = totalPurchaseCost - totalCurrentValue;
@@ -82,25 +72,43 @@ export default function AssetRegister() {
     setOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.name.trim()) { toast.error('Asset name is required'); return; }
-    if (editing) {
-      setAssets(prev => prev.map(a => a.id === editing.id ? { ...editing, ...form } : a));
-      toast.success('Asset updated');
-    } else {
-      setAssets(prev => [...prev, { id: genId(), ...form }]);
-      toast.success('Asset added');
+    try {
+      if (editing) {
+        await update(editing.id, form);
+        toast.success('Asset updated');
+      } else {
+        await insert(form);
+        toast.success('Asset added');
+      }
+      setOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Save failed');
     }
-    setOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setAssets(prev => prev.filter(a => a.id !== id));
-    toast.success('Asset removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Asset removed');
+    } catch (e) {
+      toast.error((e as Error).message ?? 'Delete failed');
+    }
   }
 
-  function field(key: keyof Omit<Asset, 'id'>, value: string | number) {
+  function field(key: keyof AssetForm, value: string | number) {
     setForm(f => ({ ...f, [key]: value }));
+  }
+
+  if (loading) {
+    return (
+      <AppLayout title="Asset Register">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
   }
 
   return (
@@ -109,10 +117,10 @@ export default function AssetRegister() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Total Assets',       value: totalAssets,                       icon: Package,      color: 'text-primary'     },
-          { label: 'Total Purchase Cost',value: formatCurrency(totalPurchaseCost),  icon: DollarSign,   color: 'text-info'        },
-          { label: 'Current Book Value', value: formatCurrency(totalCurrentValue),  icon: BarChart3,    color: 'text-success'     },
-          { label: 'Total Depreciated',  value: formatCurrency(totalDepreciated),   icon: TrendingDown, color: 'text-destructive' },
+          { label: 'Total Assets',        value: totalAssets,                      icon: Package,      color: 'text-primary'     },
+          { label: 'Total Purchase Cost', value: formatCurrency(totalPurchaseCost), icon: DollarSign,   color: 'text-info'        },
+          { label: 'Current Book Value',  value: formatCurrency(totalCurrentValue), icon: BarChart3,    color: 'text-success'     },
+          { label: 'Total Depreciated',   value: formatCurrency(totalDepreciated),  icon: TrendingDown, color: 'text-destructive' },
         ].map(kpi => (
           <Card key={kpi.label}>
             <CardContent className="p-4 flex items-center gap-3">

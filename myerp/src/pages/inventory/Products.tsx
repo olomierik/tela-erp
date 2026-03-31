@@ -9,11 +9,12 @@ import { Select } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { genId, formatCurrency } from '@/lib/mock';
+import { useTable } from '@/lib/useTable';
+import { formatCurrency } from '@/lib/mock';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Box, CheckCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Pencil, Trash2, Box, CheckCircle, AlertTriangle, TrendingUp, Loader2 } from 'lucide-react';
 
-interface Product {
+interface Product extends Record<string, unknown> {
   id: string;
   sku: string;
   name: string;
@@ -25,24 +26,6 @@ interface Product {
   reorder_level: number;
   status: 'active' | 'inactive' | 'discontinued';
 }
-
-const INITIAL_PRODUCTS: Product[] = [
-  { id: genId(), sku: 'EL-001', name: 'USB-C Hub 7-Port',          category: 'Electronics',    unit: 'pcs', unit_cost: 18.50,  selling_price: 39.99,  stock_qty: 120, reorder_level: 30,  status: 'active' },
-  { id: genId(), sku: 'EL-002', name: 'Wireless Keyboard',         category: 'Electronics',    unit: 'pcs', unit_cost: 22.00,  selling_price: 49.95,  stock_qty: 15,  reorder_level: 20,  status: 'active' },
-  { id: genId(), sku: 'AP-001', name: 'Men\'s Running Shorts',     category: 'Apparel',        unit: 'pcs', unit_cost: 8.75,   selling_price: 24.99,  stock_qty: 200, reorder_level: 50,  status: 'active' },
-  { id: genId(), sku: 'AP-002', name: 'Sport Socks (Pair)',        category: 'Apparel',        unit: 'pair',unit_cost: 2.10,   selling_price: 7.99,   stock_qty: 0,   reorder_level: 100, status: 'active' },
-  { id: genId(), sku: 'FB-001', name: 'Organic Oat Flour',         category: 'Food & Beverage',unit: 'kg',  unit_cost: 1.20,   selling_price: 3.49,   stock_qty: 500, reorder_level: 100, status: 'active' },
-  { id: genId(), sku: 'FB-002', name: 'Cold Brew Coffee 1L',       category: 'Food & Beverage',unit: 'L',   unit_cost: 3.80,   selling_price: 8.99,   stock_qty: 80,  reorder_level: 40,  status: 'active' },
-  { id: genId(), sku: 'OS-001', name: 'A4 Copy Paper (Box 5)',     category: 'Office Supplies', unit: 'box', unit_cost: 14.00,  selling_price: 27.50,  stock_qty: 60,  reorder_level: 20,  status: 'active' },
-  { id: genId(), sku: 'OS-002', name: 'Ballpoint Pens (12-Pack)', category: 'Office Supplies', unit: 'box', unit_cost: 2.50,   selling_price: 6.99,   stock_qty: 8,   reorder_level: 10,  status: 'active' },
-  { id: genId(), sku: 'HW-001', name: 'Stainless Steel Bolts M8', category: 'Hardware',        unit: 'box', unit_cost: 5.60,   selling_price: 12.00,  stock_qty: 300, reorder_level: 50,  status: 'active' },
-  { id: genId(), sku: 'HW-002', name: 'Industrial Drill Bit Set', category: 'Hardware',        unit: 'pcs', unit_cost: 28.00,  selling_price: 59.99,  stock_qty: 0,   reorder_level: 5,   status: 'inactive' },
-  { id: genId(), sku: 'FN-001', name: 'Ergonomic Office Chair',   category: 'Furniture',       unit: 'pcs', unit_cost: 145.00, selling_price: 299.00, stock_qty: 12,  reorder_level: 5,   status: 'active' },
-  { id: genId(), sku: 'FN-002', name: 'Standing Desk 140cm',      category: 'Furniture',       unit: 'pcs', unit_cost: 220.00, selling_price: 449.00, stock_qty: 4,   reorder_level: 4,   status: 'active' },
-  { id: genId(), sku: 'EL-003', name: 'HDMI Cable 2m',            category: 'Electronics',    unit: 'pcs', unit_cost: 4.20,   selling_price: 11.99,  stock_qty: 75,  reorder_level: 20,  status: 'active' },
-  { id: genId(), sku: 'AP-003', name: 'Waterproof Jacket',        category: 'Apparel',        unit: 'pcs', unit_cost: 38.00,  selling_price: 89.99,  stock_qty: 0,   reorder_level: 10,  status: 'discontinued' },
-  { id: genId(), sku: 'FB-003', name: 'Whey Protein 1kg',         category: 'Food & Beverage',unit: 'kg',  unit_cost: 14.50,  selling_price: 32.99,  stock_qty: 22,  reorder_level: 25,  status: 'active' },
-];
 
 const CATEGORIES = ['Electronics', 'Apparel', 'Food & Beverage', 'Office Supplies', 'Hardware', 'Furniture'];
 const UNITS = ['pcs', 'kg', 'L', 'box', 'pair'];
@@ -81,15 +64,15 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function Products() {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const { rows: products, loading, insert, update, remove } = useTable<Product>('myerp_products');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
 
   const totalProducts = products.length;
   const activeProducts = products.filter(p => p.status === 'active').length;
-  const lowStock = products.filter(p => p.stock_qty <= p.reorder_level).length;
-  const totalInventoryValue = products.reduce((s, p) => s + p.unit_cost * p.stock_qty, 0);
+  const lowStock = products.filter(p => Number(p.stock_qty) <= Number(p.reorder_level)).length;
+  const totalInventoryValue = products.reduce((s, p) => s + Number(p.unit_cost) * Number(p.stock_qty), 0);
 
   function openCreate() {
     setEditing(null);
@@ -103,10 +86,10 @@ export default function Products() {
     setSheetOpen(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!form.sku.trim()) { toast.error('SKU is required'); return; }
     if (!form.name.trim()) { toast.error('Name is required'); return; }
-    const parsed: Omit<Product, 'id'> = {
+    const payload = {
       sku: form.sku.trim(),
       name: form.name.trim(),
       category: form.category,
@@ -117,24 +100,42 @@ export default function Products() {
       reorder_level: parseInt(form.reorder_level) || 0,
       status: form.status,
     };
-    if (editing) {
-      setProducts(ps => ps.map(p => p.id === editing.id ? { ...parsed, id: editing.id } : p));
-      toast.success('Product updated');
-    } else {
-      setProducts(ps => [...ps, { ...parsed, id: genId() }]);
-      toast.success('Product added');
+    try {
+      if (editing) {
+        await update(editing.id, payload);
+        toast.success('Product updated');
+      } else {
+        await insert(payload);
+        toast.success('Product added');
+      }
+      setSheetOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save product');
     }
-    setSheetOpen(false);
   }
 
-  function handleDelete(id: string) {
-    setProducts(ps => ps.filter(p => p.id !== id));
-    toast.success('Product removed');
+  async function handleDelete(id: string) {
+    try {
+      await remove(id);
+      toast.success('Product removed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete product');
+    }
   }
 
   const set = (key: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm(f => ({ ...f, [key]: e.target.value }));
+
+  if (loading) {
+    return (
+      <AppLayout title="Products">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Products">
@@ -209,11 +210,11 @@ export default function Products() {
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell>{p.category}</TableCell>
                     <TableCell>{p.unit}</TableCell>
-                    <TableCell>{formatCurrency(p.unit_cost)}</TableCell>
-                    <TableCell>{formatCurrency(p.selling_price)}</TableCell>
+                    <TableCell>{formatCurrency(Number(p.unit_cost))}</TableCell>
+                    <TableCell>{formatCurrency(Number(p.selling_price))}</TableCell>
                     <TableCell>{p.stock_qty}</TableCell>
                     <TableCell>{p.reorder_level}</TableCell>
-                    <TableCell><StockDot qty={p.stock_qty} reorder={p.reorder_level} /></TableCell>
+                    <TableCell><StockDot qty={Number(p.stock_qty)} reorder={Number(p.reorder_level)} /></TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[p.status]} className="capitalize">{p.status}</Badge>
                     </TableCell>
