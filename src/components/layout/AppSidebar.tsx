@@ -231,7 +231,7 @@ export default function AppSidebar() {
         </Link>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive"
+          className="flex items-center gap-3 px-3 py-[7px] rounded-lg text-[16px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive"
           title={collapsed ? 'Sign out' : undefined}
         >
           <LogOut className="w-[17px] h-[17px] shrink-0" />
