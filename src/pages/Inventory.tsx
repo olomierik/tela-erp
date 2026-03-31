@@ -207,6 +207,7 @@ export default function Inventory() {
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('inventory_items');
+  const { data: reservations = [] } = useTenantQuery('inventory_reservations');
   const insert = useTenantInsert('inventory_items');
   const remove = useTenantDelete('inventory_items');
   const qc = useQueryClient();
@@ -382,7 +383,11 @@ export default function Inventory() {
               </thead>
               <tbody>
                 {filtered.map((i: any) => {
-                  const s = getStockStatus(i.quantity, i.reorder_level);
+                  const reservedQty = (reservations as any[])
+                    .filter(r => r.item_id === i.id && r.status === 'reserved')
+                    .reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+                  const availableQty = Math.max(0, i.quantity - reservedQty);
+                  const s = getStockStatus(availableQty, i.reorder_level);
                   const displayStatus = i.status === 'good' ? s.status : (i.status || 'good').charAt(0).toUpperCase() + (i.status || 'good').slice(1);
                   const displayVariant = i.status === 'good' ? s.variant : 'destructive';
                   return (
@@ -400,8 +405,11 @@ export default function Inventory() {
                       <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{i.sku}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{i.category || '—'}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{i.warehouse_location || '—'}</td>
-                      <td className="px-4 py-2.5 font-medium">{i.quantity.toLocaleString()}</td>
-                      <td className="px-4 py-2.5">{formatMoney(i.quantity * Number(i.unit_cost))}</td>
+                      <td className="px-4 py-2.5 font-medium">
+                        {availableQty.toLocaleString()}
+                        {reservedQty > 0 && <span className="ml-1 text-xs text-muted-foreground">({reservedQty} reserved)</span>}
+                      </td>
+                      <td className="px-4 py-2.5">{formatMoney(availableQty * Number(i.unit_cost))}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={displayStatus} variant={displayVariant} /></td>
                       {!isDemo && (
                         <td className="px-4 py-2.5">

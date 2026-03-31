@@ -19,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { onProcurementReceived, type ProcurementLineItem } from '@/hooks/use-cross-module';
+import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -284,7 +285,20 @@ export default function Procurement() {
   const receivedPOs = pos.filter((p: any) => p.status === 'received');
 
   const handleCreate = (row: Record<string, any>, lineItems: POLineItem[]) => {
-    insertBase.mutate(row);
+    insertBase.mutate(row, {
+      onSuccess: (data: any) => {
+        if (!tenant?.id || !data?.id || lineItems.length === 0) return;
+        const lines = lineItems.map((li: POLineItem) => ({
+          tenant_id: tenant.id,
+          purchase_order_id: data.id,
+          item_id: li.item_id || null,
+          description: li.description || '',
+          quantity: li.quantity,
+          unit_cost: li.unit_price,
+        }));
+        (supabase.from('purchase_order_lines') as any).insert(lines).then(() => {});
+      },
+    });
   };
 
   /** Receives a PO: updates status to 'received' and triggers
