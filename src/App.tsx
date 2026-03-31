@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
@@ -68,6 +69,7 @@ const App = () => (
         <ThemeProvider>
           <CurrencyProvider>
           <StoreProvider>
+          <SidebarProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -135,6 +137,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </SidebarProvider>
           </StoreProvider>
           </CurrencyProvider>
         </ThemeProvider>

@@ -7,10 +7,12 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3, CreditCard,
   Settings, Palette, Building2, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Star, Brain, ScanLine, Receipt,
-  PieChart, Building, Zap,
+  PieChart, Building, Zap, MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface NavItem {
   label: string;
@@ -96,12 +98,12 @@ const mobileBottomNav: NavItem[] = [
   { label: 'Sales', icon: ShoppingCart, path: '/sales' },
   { label: 'Inventory', icon: Package, path: '/inventory' },
   { label: 'CRM', icon: UserCircle, path: '/crm' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
 export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed } = useSidebar();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const location = useLocation();
   const navigate = useNavigate();
@@ -134,7 +136,6 @@ export default function AppSidebar() {
         )}
         title={collapsed ? item.label : undefined}
       >
-        {/* Left accent bar for active item — no animation, pure CSS */}
         {active && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[22px] rounded-r-full bg-primary" />
         )}
@@ -303,7 +304,7 @@ export default function AppSidebar() {
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -370,7 +371,65 @@ export default function AppSidebar() {
             </Link>
           );
         })}
+
+        {/* More button */}
+        <button
+          onClick={() => setMoreOpen(true)}
+          className={cn(
+            'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-colors min-w-[52px]',
+            moreOpen ? 'text-primary bg-primary/10' : 'text-white/40 hover:text-white/70'
+          )}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span>More</span>
+        </button>
       </nav>
+
+      {/* More sheet — all modules */}
+      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl bg-background border-border p-0">
+          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
+            <SheetTitle className="text-base font-semibold">All Modules</SheetTitle>
+          </SheetHeader>
+          <div className="overflow-y-auto h-full pb-20 px-4 pt-3">
+            {navSections.map(section => {
+              if (section.title === 'Admin' && role !== 'admin' && role !== 'reseller') return null;
+              const visibleItems = section.items.filter(
+                item => !(item.path === '/reseller' && role !== 'reseller')
+              );
+              if (visibleItems.length === 0) return null;
+              return (
+                <div key={section.title} className="mb-5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-2 px-1">
+                    {section.title}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {visibleItems.map(item => {
+                      const active = isActive(item.path);
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setMoreOpen(false)}
+                          className={cn(
+                            'flex flex-col items-center gap-1.5 p-3 rounded-xl text-[11px] font-medium text-center transition-colors',
+                            active
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted/60 text-foreground hover:bg-muted'
+                          )}
+                        >
+                          <item.icon className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                          <span className="leading-tight">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }

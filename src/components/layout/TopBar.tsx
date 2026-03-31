@@ -1,17 +1,64 @@
 import { useState, useEffect } from 'react';
-import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot } from 'lucide-react';
+import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot, Sun, Moon } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Breadcrumb, BreadcrumbList, BreadcrumbItem,
+  BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useStore } from '@/contexts/StoreContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import CommandPalette from '@/components/ui/CommandPalette';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+
+// Map each route to its breadcrumb chain: [section?, page]
+const routeBreadcrumbs: Record<string, string[]> = {
+  '/dashboard': ['Dashboard'],
+  '/sales': ['Operations', 'Sales'],
+  '/invoices': ['Operations', 'Invoices'],
+  '/procurement': ['Operations', 'Procurement'],
+  '/inventory': ['Operations', 'Inventory'],
+  '/transfers': ['Operations', 'Stock Transfers'],
+  '/production': ['Operations', 'Production'],
+  '/automations': ['Operations', 'Automations'],
+  '/crm': ['Customers', 'CRM'],
+  '/online-store': ['Customers', 'Online Store'],
+  '/marketing': ['Customers', 'Marketing'],
+  '/hr': ['Workforce', 'HR & Payroll'],
+  '/projects': ['Workforce', 'Projects'],
+  '/settings/team': ['Admin', 'Settings', 'Team'],
+  '/accounting': ['Finance', 'Accounting'],
+  '/assets': ['Finance', 'Fixed Assets'],
+  '/expenses': ['Finance', 'Expenses'],
+  '/budgets': ['Finance', 'Budgets'],
+  '/reports': ['Finance', 'Reports'],
+  '/billing': ['Finance', 'Billing'],
+  '/ai-cfo': ['AI Intelligence', 'AI CFO Assistant'],
+  '/documents': ['AI Intelligence', 'Document Scanner'],
+  '/stores': ['Admin', 'Stores'],
+  '/settings/white-label': ['Admin', 'Settings', 'White Label'],
+  '/settings/readiness': ['Admin', 'Settings', 'Readiness'],
+  '/settings': ['Admin', 'Settings'],
+  '/reseller': ['Admin', 'Reseller Portal'],
+  '/profile': ['Profile'],
+};
+
+function useBreadcrumbs(pathname: string): string[] {
+  // Try exact match first, then prefix match (longest wins)
+  if (routeBreadcrumbs[pathname]) return routeBreadcrumbs[pathname];
+  let best = '';
+  for (const key of Object.keys(routeBreadcrumbs)) {
+    if (pathname.startsWith(key + '/') && key.length > best.length) best = key;
+  }
+  return best ? routeBreadcrumbs[best] : [];
+}
 
 interface TopBarProps {
   title: string;
@@ -31,12 +78,15 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   const { displayCurrency, setDisplayCurrency, popularCurrencies, currencySymbol } = useCurrency();
   const { stores, selectedStoreId, setSelectedStoreId, isStoreAdmin } = useStore();
   const { profile, tenant, signOut, isDemo } = useAuth();
+  const { darkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [notifOpen, setNotifOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const crumbs = useBreadcrumbs(location.pathname);
 
   // ⌘K / Ctrl+K shortcut
   useEffect(() => {
@@ -63,7 +113,6 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     };
     load();
 
-    // Realtime subscription
     const channel = supabase.channel(`notifications:${tenant.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `tenant_id=eq.${tenant.id}` },
         payload => setNotifications(prev => [payload.new as Notification, ...prev.slice(0, 19)])
@@ -101,10 +150,35 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
   return (
     <>
       <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
-        {/* Left: page title */}
-        <div className="min-w-0 pl-10 md:pl-0">
-          <h2 className="text-base font-semibold text-foreground truncate leading-tight">{title}</h2>
-          {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight">{subtitle}</p>}
+        {/* Left: breadcrumbs + title */}
+        <div className="min-w-0 pl-10 md:pl-0 flex flex-col justify-center">
+          {crumbs.length > 1 ? (
+            <>
+              <Breadcrumb>
+                <BreadcrumbList className="text-[11px]">
+                  {crumbs.slice(0, -1).map((crumb, i) => (
+                    <BreadcrumbItem key={i}>
+                      <BreadcrumbLink className="text-muted-foreground/70 hover:text-muted-foreground transition-colors text-[11px]">
+                        {crumb}
+                      </BreadcrumbLink>
+                      <BreadcrumbSeparator />
+                    </BreadcrumbItem>
+                  ))}
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="text-foreground font-semibold text-[11px]">
+                      {crumbs[crumbs.length - 1]}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">{subtitle}</p>}
+            </>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold text-foreground truncate leading-tight">{title}</h2>
+              {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight">{subtitle}</p>}
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -123,6 +197,17 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           {/* Mobile search button */}
           <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setCmdOpen(true)}>
             <Search className="w-4 h-4" />
+          </Button>
+
+          {/* Dark / Light mode toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
           {/* Store Switcher */}
