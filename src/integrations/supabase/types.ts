@@ -3951,8 +3951,12 @@ export type Database = {
       }
       tenants: {
         Row: {
+          address: string | null
           ai_model: string | null
           anthropic_api_key: string | null
+          city: string | null
+          contact_email: string | null
+          country: string | null
           created_at: string
           custom_domain: string | null
           default_currency: string
@@ -3961,17 +3965,23 @@ export type Database = {
           logo_url: string | null
           name: string
           parent_tenant_id: string | null
+          phone: string | null
           primary_color: string | null
           secondary_color: string | null
           slug: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_tier: string | null
+          timezone: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           ai_model?: string | null
           anthropic_api_key?: string | null
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
@@ -3980,17 +3990,23 @@ export type Database = {
           logo_url?: string | null
           name: string
           parent_tenant_id?: string | null
+          phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           slug: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_tier?: string | null
+          timezone?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           ai_model?: string | null
           anthropic_api_key?: string | null
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
@@ -3999,12 +4015,14 @@ export type Database = {
           logo_url?: string | null
           name?: string
           parent_tenant_id?: string | null
+          phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_tier?: string | null
+          timezone?: string | null
           updated_at?: string
         }
         Relationships: [
