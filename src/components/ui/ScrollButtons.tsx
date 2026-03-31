@@ -27,7 +27,7 @@ export default function ScrollButtons() {
     'w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all duration-200 cursor-pointer';
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 flex flex-col gap-2">
+    <div className="fixed bottom-24 left-4 md:bottom-6 md:left-6 z-40 flex flex-col gap-2">
       {showUp && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
