@@ -140,7 +140,7 @@ export default function AppSidebar() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-[52px] border-b border-sidebar-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(172,66%,50%)] to-[hsl(172,66%,35%)] flex items-center justify-center shrink-0 shadow-lg shadow-[hsl(172,66%,50%)/0.25]">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 shadow-lg shadow-[hsl(172,66%,40%)/0.25]">
           <Building2 className="w-4 h-4 text-white" />
         </div>
         <AnimatePresence initial={false}>
