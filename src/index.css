@@ -103,10 +103,10 @@ a[href*="lovable.app"] {
     --input:            228 18% 18%;
     --ring:             230 65% 62%;
 
-    --sidebar-background: 228 28% 6%;
-    --sidebar-foreground: 225 15% 72%;
-    --sidebar-accent:     228 22% 13%;
-    --sidebar-border:     228 22% 14%;
+    --sidebar-background: 210 28% 6%;
+    --sidebar-foreground: 210 15% 72%;
+    --sidebar-accent:     210 22% 12%;
+    --sidebar-border:     210 20% 12%;
   }
 
   * { @apply border-border; box-sizing: border-box; }
