@@ -99,8 +99,8 @@ export default function AppSidebar() {
         className={cn(
           'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
           active
-            ? 'bg-sidebar-accent text-white font-semibold'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white'
+            ? 'bg-sidebar-accent text-sidebar-foreground font-semibold'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         )}
         title={collapsed ? item.label : undefined}
       >
