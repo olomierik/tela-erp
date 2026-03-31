@@ -211,7 +211,7 @@ export default function AppSidebar() {
 
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
           <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-sidebar-accent/60 transition-colors cursor-pointer group">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,50%)] to-[hsl(172,66%,35%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
             <AnimatePresence initial={false}>
