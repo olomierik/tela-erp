@@ -17,6 +17,69 @@ export interface ProcurementLineItem {
   unit_price: number;
 }
 
+// ─── Chart of Accounts ────────────────────────────────────────────────────────
+
+/** Standard GL account definitions used by auto-posting. */
+const GL_ACCOUNTS: Record<string, { code: string; name: string; account_type: string }> = {
+  ar:                   { code: '1100', name: 'Accounts Receivable',   account_type: 'asset' },
+  inventory_asset:      { code: '1300', name: 'Inventory Asset',       account_type: 'asset' },
+  wip:                  { code: '1340', name: 'Work In Progress',       account_type: 'asset' },
+  finished_goods:       { code: '1350', name: 'Finished Goods',        account_type: 'asset' },
+  ap:                   { code: '2000', name: 'Accounts Payable',      account_type: 'liability' },
+  wages_payable:        { code: '2100', name: 'Wages Payable',         account_type: 'liability' },
+  tax_payable:          { code: '2200', name: 'Tax Payable',           account_type: 'liability' },
+  revenue:              { code: '4000', name: 'Sales Revenue',         account_type: 'revenue' },
+  cogs:                 { code: '5000', name: 'Cost of Goods Sold',    account_type: 'expense' },
+  salary_expense:       { code: '5200', name: 'Salary Expense',        account_type: 'expense' },
+  payroll_deductions:   { code: '5210', name: 'Payroll Deductions',    account_type: 'expense' },
+  manufacturing_cost:   { code: '5300', name: 'Manufacturing Cost',    account_type: 'expense' },
+};
+
+/** Maps journal label to [debit account key, credit account key]. */
+const JOURNAL_MAP: Record<string, [string, string]> = {
+  debit_AR_credit_Revenue:               ['ar',                 'revenue'],
+  debit_COGS_credit_Inventory:           ['cogs',               'inventory_asset'],
+  debit_InventoryAsset_credit_AP:        ['inventory_asset',    'ap'],
+  debit_FinishedGoods_credit_WIP:        ['finished_goods',     'wip'],
+  debit_Revenue_credit_AR_reversal:      ['revenue',            'ar'],
+  debit_SalaryExpense_credit_PayableWages: ['salary_expense',   'wages_payable'],
+  debit_PayrollDeductions_credit_TaxPayable: ['payroll_deductions', 'tax_payable'],
+};
+
+/**
+ * Returns the id of the GL account with the given code, creating it if needed.
+ * Failures are silently swallowed to avoid blocking business operations.
+ */
+async function getOrCreateGLAccount(tenantId: string, key: string): Promise<string | null> {
+  const def = GL_ACCOUNTS[key];
+  if (!def) return null;
+  try {
+    const { data: existing } = await (supabase.from('chart_of_accounts') as any)
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('code', def.code)
+      .maybeSingle();
+
+    if (existing?.id) return existing.id as string;
+
+    const { data: created } = await (supabase.from('chart_of_accounts') as any)
+      .insert({
+        tenant_id: tenantId,
+        code: def.code,
+        name: def.name,
+        account_type: def.account_type,
+        is_system: true,
+        balance: 0,
+      })
+      .select('id')
+      .single();
+
+    return created?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ─── Internal Helpers ─────────────────────────────────────────────────────────
 
 /** Write an immutable audit trail entry. Failures are swallowed so they
@@ -41,29 +104,61 @@ async function writeAuditLog(
   }
 }
 
-/** Create a single-sided accounting transaction record.
- *  Double-entry intent is encoded in the `journal` field of custom_fields. */
-async function createAccountingEntry(
-  tenantId: string,
-  type: 'income' | 'expense',
-  category: string,
-  amount: number,
-  description: string,
-  reference: string,
-  journal: string
-) {
-  if (amount <= 0) return;
-  const { error } = await (supabase.from('transactions') as any).insert({
+interface AccountingEntryParams {
+  type: 'income' | 'expense';
+  category: string;
+  amount: number;
+  description: string;
+  reference: string;
+  journal: string;
+  referenceType?: string;
+}
+
+/**
+ * Creates a transaction entry AND a matching journal_entry for double-entry GL.
+ * The journal_entry is posted to chart_of_accounts accounts (auto-created if needed).
+ */
+async function createAccountingEntry(tenantId: string, p: AccountingEntryParams) {
+  if (p.amount <= 0) return;
+  const amount = Math.round(p.amount * 100) / 100;
+
+  // 1. Write to transactions (existing simplified ledger)
+  const { error: txnErr } = await (supabase.from('transactions') as any).insert({
     tenant_id: tenantId,
-    type,
-    category,
-    amount: Math.round(amount * 100) / 100,
-    description,
-    reference_number: reference,
+    type: p.type,
+    category: p.category,
+    amount,
+    description: p.description,
+    reference_number: p.reference,
     date: new Date().toISOString().split('T')[0],
-    custom_fields: { journal, auto: true },
+    custom_fields: { journal: p.journal, auto: true },
   });
-  if (error) console.error(`Accounting entry error [${journal}]:`, error.message);
+  if (txnErr) console.error(`Accounting entry error [${p.journal}]:`, txnErr.message);
+
+  // 2. Write a proper double-entry journal record (used by Trial Balance / General Ledger)
+  const keys = JOURNAL_MAP[p.journal];
+  if (keys) {
+    const [debitKey, creditKey] = keys;
+    const [debitId, creditId] = await Promise.all([
+      getOrCreateGLAccount(tenantId, debitKey),
+      getOrCreateGLAccount(tenantId, creditKey),
+    ]);
+
+    if (debitId && creditId) {
+      const { error: jeErr } = await (supabase.from('journal_entries') as any).insert({
+        tenant_id: tenantId,
+        entry_date: new Date().toISOString().split('T')[0],
+        description: p.description,
+        reference_type: p.referenceType ?? 'auto',
+        reference_id: p.reference,
+        debit_account_id: debitId,
+        credit_account_id: creditId,
+        amount,
+        is_auto: true,
+      });
+      if (jeErr) console.error(`Journal entry error [${p.journal}]:`, jeErr.message);
+    }
+  }
 }
 
 /** Record a movement in the inventory_transactions ledger. */
@@ -95,8 +190,9 @@ async function createInventoryTransaction(
  *   1. Deduct stock per line item — prevents double-selling.
  *   2. Record COGS per item (debit COGS / credit Inventory).
  *   3. Record Revenue (debit AR / credit Revenue).
- *   4. Auto-draft procurement PO for any item that drops below reorder level.
- *   5. Write audit log entry.
+ *   4. Mark inventory_reservations as fulfilled.
+ *   5. Auto-draft procurement PO for any item that drops below reorder level.
+ *   6. Write audit log entry.
  *
  * If a line item has no item_id it is skipped for inventory purposes (e.g.
  * a service line). The revenue entry is always created for the full total.
@@ -109,13 +205,15 @@ export async function onSalesOrderCreated(
   const actions: string[] = [];
   try {
     // ── 1. Revenue / AR journal entry ────────────────────────────────────────
-    await createAccountingEntry(
-      tenantId, 'income', 'Sales Revenue',
-      order.total_amount,
-      `Sales Order ${order.order_number} — ${order.customer_name}`,
-      order.order_number,
-      'debit_AR_credit_Revenue'
-    );
+    await createAccountingEntry(tenantId, {
+      type: 'income',
+      category: 'Sales Revenue',
+      amount: order.total_amount,
+      description: `Sales Order ${order.order_number} — ${order.customer_name}`,
+      reference: order.order_number,
+      journal: 'debit_AR_credit_Revenue',
+      referenceType: 'sales_order',
+    });
     actions.push('Revenue entry');
 
     // ── 2. Per-item: inventory deduction + COGS + low-stock detection ────────
@@ -145,13 +243,15 @@ export async function onSalesOrderCreated(
       // COGS (unit_cost × qty)
       const cogs = li.quantity * Number(item.unit_cost);
       if (cogs > 0) {
-        await createAccountingEntry(
-          tenantId, 'expense', 'Cost of Goods Sold',
-          cogs,
-          `COGS — ${li.item_name} (${li.quantity} units) — ${order.order_number}`,
-          order.order_number,
-          'debit_COGS_credit_Inventory'
-        );
+        await createAccountingEntry(tenantId, {
+          type: 'expense',
+          category: 'Cost of Goods Sold',
+          amount: cogs,
+          description: `COGS — ${li.item_name} (${li.quantity} units) — ${order.order_number}`,
+          reference: order.order_number,
+          journal: 'debit_COGS_credit_Inventory',
+          referenceType: 'sales_order',
+        });
       }
 
       // Auto-draft procurement PO if now below reorder level
@@ -175,7 +275,15 @@ export async function onSalesOrderCreated(
 
     if (validLines.length > 0) actions.push('Inventory deducted');
 
-    // ── 3. Audit log ─────────────────────────────────────────────────────────
+    // ── 3. Mark inventory reservations as fulfilled ───────────────────────────
+    if (order.id && validLines.length > 0) {
+      await (supabase.from('inventory_reservations') as any)
+        .update({ status: 'fulfilled' })
+        .eq('sales_order_id', order.id)
+        .eq('tenant_id', tenantId);
+    }
+
+    // ── 4. Audit log ─────────────────────────────────────────────────────────
     await writeAuditLog(tenantId, 'sales', 'SALE_CREATED', order.order_number, {
       order_id: order.id,
       customer: order.customer_name,
@@ -225,13 +333,15 @@ export async function onSalesOrderCancelled(
     }
 
     // Reversal accounting entry
-    await createAccountingEntry(
-      tenantId, 'expense', 'Sales Reversal',
-      order.total_amount,
-      `Reversal for cancelled order ${order.order_number}`,
-      order.order_number,
-      'debit_Revenue_credit_AR_reversal'
-    );
+    await createAccountingEntry(tenantId, {
+      type: 'expense',
+      category: 'Sales Reversal',
+      amount: order.total_amount,
+      description: `Reversal for cancelled order ${order.order_number}`,
+      reference: order.order_number,
+      journal: 'debit_Revenue_credit_AR_reversal',
+      referenceType: 'sales_order',
+    });
 
     await writeAuditLog(tenantId, 'sales', 'SALE_CANCELLED', order.order_number, {
       order_id: order.id,
@@ -254,9 +364,6 @@ export async function onSalesOrderCancelled(
  *   2. Record manufacturing cost journal entry (debit Finished Goods / credit WIP).
  *   3. Deduct raw materials per BOM lines (with wastage).
  *   4. Write audit log entry.
- *
- * BOM lookup: find bom_templates where finished_item_id = production_order.item_id,
- * then deduct each bom_lines.raw_material_id × quantity × production qty.
  */
 export async function onProductionCompleted(
   tenantId: string,
@@ -317,13 +424,15 @@ export async function onProductionCompleted(
     // ── 2. Manufacturing cost journal entry ───────────────────────────────────
     const mfgCost = order.quantity * unitCost;
     if (mfgCost > 0) {
-      await createAccountingEntry(
-        tenantId, 'expense', 'Manufacturing Cost',
-        mfgCost,
-        `Manufacturing cost — ${order.order_number} (${order.quantity} × ${order.product_name})`,
-        order.order_number,
-        'debit_FinishedGoods_credit_WIP'
-      );
+      await createAccountingEntry(tenantId, {
+        type: 'expense',
+        category: 'Manufacturing Cost',
+        amount: mfgCost,
+        description: `Manufacturing cost — ${order.order_number} (${order.quantity} × ${order.product_name})`,
+        reference: order.order_number,
+        journal: 'debit_FinishedGoods_credit_WIP',
+        referenceType: 'production_order',
+      });
       actions.push('Mfg cost recorded');
     }
 
@@ -339,7 +448,6 @@ export async function onProductionCompleted(
       if (boms && boms.length > 0) {
         const bom = boms[0];
         const outputQty = Number(bom.output_quantity) || 1;
-        // How many BOM runs needed to produce `order.quantity` units
         const runs = order.quantity / outputQty;
 
         const { data: bomLines } = await (supabase.from('bom_lines') as any)
@@ -408,9 +516,6 @@ export async function onProductionCompleted(
  *   2. For each line item with an item_id, increase inventory quantity.
  *   3. Write inventory transaction (procurement_in) per item.
  *   4. Write audit log entry.
- *
- * Line items without an item_id are tracked in the transaction ledger only
- * (no inventory item update — e.g. services or un-catalogued goods).
  */
 export async function onProcurementReceived(
   tenantId: string,
@@ -420,13 +525,15 @@ export async function onProcurementReceived(
   const actions: string[] = [];
   try {
     // ── 1. AP / Inventory asset journal entry ─────────────────────────────────
-    await createAccountingEntry(
-      tenantId, 'expense', 'Accounts Payable',
-      po.total_amount,
-      `PO ${po.po_number} received from ${po.supplier_name}`,
-      po.po_number,
-      'debit_InventoryAsset_credit_AP'
-    );
+    await createAccountingEntry(tenantId, {
+      type: 'expense',
+      category: 'Accounts Payable',
+      amount: po.total_amount,
+      description: `PO ${po.po_number} received from ${po.supplier_name}`,
+      reference: po.po_number,
+      journal: 'debit_InventoryAsset_credit_AP',
+      referenceType: 'purchase_order',
+    });
     actions.push('AP entry created');
 
     // ── 2 & 3. Inventory update per line item ─────────────────────────────────
@@ -593,5 +700,129 @@ export async function onStockTransferCompleted(
   } catch (err) {
     console.error('[onStockTransferCompleted] error:', err);
     toast.error('Transfer completion failed — check console for details');
+  }
+}
+
+// ─── BOM Material Availability Validation ─────────────────────────────────────
+/**
+ * Checks whether sufficient raw materials exist to start a production order.
+ * Returns { valid, shortfalls[] }. If no BOM is found, returns valid=true.
+ * Designed to be called BEFORE allowing status → 'in_progress'.
+ */
+export interface BOMShortfall {
+  material: string;
+  required: number;
+  available: number;
+  shortage: number;
+}
+
+export async function validateBOMAvailability(
+  tenantId: string,
+  productionOrder: { item_id?: string | null; quantity: number; product_name: string }
+): Promise<{ valid: boolean; shortfalls: BOMShortfall[] }> {
+  if (!productionOrder.item_id) return { valid: true, shortfalls: [] };
+
+  try {
+    const { data: bom } = await (supabase.from('bom_templates') as any)
+      .select('id, output_quantity, bom_lines(raw_material_id, quantity, wastage_percent)')
+      .eq('tenant_id', tenantId)
+      .eq('finished_item_id', productionOrder.item_id)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (!bom) return { valid: true, shortfalls: [] };
+
+    const outputQty = Number(bom.output_quantity) || 1;
+    const runs = productionOrder.quantity / outputQty;
+    const shortfalls: BOMShortfall[] = [];
+
+    for (const line of bom.bom_lines ?? []) {
+      const wasteFactor = 1 + (Number(line.wastage_percent) || 0) / 100;
+      const required = Math.ceil(Number(line.quantity) * runs * wasteFactor);
+
+      const { data: rawItem } = await (supabase.from('inventory_items') as any)
+        .select('id, name, quantity')
+        .eq('id', line.raw_material_id)
+        .eq('tenant_id', tenantId)
+        .maybeSingle();
+
+      const available = Number(rawItem?.quantity ?? 0);
+      if (available < required) {
+        shortfalls.push({
+          material: rawItem?.name ?? line.raw_material_id,
+          required,
+          available,
+          shortage: required - available,
+        });
+      }
+    }
+
+    return { valid: shortfalls.length === 0, shortfalls };
+  } catch (err) {
+    console.error('[validateBOMAvailability] error:', err);
+    return { valid: true, shortfalls: [] }; // Don't block on error
+  }
+}
+
+// ─── Payroll Approved ─────────────────────────────────────────────────────────
+/**
+ * PAYROLL_APPROVED event
+ *
+ * Triggered when a payroll run is approved/paid.
+ * Actions:
+ *   1. Post salary expense to accounting (debit Salary Expense / credit Wages Payable).
+ *   2. Post statutory deductions entry (debit Payroll Deductions / credit Tax Payable).
+ *   3. Write audit log entry.
+ */
+export async function onPayrollApproved(
+  tenantId: string,
+  payrollRun: { id: string; month: number; year: number },
+  lines: Array<{ gross_salary: number; net_salary: number }>
+) {
+  try {
+    const totalNet = lines.reduce((s, l) => s + Number(l.net_salary), 0);
+    const totalGross = lines.reduce((s, l) => s + Number(l.gross_salary), 0);
+    const totalDeductions = totalGross - totalNet;
+    const period = `${payrollRun.month}/${payrollRun.year}`;
+    const reference = `PAYROLL-${payrollRun.year}-${String(payrollRun.month).padStart(2, '0')}`;
+
+    // 1. Net salary expense
+    await createAccountingEntry(tenantId, {
+      type: 'expense',
+      category: 'Salary Expense',
+      amount: totalNet,
+      description: `Payroll ${period} — ${lines.length} employee${lines.length !== 1 ? 's' : ''}`,
+      reference,
+      journal: 'debit_SalaryExpense_credit_PayableWages',
+      referenceType: 'payroll_run',
+    });
+
+    // 2. Statutory deductions (PAYE + NSSF + SDL + WCF)
+    if (totalDeductions > 0) {
+      await createAccountingEntry(tenantId, {
+        type: 'expense',
+        category: 'Payroll Deductions',
+        amount: totalDeductions,
+        description: `Statutory deductions — ${period} (PAYE, NSSF, SDL, WCF)`,
+        reference,
+        journal: 'debit_PayrollDeductions_credit_TaxPayable',
+        referenceType: 'payroll_run',
+      });
+    }
+
+    // 3. Audit log
+    await writeAuditLog(tenantId, 'hr', 'PAYROLL_APPROVED', reference, {
+      run_id: payrollRun.id,
+      period,
+      total_gross: totalGross,
+      total_net: totalNet,
+      total_deductions: totalDeductions,
+      employee_count: lines.length,
+    });
+
+    toast.success(`Payroll ${period} posted to accounting — ${lines.length} employees`);
+  } catch (err) {
+    console.error('[onPayrollApproved] error:', err);
+    toast.error('Failed to post payroll to accounting');
   }
 }
