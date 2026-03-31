@@ -3,7 +3,7 @@
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 export type JEStatus    = 'draft' | 'posted' | 'cancelled';
 
-export interface Account {
+export interface Account extends Record<string, unknown> {
   id:          string;   // same as code
   code:        string;
   name:        string;
@@ -15,7 +15,7 @@ export interface Account {
   description: string;
 }
 
-export interface JournalLine {
+export interface JournalLine extends Record<string, unknown> {
   id:         string;
   accountId:  string;
   accountCode:string;
@@ -26,7 +26,7 @@ export interface JournalLine {
   department: string;
 }
 
-export interface JournalEntry {
+export interface JournalEntry extends Record<string, unknown> {
   id:          string;
   reference:   string;   // JE-2026-001
   date:        string;
