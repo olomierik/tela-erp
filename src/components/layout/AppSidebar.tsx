@@ -99,8 +99,8 @@ export default function AppSidebar() {
         className={cn(
           'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
           active
-            ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+            ? 'bg-sidebar-accent text-white font-semibold'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white'
         )}
         title={collapsed ? item.label : undefined}
       >
@@ -109,7 +109,7 @@ export default function AppSidebar() {
         )}
         <item.icon className={cn(
           'w-[17px] h-[17px] shrink-0 transition-colors duration-100',
-          active ? 'text-sidebar-primary' : 'text-sidebar-muted group-hover:text-sidebar-accent-foreground'
+          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-white'
         )} />
         <AnimatePresence initial={false}>
           {!collapsed && (
