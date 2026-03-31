@@ -178,7 +178,7 @@ export default function AICFOAssistant() {
                     </div>
                     <p className="text-xs text-amber-700 dark:text-amber-400">{apiError}</p>
                     <p className="text-xs text-amber-600/70 dark:text-amber-500/70 mt-1">
-                      Add your Anthropic API key in Settings → AI Settings to enable AI insights.
+                      AI is powered by Lovable AI. Please try again later.
                     </p>
                   </div>
                 ) : insights ? (
