@@ -195,7 +195,7 @@ export default function AppSidebar() {
           to="/settings"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            'flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
+            'flex items-center gap-3 px-3 py-[7px] rounded-lg text-[16px] transition-colors duration-100 group select-none',
             isActive('/settings')
               ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
