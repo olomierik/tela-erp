@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 export default function Profile() {
   const { profile, role, isDemo } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
-  const [phone, setPhone] = useState(profile?.phone ?? '');
+  const [phone, setPhone] = useState((profile as any)?.phone ?? '');
   const [saving, setSaving] = useState(false);
 
   // Password
