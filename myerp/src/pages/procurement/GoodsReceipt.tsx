@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { useTable } from '@/lib/useTable';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatDate } from '@/lib/mock';
 import { toast } from 'sonner';
 import { Pencil, Trash2, PackageCheck, Clock, CheckCircle, PackageOpen, Loader2 } from 'lucide-react';
@@ -20,6 +22,8 @@ interface GoodsReceipt extends Record<string, unknown> {
   receipt_number: string;
   po_number: string;
   vendor: string;
+  product_name: string;
+  quantity_received: number;
   received_date: string;
   status: 'pending' | 'partial' | 'complete';
   notes: string;
@@ -34,12 +38,15 @@ const statusVariant: Record<GRStatus, 'secondary' | 'warning' | 'success'> = {
 };
 
 export default function GoodsReceipt() {
+  const { user } = useAuth();
   const { rows: receipts, loading, insert, update, remove } = useTable<GoodsReceipt>('myerp_goods_receipts');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editing, setEditing] = useState<GoodsReceipt | null>(null);
   const [form, setForm] = useState({
     po_number: '',
     vendor: '',
+    product_name: '',
+    quantity_received: 0,
     received_date: new Date().toISOString().split('T')[0],
     status: 'pending' as GRStatus,
     notes: '',
@@ -55,6 +62,8 @@ export default function GoodsReceipt() {
     setForm({
       po_number: '',
       vendor: '',
+      product_name: '',
+      quantity_received: 0,
       received_date: new Date().toISOString().split('T')[0],
       status: 'pending',
       notes: '',
@@ -67,6 +76,8 @@ export default function GoodsReceipt() {
     setForm({
       po_number: receipt.po_number,
       vendor: receipt.vendor,
+      product_name: receipt.product_name,
+      quantity_received: receipt.quantity_received,
       received_date: receipt.received_date,
       status: receipt.status,
       notes: receipt.notes,
@@ -78,10 +89,15 @@ export default function GoodsReceipt() {
     if (!form.po_number.trim()) { toast.error('PO number is required'); return; }
     if (!form.vendor.trim()) { toast.error('Vendor is required'); return; }
     try {
+      const wasComplete = editing?.status === 'complete';
+      const nowComplete = form.status === 'complete';
+
       if (editing) {
         await update(editing.id, {
           po_number: form.po_number,
           vendor: form.vendor,
+          product_name: form.product_name,
+          quantity_received: form.quantity_received,
           received_date: form.received_date,
           status: form.status,
           notes: form.notes,
@@ -93,12 +109,34 @@ export default function GoodsReceipt() {
           receipt_number: `GR-${new Date().getFullYear()}-${String(next).padStart(3, '0')}`,
           po_number: form.po_number,
           vendor: form.vendor,
+          product_name: form.product_name,
+          quantity_received: form.quantity_received,
           received_date: form.received_date,
           status: form.status,
           notes: form.notes,
         });
         toast.success('Goods receipt created');
       }
+
+      // Update inventory when status first transitions to complete
+      if (!wasComplete && nowComplete && form.product_name.trim() && form.quantity_received > 0 && user) {
+        const { data: product } = await supabase
+          .from('myerp_products')
+          .select('id, stock_qty, name')
+          .eq('user_id', user.id)
+          .ilike('name', form.product_name)
+          .maybeSingle();
+        if (product) {
+          await supabase
+            .from('myerp_products')
+            .update({ stock_qty: Number(product.stock_qty) + Number(form.quantity_received) })
+            .eq('id', product.id);
+          toast.success(`Inventory updated: +${form.quantity_received} units of "${product.name}"`);
+        } else {
+          toast.warning(`Receipt completed but product "${form.product_name}" not found in inventory`);
+        }
+      }
+
       setSheetOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save goods receipt');
@@ -184,9 +222,10 @@ export default function GoodsReceipt() {
                   <TableHead>Receipt #</TableHead>
                   <TableHead>PO #</TableHead>
                   <TableHead>Vendor</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Qty</TableHead>
                   <TableHead>Received Date</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Notes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -196,11 +235,12 @@ export default function GoodsReceipt() {
                     <TableCell className="font-mono text-sm font-medium">{r.receipt_number}</TableCell>
                     <TableCell className="font-mono text-sm">{r.po_number}</TableCell>
                     <TableCell>{r.vendor}</TableCell>
+                    <TableCell>{r.product_name}</TableCell>
+                    <TableCell>{r.quantity_received}</TableCell>
                     <TableCell>{formatDate(r.received_date)}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant[r.status]} className="capitalize">{r.status}</Badge>
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground text-sm">{r.notes}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
@@ -232,6 +272,15 @@ export default function GoodsReceipt() {
             <div className="grid gap-1.5">
               <Label htmlFor="gr-vendor">Vendor</Label>
               <Input id="gr-vendor" value={form.vendor} onChange={set('vendor')} placeholder="Vendor name" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="gr-product">Product Name</Label>
+              <Input id="gr-product" value={form.product_name} onChange={set('product_name')} placeholder="Match name in inventory" />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="gr-qty">Quantity Received</Label>
+              <Input id="gr-qty" type="number" min={0} value={form.quantity_received}
+                onChange={e => setForm(f => ({ ...f, quantity_received: Number(e.target.value) }))} />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="gr-date">Received Date</Label>

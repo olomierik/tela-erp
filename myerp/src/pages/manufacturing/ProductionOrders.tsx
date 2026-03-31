@@ -12,6 +12,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate } from '@/lib/mock';
 import { useTable } from '@/lib/useTable';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { Pencil, Trash2, ClipboardList, Loader, CheckCircle2, PauseCircle, Loader2 } from 'lucide-react';
 
@@ -43,6 +45,7 @@ const statusLabel: Record<OrderStatus, string> = {
 };
 
 export default function ProductionOrders() {
+  const { user } = useAuth();
   const { rows: orders, loading, insert, update, remove } = useTable<ProductionOrder>('myerp_production_orders');
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ProductionOrder | null>(null);
@@ -69,8 +72,29 @@ export default function ProductionOrders() {
     if (!form.product.trim()) { toast.error('Product is required'); return; }
     try {
       if (editing) {
+        const wasCompleted = editing.status === 'completed';
+        const nowCompleted = form.status === 'completed';
         await update(editing.id, form);
         toast.success('Production order updated');
+
+        // Update inventory when status first transitions to completed
+        if (!wasCompleted && nowCompleted && user) {
+          const { data: product } = await supabase
+            .from('myerp_products')
+            .select('id, stock_qty, name')
+            .eq('user_id', user.id)
+            .ilike('name', form.product)
+            .maybeSingle();
+          if (product) {
+            await supabase
+              .from('myerp_products')
+              .update({ stock_qty: Number(product.stock_qty) + Number(form.quantity) })
+              .eq('id', product.id);
+            toast.success(`Inventory updated: +${form.quantity} units of "${product.name}"`);
+          } else {
+            toast.warning(`Order completed but product "${form.product}" not found in inventory`);
+          }
+        }
       } else {
         await insert({ order_number: '', ...form });
         toast.success('Production order created');
