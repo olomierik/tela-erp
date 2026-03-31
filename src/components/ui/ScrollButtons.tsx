@@ -23,7 +23,7 @@ export default function ScrollButtons() {
       {showUp && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="w-7 h-7 rounded-full bg-muted-foreground/20 hover:bg-muted-foreground/40 text-foreground/70 hover:text-foreground flex items-center justify-center transition-all duration-150 backdrop-blur-sm"
+          className="w-7 h-7 rounded-full bg-primary/20 hover:bg-primary/40 text-primary hover:text-primary flex items-center justify-center transition-all duration-150 backdrop-blur-sm"
           aria-label="Scroll to top"
         >
           <ChevronUp className="w-4 h-4" />
