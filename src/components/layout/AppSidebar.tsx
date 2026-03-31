@@ -152,7 +152,7 @@ export default function AppSidebar() {
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <h1 className="text-sidebar-accent-foreground font-bold text-sm tracking-tight whitespace-nowrap leading-tight">
+              <h1 className="text-sidebar-accent-foreground font-bold text-sm tracking-tight whitespace-nowrap leading-tight text-slate-800">
                 {tenant?.name ?? 'TELA ERP'}
               </h1>
               <p className="text-[10px] text-sidebar-muted whitespace-nowrap leading-none mt-0.5">Enterprise Platform</p>
