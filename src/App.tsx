@@ -56,6 +56,7 @@ import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
+import ScrollButtons from "@/components/ui/ScrollButtons";
 
 // Initialize error monitoring
 initErrorMonitoring();
