@@ -42,6 +42,7 @@ const navSections: NavSection[] = [
       { label: 'Invoices', icon: FileText, path: '/invoices' },
       { label: 'Procurement', icon: Truck, path: '/procurement' },
       { label: 'Inventory', icon: Package, path: '/inventory' },
+      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers' },
       { label: 'Production', icon: Factory, path: '/production' },
     ],
   },
