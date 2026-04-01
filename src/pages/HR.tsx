@@ -237,11 +237,13 @@ export default function HR() {
   const [employeeSheet, setEmployeeSheet] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('employees');
+  const [leaveSheet, setLeaveSheet] = useState(false);
 
   const { data: employees = [], isLoading } = useTenantQuery('employees');
   const { data: leaveRequests = [], isLoading: leaveLoading } = useTenantQuery('leave_requests');
   const deleteEmployee = useTenantDelete('employees');
   const updateLeave = useTenantUpdate('leave_requests');
+  const insertLeave = useTenantInsert('leave_requests');
 
   // Per-run allowance overrides (employee id → monthly allowance)
   const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
