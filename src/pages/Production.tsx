@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTenantQuery, useTenantInsert, useTenantDelete, useTenantUpdate } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
-import { onProductionCompleted, validateBOMAvailability } from '@/hooks/use-cross-module';
+import { validateBOMAvailability } from '@/hooks/use-cross-module';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
@@ -143,7 +143,7 @@ export default function Production() {
 
   /** Intercepts status changes so that:
    *  - Starting (→ in_progress) validates BOM material availability first.
-   *  - Completing (→ completed) triggers the cross-module inventory + accounting integration. */
+   *  - Completing (→ completed) is handled by backend automation for inventory updates. */
   const handleStatusChange = async (order: any, newStatus: string) => {
     // Validate BOM availability before allowing production to start
     if (newStatus === 'in_progress' && tenant?.id && order.item_id) {
@@ -160,19 +160,7 @@ export default function Production() {
       }
     }
 
-    updateMutation.mutate({ id: order.id, status: newStatus }, {
-      onSuccess: () => {
-        if (newStatus === 'completed' && tenant?.id) {
-          onProductionCompleted(tenant.id, {
-            id: order.id,
-            order_number: order.order_number,
-            product_name: order.product_name,
-            quantity: Number(order.quantity),
-            item_id: order.item_id ?? null,
-          });
-        }
-      },
-    });
+    updateMutation.mutate({ id: order.id, status: newStatus });
   };
 
   const [search, setSearch] = useState('');
