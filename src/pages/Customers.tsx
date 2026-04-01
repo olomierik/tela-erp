@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function CreateCustomerDialog({ onCreated, isPending }: { onCreated: (r: Record<string, any>) => void; isPending: boolean }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
+  const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
