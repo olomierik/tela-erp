@@ -150,6 +150,14 @@ export default function Login() {
             <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
           </div>
 
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+
           <h2 className="text-2xl font-bold text-foreground mb-1">Welcome back</h2>
           <p className="text-muted-foreground mb-8">Sign in to your account to continue</p>
 
