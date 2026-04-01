@@ -294,33 +294,26 @@ export default function Procurement() {
           item_id: li.item_id || null,
           description: li.description || '',
           quantity: li.quantity,
-          unit_cost: li.unit_price,
+          unit_price: li.unit_price,
         }));
-        (supabase as any).from('purchase_order_lines').insert(lines).then(() => {});
+
+        (supabase as any)
+          .from('purchase_order_lines')
+          .insert(lines)
+          .then(({ error }: any) => {
+            if (error) {
+              console.error('Failed to insert purchase_order_lines:', error);
+              toast.error('PO saved, but line item links were not saved');
+            }
+          });
       },
     });
   };
 
-  /** Receives a PO: updates status to 'received' and triggers
-   *  inventory update + AP accounting entry via the cross-module hook. */
+  /** Receives a PO: updates status to 'received'.
+   * Inventory/accounting now run in backend automation to keep data consistent. */
   const handleReceivePO = (po: any) => {
-    updateMutation.mutate({ id: po.id, status: 'received' }, {
-      onSuccess: (updated: any) => {
-        if (!tenant?.id) return;
-        const lineItems: ProcurementLineItem[] =
-          (po.custom_fields?.line_items as ProcurementLineItem[] | undefined) ?? [];
-        onProcurementReceived(
-          tenant.id,
-          {
-            id: po.id,
-            po_number: po.po_number,
-            supplier_name: po.supplier_name,
-            total_amount: Number(po.total_amount),
-          },
-          lineItems
-        );
-      },
-    });
+    updateMutation.mutate({ id: po.id, status: 'received' });
   };
 
   return (
