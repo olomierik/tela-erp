@@ -91,7 +91,7 @@ export default function Customers() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-border bg-muted/40">
-                {['Name', 'Contact', 'Location', 'Credit Limit', 'Outstanding', ''].map((h, i) => (
+                {['Name', 'Company', 'Contact', 'Location', 'Credit Limit', 'Outstanding', ''].map((h, i) => (
                   <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr></thead>
@@ -99,6 +99,7 @@ export default function Customers() {
                 {filtered.map((c: any) => (
                   <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                     <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{c.company || '—'}</td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {c.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{c.email}</span>}
                       {c.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone}</span>}
