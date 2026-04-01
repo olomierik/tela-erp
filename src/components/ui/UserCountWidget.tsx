@@ -7,14 +7,27 @@ export default function UserCountWidget() {
   const [count, setCount] = useState(0);
   const [displayCount, setDisplayCount] = useState(0);
 
+  const fetchCount = async () => {
+    const { count: total } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true });
+    if (total !== null) setCount(total);
+  };
+
   useEffect(() => {
-    const fetchCount = async () => {
-      const { count: total } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      if (total !== null) setCount(total);
-    };
     fetchCount();
+
+    // Real-time: update count when new users sign up
+    const channel = supabase
+      .channel('profiles-count')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
+        () => fetchCount()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // Animate counting up
