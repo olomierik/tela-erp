@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -137,6 +138,14 @@ export default function Features() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-[\'Plus_Jakarta_Sans\',sans-serif]">
+      <Helmet>
+        <title>Features — TELA-ERP | Inventory, Sales, Production, Accounting & More</title>
+        <meta name="description" content="Explore TELA-ERP's full feature set: inventory management, sales & POS, production, double-entry accounting, procurement, HR & payroll, AI insights, and more. Free for small businesses." />
+        <link rel="canonical" href="https://tela-erp.com/features" />
+        <meta property="og:title" content="Features — TELA-ERP | Free ERP for Small Businesses" />
+        <meta property="og:description" content="15+ integrated ERP modules — inventory, sales, production, accounting, HR, AI & more. Free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/features" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -134,6 +135,14 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Pricing — TELA-ERP | Free Open Source ERP Plans</title>
+        <meta name="description" content="TELA-ERP is free forever for small businesses. View plans: Starter (free), Growth ($29/mo), and Enterprise ($99/mo). No hidden fees, no credit card required." />
+        <link rel="canonical" href="https://tela-erp.com/pricing" />
+        <meta property="og:title" content="Pricing — TELA-ERP | Free ERP Software Plans" />
+        <meta property="og:description" content="Start free. Upgrade as you grow. TELA-ERP offers transparent pricing with no hidden fees for small and medium businesses worldwide." />
+        <meta property="og:url" content="https://tela-erp.com/pricing" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -91,6 +92,14 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Contact — TELA-ERP | Get in Touch</title>
+        <meta name="description" content="Contact TELA-ERP founder Erick Elibariki Olomi. Reach us by email at olomierik@gmail.com or WhatsApp +255 752 401 012. Based in Tanga, Tanzania." />
+        <link rel="canonical" href="https://tela-erp.com/contact" />
+        <meta property="og:title" content="Contact TELA-ERP | We'd Love to Hear from You" />
+        <meta property="og:description" content="Have a question about TELA-ERP? Reach out to our team. We reply within 24 hours." />
+        <meta property="og:url" content="https://tela-erp.com/contact" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">

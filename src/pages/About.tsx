@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -63,6 +64,14 @@ const techStack = [
 export default function About() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>About — TELA-ERP | Built in Tanzania for SMEs Worldwide</title>
+        <meta name="description" content="Meet Erick Elibariki Olomi, the founder of TELA-ERP. A tax consultant from Tanga, Tanzania who built a free, open source ERP to make enterprise software accessible to every small business." />
+        <link rel="canonical" href="https://tela-erp.com/about" />
+        <meta property="og:title" content="About TELA-ERP | Our Story & Mission" />
+        <meta property="og:description" content="Built by a Tanzanian tax consultant, TELA-ERP exists to make world-class ERP software accessible to small businesses everywhere — free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/about" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
