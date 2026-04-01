@@ -77,8 +77,8 @@ export default function Landing() {
             <Link to="/modules" className="hover:text-foreground transition-colors">Modules</Link>
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
             <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -97,6 +97,7 @@ export default function Landing() {
               <Link to="/modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</Link>
               <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</Link>
               <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Pricing</Link>
+              <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="py-2">Blog</Link>
               <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="py-2">About</Link>
               <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="py-2">Contact</Link>
               <div className="flex gap-2 pt-2">

@@ -41,6 +41,40 @@
     <priority>0.7</priority>
   </url>
 
+  <!-- Blog index -->
+  <url>
+    <loc>https://tela-erp.com/blog</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Blog posts -->
+  <url>
+    <loc>https://tela-erp.com/blog/best-free-erp-software-small-business-tanzania-2026</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tela-erp.com/blog/quickbooks-alternative-small-business-erp</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tela-erp.com/blog/how-to-manage-inventory-free-open-source-erp</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://tela-erp.com/blog/open-source-erp-vs-paid-erp-sme-guide</loc>
+    <lastmod>2026-04-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <!-- Auth pages -->
   <url>
     <loc>https://tela-erp.com/signup</loc>
