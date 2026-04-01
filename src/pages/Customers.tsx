@@ -30,6 +30,7 @@ function CreateCustomerDialog({ onCreated, isPending }: { onCreated: (r: Record<
         <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1"><Label className="text-xs">Name *</Label><Input required className="h-8 text-xs" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
+          <div className="space-y-1"><Label className="text-xs">Company</Label><Input className="h-8 text-xs" value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} placeholder="Company name" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" className="h-8 text-xs" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="h-8 text-xs" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} /></div>
