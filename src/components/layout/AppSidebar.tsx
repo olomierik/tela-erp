@@ -7,7 +7,7 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Building2, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
-  MoreHorizontal,
+  MoreHorizontal, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -67,6 +67,9 @@ const navSections: NavSection[] = [
     title: 'Finance',
     items: [
       { label: 'Accounting', icon: Calculator, path: '/accounting' },
+      { label: 'Vouchers', icon: FileText, path: '/accounting/vouchers' },
+      { label: 'Ledger', icon: BookOpen, path: '/accounting/ledger' },
+      { label: 'Financials', icon: BarChart3, path: '/accounting/reports' },
       { label: 'Expenses', icon: Receipt, path: '/expenses' },
       { label: 'Reports', icon: BarChart3, path: '/reports' },
     ],

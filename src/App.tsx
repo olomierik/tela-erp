@@ -57,6 +57,10 @@ import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
+import Vouchers from "./pages/accounting/Vouchers";
+import VoucherForm from "./pages/accounting/VoucherForm";
+import LedgerView from "./pages/accounting/LedgerView";
+import FinancialReports from "./pages/accounting/FinancialReports";
 import Unsubscribe from "./pages/Unsubscribe";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
@@ -105,6 +109,10 @@ const App = () => (
               <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
               <Route path="/marketing" element={<ProtectedRoute><Marketing /></ProtectedRoute>} />
               <Route path="/accounting" element={<ProtectedRoute><Accounting /></ProtectedRoute>} />
+              <Route path="/accounting/vouchers" element={<ProtectedRoute><Vouchers /></ProtectedRoute>} />
+              <Route path="/accounting/vouchers/:id" element={<ProtectedRoute><VoucherForm /></ProtectedRoute>} />
+              <Route path="/accounting/ledger" element={<ProtectedRoute><LedgerView /></ProtectedRoute>} />
+              <Route path="/accounting/reports" element={<ProtectedRoute><FinancialReports /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute><Procurement /></ProtectedRoute>} />
               <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
               <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />

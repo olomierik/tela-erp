@@ -14,6 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_ledger_balances: {
+        Row: {
+          account_id: string
+          id: string
+          last_voucher_date: string | null
+          running_balance: number
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          id?: string
+          last_voucher_date?: string | null
+          running_balance?: number
+          tenant_id: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          id?: string
+          last_voucher_date?: string | null
+          running_balance?: number
+          tenant_id?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_voucher_entries: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit: number
+          debit: number
+          description: string
+          id: string
+          tenant_id: string
+          voucher_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string
+          id?: string
+          tenant_id: string
+          voucher_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string
+          id?: string
+          tenant_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_voucher_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_vouchers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_auto: boolean
+          narration: string
+          reference: string | null
+          source_id: string | null
+          source_module: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          voucher_date: string
+          voucher_number: string
+          voucher_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean
+          narration?: string
+          reference?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          voucher_date?: string
+          voucher_number: string
+          voucher_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean
+          narration?: string
+          reference?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          voucher_date?: string
+          voucher_number?: string
+          voucher_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_vouchers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -4380,7 +4542,74 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      balance_sheet_view: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profit_loss_view: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trial_balance_view: {
+        Row: {
+          account_code: string | null
+          account_id: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       delete_email: {
@@ -4413,6 +4642,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      next_voucher_number: {
+        Args: { _tenant_id: string; _type: string }
+        Returns: string
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
