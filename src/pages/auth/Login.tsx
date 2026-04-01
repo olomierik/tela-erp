@@ -6,7 +6,7 @@ import { lovable } from '@/integrations/lovable/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Wand2, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { toast } from 'sonner';
@@ -149,6 +149,14 @@ export default function Login() {
             <img src={telaLogo} alt="TELA-ERP" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold text-foreground">TELA-ERP</h1>
           </div>
+
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
 
           <h2 className="text-2xl font-bold text-foreground mb-1">Welcome back</h2>
           <p className="text-muted-foreground mb-8">Sign in to your account to continue</p>
