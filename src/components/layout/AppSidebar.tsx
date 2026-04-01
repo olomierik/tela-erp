@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
+import telaLogo from '@/assets/tela-erp-logo.png';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface NavItem {
@@ -142,25 +143,7 @@ export default function AppSidebar() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
       <div className="flex items-center gap-3 px-4 h-[52px] border-b border-sidebar-border shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 shadow-lg shadow-[hsl(172,66%,40%)/0.25]">
-          <Building2 className="w-4 h-4 text-white" />
-        </div>
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.15 }}
-              className="overflow-hidden"
-            >
-              <h1 className="text-sidebar-accent-foreground font-bold text-sm tracking-tight whitespace-nowrap leading-tight text-slate-800">
-                {tenant?.name ?? 'TELA ERP'}
-              </h1>
-              <p className="text-[10px] text-sidebar-muted whitespace-nowrap leading-none mt-0.5">Enterprise Platform</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <img src={telaLogo} alt="TELA ERP" className={cn("shrink-0 object-contain transition-all duration-150", collapsed ? "h-7 w-7" : "h-8 w-auto max-w-[140px]")} />
       </div>
 
       {/* Nav */}
