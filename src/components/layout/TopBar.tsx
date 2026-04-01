@@ -149,7 +149,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
 
   return (
     <>
-      <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+      <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
         {/* Left: breadcrumbs + title */}
         <div className="min-w-0 pl-10 md:pl-0 flex flex-col justify-center">
           {crumbs.length > 1 ? (
