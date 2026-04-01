@@ -77,17 +77,26 @@ export default function Contact() {
       return;
     }
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 600));
-
-    const subject = encodeURIComponent(`TELA-ERP Enquiry from ${form.name}${form.company ? ` (${form.company})` : ''}`);
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}${form.company ? `\nCompany: ${form.company}` : ''}\n\nMessage:\n${form.message}`
-    );
-    window.open(`mailto:olomierik@gmail.com?subject=${subject}&body=${body}`, '_blank');
-
-    setLoading(false);
-    setForm({ name: '', email: '', company: '', message: '' });
-    toast.success("Your email client has opened — please send the pre-filled message!");
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const id = crypto.randomUUID();
+      const { error } = await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'contact-form-notification',
+          recipientEmail: 'olomierik@gmail.com',
+          idempotencyKey: `contact-notify-${id}`,
+          templateData: { name: form.name, email: form.email, company: form.company, message: form.message },
+        },
+      });
+      if (error) throw error;
+      setForm({ name: '', email: '', company: '', message: '' });
+      toast.success("Your message has been sent! We'll get back to you soon.");
+    } catch (err: any) {
+      console.error('Failed to send message', err);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
