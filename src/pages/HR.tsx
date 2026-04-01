@@ -729,6 +729,23 @@ export default function HR() {
           <EmployeeForm employee={selectedEmployee} onClose={() => setEmployeeSheet(false)} />
         </SheetContent>
       </Sheet>
+
+      {/* Leave Request Sheet */}
+      <Sheet open={leaveSheet} onOpenChange={setLeaveSheet}>
+        <SheetContent className="w-full sm:max-w-[480px] flex flex-col p-0" side="right">
+          <LeaveRequestForm
+            employees={employees as any[]}
+            onClose={() => setLeaveSheet(false)}
+            onSubmit={(data) => {
+              insertLeave.mutate(data, {
+                onSuccess: () => { toast.success('Leave request submitted'); setLeaveSheet(false); },
+                onError: (err: any) => toast.error(err?.message || 'Failed to submit'),
+              });
+            }}
+            isPending={insertLeave.isPending}
+          />
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }
