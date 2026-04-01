@@ -40,6 +40,7 @@ const DEMO_PROFILE: Profile = {
   tenant_id: 'demo-tenant',
   email: 'admin@tela-erp.com',
   full_name: 'Alex Morgan',
+  phone: '+254 700 000 000',
   is_active: true,
   created_at: new Date().toISOString(),
 };
