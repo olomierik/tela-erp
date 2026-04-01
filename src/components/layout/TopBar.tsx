@@ -149,7 +149,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
 
   return (
     <>
-      <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-4 md:px-6 sticky top-0 z-40">
+      <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
         {/* Left: breadcrumbs + title */}
         <div className="min-w-0 pl-10 md:pl-0 flex flex-col justify-center">
           {crumbs.length > 1 ? (
@@ -181,7 +181,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* ⌘K Search trigger */}
           <button
             onClick={() => setCmdOpen(true)}
@@ -210,10 +210,10 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
-          {/* Store Switcher */}
+          {/* Store Switcher — hidden on small screens */}
           {stores.length > 0 && (
             <Select value={selectedStoreId ?? 'all'} onValueChange={v => setSelectedStoreId(v === 'all' ? null : v)}>
-              <SelectTrigger className="h-8 text-xs border-border bg-background min-w-[110px] max-w-[150px]">
+              <SelectTrigger className="hidden sm:flex h-8 text-xs border-border bg-background min-w-[100px] max-w-[140px]">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <div className={cn(
                     'w-2 h-2 rounded-full shrink-0',
@@ -243,9 +243,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </Select>
           )}
 
-          {/* Currency */}
+          {/* Currency — hidden on small screens */}
           <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-            <SelectTrigger className="w-[76px] h-8 text-xs border-border">
+            <SelectTrigger className="hidden sm:flex w-[76px] h-8 text-xs border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
