@@ -686,6 +686,7 @@ export type Database = {
           store_id: string | null
           tax_id: string | null
           tenant_id: string
+          tier: string | null
           updated_at: string | null
         }
         Insert: {
@@ -705,6 +706,7 @@ export type Database = {
           store_id?: string | null
           tax_id?: string | null
           tenant_id: string
+          tier?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -724,6 +726,7 @@ export type Database = {
           store_id?: string | null
           tax_id?: string | null
           tenant_id?: string
+          tier?: string | null
           updated_at?: string | null
         }
         Relationships: [
