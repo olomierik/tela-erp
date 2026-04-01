@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TELA_LOGO_BASE64 } from './logo-base64';
 
 interface ReportOptions {
   title: string;
