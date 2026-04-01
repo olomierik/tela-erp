@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
-  Factory, Users, Globe, Megaphone,
+  Factory, Users, Globe, Megaphone, ArrowRightLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Building2, LogOut, ChevronLeft, ChevronRight,
-  Menu, X, Briefcase, Brain, Receipt,
+  Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

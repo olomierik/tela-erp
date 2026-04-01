@@ -150,9 +150,13 @@ function InvoiceSheet({
 
     setSaving(true);
     try {
-      const invoiceData = {
+      // Auto-generate invoice number for new invoices
+      const invoiceNumber = invoice?.invoice_number || `INV-${Date.now().toString(36).toUpperCase()}`;
+
+      const invoiceData: Record<string, any> = {
         customer_id: customerId,
         customer_name: selectedCustomer?.name || '',
+        invoice_number: invoiceNumber,
         issue_date: issueDate,
         due_date: dueDate || null,
         status,
