@@ -67,6 +67,9 @@ const navSections: NavSection[] = [
     title: 'Finance',
     items: [
       { label: 'Accounting', icon: Calculator, path: '/accounting' },
+      { label: 'Vouchers', icon: FileText, path: '/accounting/vouchers' },
+      { label: 'Ledger', icon: BookOpen, path: '/accounting/ledger' },
+      { label: 'Financials', icon: BarChart3, path: '/accounting/reports' },
       { label: 'Expenses', icon: Receipt, path: '/expenses' },
       { label: 'Reports', icon: BarChart3, path: '/reports' },
     ],
