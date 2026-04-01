@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,6 +56,11 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Helmet>
+        <title>Get Started Free — TELA-ERP | Create Your Account</title>
+        <meta name="description" content="Create your free TELA-ERP account. No credit card required. Get started with inventory, sales, production and accounting management in minutes." />
+        <link rel="canonical" href="https://tela-erp.com/signup" />
+      </Helmet>
       {/* Left panel — transparent with floating effects */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative overflow-hidden">
         {/* Animated gradient orbs */}

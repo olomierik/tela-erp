@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +39,10 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      <Helmet>
+        <title>Sign In — TELA-ERP</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       {/* Left panel — transparent with floating effects */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative overflow-hidden">
         {/* Animated gradient orbs */}
