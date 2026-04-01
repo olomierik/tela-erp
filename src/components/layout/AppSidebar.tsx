@@ -3,10 +3,10 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
-  Factory, Users, Globe, Megaphone,
+  Factory, Users, Globe, Megaphone, ArrowRightLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Building2, LogOut, ChevronLeft, ChevronRight,
-  Menu, X, Briefcase, Brain, Receipt,
+  Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +42,7 @@ const navSections: NavSection[] = [
       { label: 'Invoices', icon: FileText, path: '/invoices' },
       { label: 'Procurement', icon: Truck, path: '/procurement' },
       { label: 'Inventory', icon: Package, path: '/inventory' },
+      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers' },
       { label: 'Production', icon: Factory, path: '/production' },
     ],
   },
@@ -49,7 +50,8 @@ const navSections: NavSection[] = [
     title: 'Customers',
     items: [
       { label: 'CRM', icon: UserCircle, path: '/crm' },
-      { label: 'Store', icon: Globe, path: '/online-store' },
+      { label: 'Stores', icon: Store, path: '/stores' },
+      { label: 'Online Store', icon: Globe, path: '/online-store' },
       { label: 'Marketing', icon: Megaphone, path: '/marketing' },
     ],
   },
