@@ -186,12 +186,20 @@ export function generateInvoicePDF(opts: InvoicePDFOptions) {
   // Header bar
   doc.setFillColor(37, 99, 235);
   doc.rect(0, 0, pageWidth, 14, 'F');
-  doc.setFontSize(10);
-  doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.text(opts.tenantName || 'TELA-ERP', margin, 9);
+
+  // Logo
+  try {
+    doc.addImage(TELA_LOGO_BASE64, 'PNG', margin, 2, 28, 10);
+  } catch {
+    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text(opts.tenantName || 'TELA-ERP', margin, 9);
+  }
+
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
   doc.text('INVOICE', pageWidth - margin, 9, { align: 'right' });
 
   // Invoice details
