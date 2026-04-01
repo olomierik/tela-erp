@@ -57,6 +57,7 @@ import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
+import Unsubscribe from "./pages/Unsubscribe";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import ScrollButtons from "@/components/ui/ScrollButtons";
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/join/:inviteId" element={<JoinInvite />} />
+              <Route path="/unsubscribe" element={<Unsubscribe />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
