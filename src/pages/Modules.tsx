@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -230,6 +231,14 @@ const categories = ['All', 'Operations', 'Revenue', 'Finance', 'People', 'AI', '
 export default function Modules() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Modules — TELA-ERP | All 15 ERP Modules Explained</title>
+        <meta name="description" content="Explore all 15 TELA-ERP modules: Production, Inventory, Sales & POS, Accounting, Procurement, Marketing, CRM, HR, Projects, AI CFO, and more. Free for small businesses." />
+        <link rel="canonical" href="https://tela-erp.com/modules" />
+        <meta property="og:title" content="TELA-ERP Modules | Production, Inventory, Sales, Accounting & More" />
+        <meta property="og:description" content="15 fully interconnected ERP modules for small businesses. Production, inventory, sales, accounting, HR, CRM, AI — all free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/modules" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

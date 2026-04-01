@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b5ff5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <!-- Accent bar top -->
+  <rect x="0" y="0" width="1200" height="6" fill="url(#accent)" />
+
+  <!-- Glow circle -->
+  <circle cx="900" cy="200" r="300" fill="#3b5ff5" opacity="0.07" />
+  <circle cx="200" cy="500" r="200" fill="#6366f1" opacity="0.05" />
+
+  <!-- Logo box -->
+  <rect x="80" y="200" width="64" height="64" rx="16" fill="url(#accent)" />
+  <text x="112" y="242" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">T</text>
+
+  <!-- Brand name -->
+  <text x="164" y="243" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="white">TELA-ERP</text>
+
+  <!-- Tagline -->
+  <text x="80" y="310" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="white">Free Open Source ERP</text>
+  <text x="80" y="378" font-family="Arial, sans-serif" font-size="52" font-weight="bold" fill="white">for Small Businesses</text>
+
+  <!-- Description -->
+  <text x="80" y="440" font-family="Arial, sans-serif" font-size="26" fill="#94a3b8">Inventory · Sales · Production · Accounting · HR · AI</text>
+
+  <!-- Badge pills -->
+  <rect x="80" y="490" width="180" height="44" rx="22" fill="#3b5ff510" stroke="#3b5ff5" stroke-width="1.5" />
+  <text x="170" y="518" font-family="Arial, sans-serif" font-size="18" fill="#818cf8" text-anchor="middle">100% Free</text>
+
+  <rect x="276" y="490" width="210" height="44" rx="22" fill="#3b5ff510" stroke="#3b5ff5" stroke-width="1.5" />
+  <text x="381" y="518" font-family="Arial, sans-serif" font-size="18" fill="#818cf8" text-anchor="middle">Open Source</text>
+
+  <rect x="502" y="490" width="230" height="44" rx="22" fill="#3b5ff510" stroke="#3b5ff5" stroke-width="1.5" />
+  <text x="617" y="518" font-family="Arial, sans-serif" font-size="18" fill="#818cf8" text-anchor="middle">165+ Currencies</text>
+
+  <rect x="748" y="490" width="220" height="44" rx="22" fill="#3b5ff510" stroke="#3b5ff5" stroke-width="1.5" />
+  <text x="858" y="518" font-family="Arial, sans-serif" font-size="18" fill="#818cf8" text-anchor="middle">Multi-Tenant</text>
+
+  <!-- URL -->
+  <text x="80" y="592" font-family="Arial, sans-serif" font-size="22" fill="#475569">tela-erp.com</text>
+</svg>

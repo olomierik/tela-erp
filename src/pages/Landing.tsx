@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -57,6 +58,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>TELA-ERP — Free Open Source ERP for Small Businesses | Sales, Inventory & Production</title>
+        <meta name="description" content="TELA-ERP is a free, open source cloud ERP for small businesses. Manage inventory, sales, production, accounting & procurement in one platform. Used in Tanzania, US, UK, Canada, India & worldwide." />
+        <link rel="canonical" href="https://tela-erp.com/" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -332,13 +338,23 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold mb-3">Modules</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Production</li><li>Inventory</li><li>Sales & POS</li><li>Accounting</li><li>Marketing</li><li>Procurement</li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Production Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Inventory Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Sales & POS Software</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Accounting Software</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Procurement Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">HR & Payroll</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-3">Platform</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Multi-Tenant</li><li>White-Label</li><li>Reseller Portal</li><li>Multi-Currency</li><li>Reports & PDF</li><li>Tela AI</li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Multi-Tenant ERP</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">White-Label ERP</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Reseller Portal</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Multi-Currency (165+)</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Reports & PDF Export</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">AI Business Insights</Link></li>
               </ul>
             </div>
             <div>
@@ -353,8 +369,14 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
-            <span>Built with ❤️ for SMEs in Africa &amp; the world</span>
+            <span>© {new Date().getFullYear()} TELA-ERP by Erick Elibariki Olomi — Tanga, Tanzania</span>
+            <div className="flex gap-4">
+              <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+              <a href="https://github.com/olomierik/tela-erp" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+            </div>
           </div>
         </div>
       </footer>
