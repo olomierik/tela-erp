@@ -32,10 +32,10 @@ const checklist: { section: string; items: ChecklistItem[] }[] = [
   {
     section: 'Stripe Integration',
     items: [
-      { label: 'Enable Stripe connector', description: 'Run stripe--enable_stripe to connect your Stripe account', status: 'todo' },
-      { label: 'Create pricing tiers', description: 'Starter $60/mo, Pro $180/mo, Unlimited $400/mo', status: 'todo' },
-      { label: 'Webhook endpoint', description: 'Edge function for checkout.session.completed, invoice.paid/failed', status: 'todo' },
-      { label: 'STRIPE_WEBHOOK_SECRET', description: 'Add webhook signing secret to edge function secrets', status: 'todo' },
+      { label: 'Enable Stripe connector', description: 'Infrastructure ready — insert Stripe API keys to activate', status: 'warning' },
+      { label: 'Create pricing tiers', description: 'Starter $60/mo, Pro $180/mo, Unlimited $400/mo — code ready, awaiting Stripe keys', status: 'warning' },
+      { label: 'Webhook endpoint', description: 'Edge function built for checkout.session.completed, invoice.paid/failed — awaiting keys', status: 'warning' },
+      { label: 'STRIPE_WEBHOOK_SECRET', description: 'Add webhook signing secret to edge function secrets to go live', status: 'warning' },
     ],
   },
   {
