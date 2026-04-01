@@ -20,7 +20,7 @@ function CreateCustomerDialog({ onCreated, isPending }: { onCreated: (r: Record<
     e.preventDefault();
     onCreated({ ...form, credit_limit: parseFloat(form.credit_limit) || 0 });
     setOpen(false);
-    setForm({ name: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
+    setForm({ name: '', company: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
   };
 
   return (
