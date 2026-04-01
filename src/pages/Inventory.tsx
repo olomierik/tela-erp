@@ -2,10 +2,10 @@ import { useState, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { StatusBadge } from '@/components/erp/SharedComponents';
 import { CreateDialog } from '@/components/erp/CreateDialog';
-import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown, Search, Filter, ImagePlus } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Warehouse, Trash2, FileDown, Search, Filter, ImagePlus, Brain, Loader2, RefreshCw, TrendingUp, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +23,159 @@ import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+
+// ─── Reorder Priority Badge ────────────────────────────────────────────────
+function PriorityBadge({ priority }: { priority: string }) {
+  const map: Record<string, string> = {
+    critical: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+    high: 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+    medium: 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+    low: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  };
+  return (
+    <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize', map[priority] || map.low)}>
+      {priority}
+    </span>
+  );
+}
+
+// ─── AI Demand Forecast Panel ──────────────────────────────────────────────
+function AIForecastPanel({ items, salesData }: { items: any[]; salesData: any[] }) {
+  const [forecasts, setForecasts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [ran, setRan] = useState(false);
+  const { formatMoney } = useCurrency();
+
+  const runForecast = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-demand-forecast', {
+        body: { inventoryItems: items.slice(0, 20), salesHistory: salesData.slice(0, 50) },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setForecasts(data?.forecasts || []);
+      setRan(true);
+    } catch (e: any) {
+      toast.error(e.message || 'Forecast failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!ran && !loading) {
+    return (
+      <Card className="rounded-xl border-border">
+        <CardContent className="py-12 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4">
+            <Brain className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">AI Demand Forecast</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            Claude analyzes your inventory levels and sales patterns to predict demand for the next 30, 60, and 90 days — helping you avoid stockouts and overstock.
+          </p>
+          <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={runForecast}>
+            <Brain className="w-4 h-4" /> Run Demand Forecast
+          </Button>
+          <p className="text-xs text-muted-foreground mt-3">Requires Anthropic API key in Settings → AI Settings</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-foreground">AI Demand Forecast</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">30/60/90-day predictions powered by Claude</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={runForecast} disabled={loading}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {loading ? 'Analyzing...' : 'Refresh'}
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+        </div>
+      ) : forecasts.length === 0 ? (
+        <Card className="rounded-xl border-border">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No forecast data. Make sure you have inventory items and an Anthropic API key configured.
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Summary row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card className="rounded-xl border-border"><CardContent className="p-3">
+              <p className="text-xs text-muted-foreground">Items Forecasted</p>
+              <p className="text-xl font-bold text-foreground">{forecasts.length}</p>
+            </CardContent></Card>
+            <Card className="rounded-xl border-border"><CardContent className="p-3">
+              <p className="text-xs text-muted-foreground">Critical Priority</p>
+              <p className="text-xl font-bold text-red-600">{forecasts.filter(f => f.reorder_priority === 'critical').length}</p>
+            </CardContent></Card>
+            <Card className="rounded-xl border-border"><CardContent className="p-3">
+              <p className="text-xs text-muted-foreground">Stockout &lt; 7 days</p>
+              <p className="text-xl font-bold text-amber-600">{forecasts.filter(f => f.days_until_stockout <= 7).length}</p>
+            </CardContent></Card>
+            <Card className="rounded-xl border-border"><CardContent className="p-3">
+              <p className="text-xs text-muted-foreground">Healthy Stock</p>
+              <p className="text-xl font-bold text-green-600">{forecasts.filter(f => f.reorder_priority === 'low').length}</p>
+            </CardContent></Card>
+          </div>
+
+          {/* Forecast table */}
+          <Card className="rounded-xl border-border">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40">
+                  <tr className="border-b border-border text-xs text-muted-foreground">
+                    <th className="text-left px-4 py-3 font-medium">Item</th>
+                    <th className="text-right px-4 py-3 font-medium">Current Stock</th>
+                    <th className="text-right px-4 py-3 font-medium">Daily Velocity</th>
+                    <th className="text-right px-4 py-3 font-medium">Days Until Stockout</th>
+                    <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">30d</th>
+                    <th className="text-right px-4 py-3 font-medium hidden md:table-cell">60d</th>
+                    <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">90d</th>
+                    <th className="text-center px-4 py-3 font-medium">Priority</th>
+                    <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">Reorder Qty</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {forecasts.sort((a, b) => {
+                    const pri = { critical: 0, high: 1, medium: 2, low: 3 };
+                    return (pri[a.reorder_priority as keyof typeof pri] ?? 3) - (pri[b.reorder_priority as keyof typeof pri] ?? 3);
+                  }).map((f, i) => (
+                    <tr key={i} className={cn('hover:bg-accent/40 transition-colors', f.reorder_priority === 'critical' && 'bg-red-50/50 dark:bg-red-950/10')}>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-foreground">{f.item_name}</p>
+                        {f.insight && <p className="text-xs text-muted-foreground mt-0.5 max-w-[200px] truncate">{f.insight}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium">{f.current_stock}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground">{Number(f.daily_velocity).toFixed(1)}/day</td>
+                      <td className={cn('px-4 py-3 text-right font-bold', f.days_until_stockout <= 7 ? 'text-red-600' : f.days_until_stockout <= 30 ? 'text-amber-600' : 'text-green-600')}>
+                        {f.days_until_stockout === 999 ? '∞' : `${f.days_until_stockout}d`}
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">{f.forecast_30_days}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground hidden md:table-cell">{f.forecast_60_days}</td>
+                      <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">{f.forecast_90_days}</td>
+                      <td className="px-4 py-3 text-center"><PriorityBadge priority={f.reorder_priority} /></td>
+                      <td className="px-4 py-3 text-right font-semibold text-indigo-600 hidden sm:table-cell">{f.recommended_reorder_qty}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
 
 const fields = [
   { name: 'sku', label: 'SKU', required: true },
@@ -54,6 +207,7 @@ export default function Inventory() {
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
   const { data, isLoading } = useTenantQuery('inventory_items');
+  const { data: reservations = [] } = useTenantQuery('inventory_reservations');
   const insert = useTenantInsert('inventory_items');
   const remove = useTenantDelete('inventory_items');
   const qc = useQueryClient();
@@ -204,11 +358,17 @@ export default function Inventory() {
           <TabsTrigger value="low_stock" className="text-xs h-7">Low Stock <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{lowStock.length}</Badge></TabsTrigger>
           <TabsTrigger value="expired" className="text-xs h-7">Expired <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{expiredItems.length}</Badge></TabsTrigger>
           <TabsTrigger value="damaged" className="text-xs h-7">Damaged <Badge variant="secondary" className="ml-1 text-[10px] h-4 px-1">{damagedItems.length}</Badge></TabsTrigger>
+          <TabsTrigger value="ai_forecast" className="text-xs h-7 gap-1"><Brain className="w-3 h-3" /> AI Forecast</TabsTrigger>
         </TabsList>
       </Tabs>
 
+      {/* AI Forecast Panel */}
+      {tab === 'ai_forecast' && (
+        <AIForecastPanel items={items} salesData={[]} />
+      )}
+
       {/* Table */}
-      {isLoading && !isDemo ? (
+      {tab !== 'ai_forecast' && (isLoading && !isDemo ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
       ) : (
         <Card>
@@ -223,7 +383,11 @@ export default function Inventory() {
               </thead>
               <tbody>
                 {filtered.map((i: any) => {
-                  const s = getStockStatus(i.quantity, i.reorder_level);
+                  const reservedQty = (reservations as any[])
+                    .filter(r => r.item_id === i.id && r.status === 'reserved')
+                    .reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+                  const availableQty = Math.max(0, i.quantity - reservedQty);
+                  const s = getStockStatus(availableQty, i.reorder_level);
                   const displayStatus = i.status === 'good' ? s.status : (i.status || 'good').charAt(0).toUpperCase() + (i.status || 'good').slice(1);
                   const displayVariant = i.status === 'good' ? s.variant : 'destructive';
                   return (
@@ -241,8 +405,11 @@ export default function Inventory() {
                       <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs">{i.sku}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{i.category || '—'}</td>
                       <td className="px-4 py-2.5 text-muted-foreground">{i.warehouse_location || '—'}</td>
-                      <td className="px-4 py-2.5 font-medium">{i.quantity.toLocaleString()}</td>
-                      <td className="px-4 py-2.5">{formatMoney(i.quantity * Number(i.unit_cost))}</td>
+                      <td className="px-4 py-2.5 font-medium">
+                        {availableQty.toLocaleString()}
+                        {reservedQty > 0 && <span className="ml-1 text-xs text-muted-foreground">({reservedQty} reserved)</span>}
+                      </td>
+                      <td className="px-4 py-2.5">{formatMoney(availableQty * Number(i.unit_cost))}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={displayStatus} variant={displayVariant} /></td>
                       {!isDemo && (
                         <td className="px-4 py-2.5">
@@ -267,7 +434,7 @@ export default function Inventory() {
             </table>
           </div>
         </Card>
-      )}
+      ))}
     </AppLayout>
   );
 }

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import UserCountWidget from '@/components/ui/UserCountWidget';
 import heroImg from '@/assets/hero-dashboard.png';
 import paymentQr from '@/assets/payment-qr.jpeg';
 
@@ -67,10 +68,11 @@ export default function Landing() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <a href="#modules" className="hover:text-foreground transition-colors">Modules</a>
-            <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-foreground transition-colors">Support</a>
-            <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
+            <Link to="/modules" className="hover:text-foreground transition-colors">Modules</Link>
+            <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -86,10 +88,11 @@ export default function Landing() {
         {mobileMenuOpen && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="md:hidden border-t border-border bg-background px-4 pb-4">
             <div className="flex flex-col gap-3 py-3 text-sm font-medium">
-              <a href="#modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</a>
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</a>
-              <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Support</a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2">FAQ</a>
+              <Link to="/modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</Link>
+              <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</Link>
+              <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Pricing</Link>
+              <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="py-2">About</Link>
+              <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="py-2">Contact</Link>
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" className="flex-1" asChild><Link to="/login">Sign In</Link></Button>
                 <Button className="flex-1 gradient-primary" asChild><Link to="/signup">Get Started</Link></Button>
@@ -101,7 +104,7 @@ export default function Landing() {
 
       {/* HERO */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, hsl(var(--foreground)) 1px, transparent 0)', backgroundSize: '40px 40px' }} />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div className="flex-1 text-center lg:text-left" initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-medium">
@@ -122,6 +125,9 @@ export default function Landing() {
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
                 <Link to="/login">Sign In</Link>
               </Button>
+            </div>
+            <div className="mt-6 flex justify-center lg:justify-start">
+              <UserCountWidget />
             </div>
           </motion.div>
 
@@ -338,16 +344,17 @@ export default function Landing() {
             <div>
               <h4 className="font-semibold mb-3">Company</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/about" className="hover:text-foreground transition-colors">About</Link></li>
+                <li><Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link></li>
+                <li><Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link></li>
                 <li><Link to="/signup" className="hover:text-foreground transition-colors">Get Started</Link></li>
                 <li><Link to="/login" className="hover:text-foreground transition-colors">Sign In</Link></li>
-                <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
-                <li><a href="#faq" className="hover:text-foreground transition-colors">FAQ</a></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} TELA-ERP. Open Source — Free Forever.</span>
-            <span>Built with ❤️ for SMEs in Africa & the world</span>
+            <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
+            <span>Built with ❤️ for SMEs in Africa &amp; the world</span>
           </div>
         </div>
       </footer>

@@ -12,6 +12,7 @@ import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } fro
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
+import { onStockTransferCompleted } from '@/hooks/use-cross-module';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -84,7 +85,7 @@ function CreateTransferDialog({ stores, inventoryItems, onCreated, isPending }: 
 }
 
 export default function StockTransfers() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { stores } = useStore();
   const { data, isLoading } = useTenantQuery('stock_transfers');
   const { data: inventoryData } = useTenantQuery('inventory_items');
@@ -92,7 +93,26 @@ export default function StockTransfers() {
   const update = useTenantUpdate('stock_transfers');
   const remove = useTenantDelete('stock_transfers');
   useRealtimeSync('stock_transfers');
+  useRealtimeSync('inventory_items');
   const [search, setSearch] = useState('');
+
+  /** Mark a transfer as completed and trigger inventory updates at both stores. */
+  const handleCompleteTransfer = (t: any) => {
+    if (!t.item_id) { toast.error('Transfer has no linked inventory item'); return; }
+    update.mutate({ id: t.id, status: 'completed' }, {
+      onSuccess: () => {
+        if (!tenant?.id) return;
+        onStockTransferCompleted(tenant.id, {
+          id: t.id,
+          transfer_number: t.transfer_number,
+          source_store_id: t.source_store_id,
+          destination_store_id: t.destination_store_id,
+          item_id: t.item_id,
+          quantity: Number(t.quantity),
+        });
+      },
+    });
+  };
 
   const transfers = data ?? [];
   const inventoryItems = inventoryData ?? [];
@@ -147,8 +167,16 @@ export default function StockTransfers() {
                       <td className="px-4 py-2.5">
                         {!isDemo && t.status === 'pending' && (
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => update.mutate({ id: t.id, status: 'completed' })}>Complete</Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(t.id)}><Trash2 className="w-3.5 h-3.5 text-destructive" /></Button>
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-7 text-[11px] text-green-600 hover:bg-green-50"
+                              onClick={() => handleCompleteTransfer(t)}
+                            >
+                              Complete ✓
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => remove.mutate(t.id)}>
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
                           </div>
                         )}
                       </td>

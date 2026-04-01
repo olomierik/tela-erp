@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ThemeContextType {
   applyTenantTheme: (primaryColor?: string, accentColor?: string) => void;
+  darkMode: boolean;
+  toggleDarkMode: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -37,6 +39,26 @@ function applyColor(property: string, hex: string) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { tenant } = useAuth();
 
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('dark_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Apply/remove dark class when darkMode changes
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try { localStorage.setItem('dark_mode', String(darkMode)); } catch {}
+  }, [darkMode]);
+
+  const toggleDarkMode = () => setDarkMode(v => !v);
+
   const applyTenantTheme = (primaryColor?: string, accentColor?: string) => {
     if (primaryColor) {
       applyColor('--primary', primaryColor);
@@ -59,7 +81,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [tenant?.primary_color, tenant?.secondary_color]);
 
   return (
-    <ThemeContext.Provider value={{ applyTenantTheme }}>
+    <ThemeContext.Provider value={{ applyTenantTheme, darkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );

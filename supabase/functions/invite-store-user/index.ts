@@ -20,7 +20,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify the calling user
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -37,9 +36,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, store_id, role, full_name } = await req.json();
-    if (!email || !store_id) {
-      return new Response(JSON.stringify({ error: "email and store_id required" }), {
+    // email is required; store_id and store_role are optional
+    const { email, store_id, role = "user", store_role = "user", full_name = "" } = await req.json();
+    if (!email) {
+      return new Response(JSON.stringify({ error: "email is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -61,79 +61,81 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify store belongs to caller's tenant
-    const { data: store } = await adminClient
-      .from("stores")
-      .select("id, tenant_id, name")
-      .eq("id", store_id)
-      .eq("tenant_id", callerProfile.tenant_id)
-      .single();
+    const tenantId = callerProfile.tenant_id;
 
-    if (!store) {
-      return new Response(JSON.stringify({ error: "Store not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Verify store belongs to tenant (if provided)
+    if (store_id) {
+      const { data: store } = await adminClient
+        .from("stores")
+        .select("id")
+        .eq("id", store_id)
+        .eq("tenant_id", tenantId)
+        .single();
+      if (!store) {
+        return new Response(JSON.stringify({ error: "Store not found in your tenant" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    // Check if user already exists
+    // Check if user already exists in auth
     const { data: existingUsers } = await adminClient.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find((u: any) => u.email === email);
 
     if (existingUser) {
-      // Check if already in this tenant
+      // Ensure profile exists for this tenant
       const { data: existingProfile } = await adminClient
         .from("profiles")
         .select("user_id")
         .eq("user_id", existingUser.id)
-        .eq("tenant_id", callerProfile.tenant_id)
+        .eq("tenant_id", tenantId)
         .single();
 
       if (!existingProfile) {
-        // User exists in auth but not in this tenant — create profile
         await adminClient.from("profiles").insert({
           user_id: existingUser.id,
-          tenant_id: callerProfile.tenant_id,
+          tenant_id: tenantId,
           email: email,
-          full_name: full_name || existingUser.user_metadata?.full_name || '',
+          full_name: full_name || existingUser.user_metadata?.full_name || email.split("@")[0],
+          is_active: true,
         });
       }
 
-      // Assign to store (upsert)
-      const { error: assignErr } = await adminClient
-        .from("user_store_assignments")
-        .upsert({
+      // Upsert app-level role
+      await adminClient.from("user_roles").upsert(
+        { user_id: existingUser.id, role },
+        { onConflict: "user_id" }
+      );
+
+      // Assign to store if provided
+      if (store_id) {
+        await adminClient.from("user_store_assignments").upsert({
           user_id: existingUser.id,
           store_id,
-          tenant_id: callerProfile.tenant_id,
-          role: role || "user",
+          tenant_id: tenantId,
+          role: store_role,
         }, { onConflict: "user_id,store_id" });
-
-      if (assignErr) {
-        return new Response(JSON.stringify({ error: assignErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
       }
 
-      return new Response(JSON.stringify({ message: "User assigned to store", existed: true }), {
+      return new Response(JSON.stringify({ message: "User added to tenant", existed: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Send magic link — user will be created on first sign-in via the trigger
-    // We pass tenant_id so the trigger associates them with the right tenant
-    const redirectUrl = req.headers.get("origin") || "https://tela-erp.lovable.app";
-    
+    // New user — send Supabase invite with metadata so the DB trigger can set up their profile
+    const origin = req.headers.get("origin") || "https://tela-erp.lovable.app";
+
     const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(email, {
       data: {
-        tenant_id: callerProfile.tenant_id,
-        role: role || "user",
-        full_name: full_name || "",
-        store_id: store_id,
+        tenant_id: tenantId,
+        app_role: role,
+        store_id: store_id ?? null,
+        store_role: store_id ? store_role : null,
+        full_name: full_name || email.split("@")[0],
         invited_by: caller.id,
       },
-      redirectTo: redirectUrl + "/dashboard",
+      redirectTo: `${origin}/dashboard`,
     });
 
     if (inviteErr) {
@@ -143,14 +145,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // If user was just invited, assign them to the store after they confirm
-    // We'll store a pending assignment that the trigger picks up
-    // For now, we create the assignment — it'll work once the user confirms
-    // We need to wait for the user to actually exist first, so we'll handle this
-    // in an updated trigger
-
     return new Response(
-      JSON.stringify({ message: "Invitation sent to " + email, existed: false }),
+      JSON.stringify({ message: `Invitation sent to ${email}`, existed: false }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

@@ -7,12 +7,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
+import Features from "./pages/Features";
+import Pricing from "./pages/Pricing";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Modules from "./pages/Modules";
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import JoinInvite from "./pages/auth/JoinInvite";
 import Dashboard from "./pages/Dashboard";
 import Reports from "./pages/Reports";
 import Production from "./pages/Production";
@@ -40,7 +47,16 @@ import HR from "./pages/HR";
 import CRM from "./pages/CRM";
 import Invoices from "./pages/Invoices";
 import Projects from "./pages/Projects";
+import AICFOAssistant from "./pages/AICFOAssistant";
+import DocumentScanner from "./pages/DocumentScanner";
+import FixedAssets from "./pages/FixedAssets";
+import Expenses from "./pages/Expenses";
+import Budgets from "./pages/Budgets";
+import AutomationBuilder from "./pages/AutomationBuilder";
+import Profile from "./pages/Profile";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
+import WhatsAppButton from "@/components/ui/WhatsAppButton";
+import ScrollButtons from "@/components/ui/ScrollButtons";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -54,16 +70,25 @@ const App = () => (
         <ThemeProvider>
           <CurrencyProvider>
           <StoreProvider>
+          <SidebarProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <WhatsAppButton />
+            <ScrollButtons />
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/modules" element={<Modules />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/join/:inviteId" element={<JoinInvite />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -87,6 +112,15 @@ const App = () => (
               <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
               <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
 
+              {/* Enterprise & AI routes */}
+              <Route path="/ai-cfo" element={<ProtectedRoute><AICFOAssistant /></ProtectedRoute>} />
+              <Route path="/documents" element={<ProtectedRoute><DocumentScanner /></ProtectedRoute>} />
+              <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
+              <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+              <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
+              <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
 
@@ -105,6 +139,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </SidebarProvider>
           </StoreProvider>
           </CurrencyProvider>
         </ThemeProvider>
