@@ -54,7 +54,7 @@ export default function BlogPost() {
             "@type": "Organization",
             "name": "TELA-ERP",
             "url": "https://tela-erp.com",
-            "logo": "https://tela-erp.com/favicon.ico"
+            "logo": "https://tela-erp.com/images/tela-erp-logo.png"
           },
           "url": `https://tela-erp.com/blog/${post.slug}`,
           "image": "https://tela-erp.com/og-image.svg"
