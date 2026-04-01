@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const P = 'hsl(230,65%,52%)';
 const A = 'hsl(32,95%,52%)';
