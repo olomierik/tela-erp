@@ -672,6 +672,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          company: string | null
           country: string | null
           created_at: string | null
           credit_limit: number | null
@@ -690,6 +691,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
+          company?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -708,6 +710,7 @@ export type Database = {
         Update: {
           address?: string | null
           city?: string | null
+          company?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
