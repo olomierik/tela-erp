@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { blogPosts } from '@/data/blog-posts';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
