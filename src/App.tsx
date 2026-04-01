@@ -57,6 +57,7 @@ import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
+import Unsubscribe from "./pages/Unsubscribe";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import ScrollButtons from "@/components/ui/ScrollButtons";
