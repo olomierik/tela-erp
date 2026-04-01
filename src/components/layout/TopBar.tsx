@@ -210,10 +210,10 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
 
-          {/* Store Switcher */}
+          {/* Store Switcher — hidden on small screens */}
           {stores.length > 0 && (
             <Select value={selectedStoreId ?? 'all'} onValueChange={v => setSelectedStoreId(v === 'all' ? null : v)}>
-              <SelectTrigger className="h-8 text-xs border-border bg-background min-w-[110px] max-w-[150px]">
+              <SelectTrigger className="hidden sm:flex h-8 text-xs border-border bg-background min-w-[100px] max-w-[140px]">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <div className={cn(
                     'w-2 h-2 rounded-full shrink-0',
