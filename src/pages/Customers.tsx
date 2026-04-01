@@ -14,13 +14,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function CreateCustomerDialog({ onCreated, isPending }: { onCreated: (r: Record<string, any>) => void; isPending: boolean }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
+  const [form, setForm] = useState({ name: '', company: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onCreated({ ...form, credit_limit: parseFloat(form.credit_limit) || 0 });
     setOpen(false);
-    setForm({ name: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
+    setForm({ name: '', company: '', email: '', phone: '', address: '', city: '', country: '', tax_id: '', credit_limit: '0' });
   };
 
   return (
@@ -30,6 +30,7 @@ function CreateCustomerDialog({ onCreated, isPending }: { onCreated: (r: Record<
         <DialogHeader><DialogTitle>New Customer</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1"><Label className="text-xs">Name *</Label><Input required className="h-8 text-xs" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} /></div>
+          <div className="space-y-1"><Label className="text-xs">Company</Label><Input className="h-8 text-xs" value={form.company} onChange={e => setForm(p => ({ ...p, company: e.target.value }))} placeholder="Company name" /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" className="h-8 text-xs" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Phone</Label><Input className="h-8 text-xs" value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} /></div>
@@ -90,7 +91,7 @@ export default function Customers() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-border bg-muted/40">
-                {['Name', 'Contact', 'Location', 'Credit Limit', 'Outstanding', ''].map((h, i) => (
+                {['Name', 'Company', 'Contact', 'Location', 'Credit Limit', 'Outstanding', ''].map((h, i) => (
                   <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                 ))}
               </tr></thead>
@@ -98,6 +99,7 @@ export default function Customers() {
                 {filtered.map((c: any) => (
                   <tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                     <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{c.company || '—'}</td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {c.email && <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{c.email}</span>}
                       {c.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone}</span>}
@@ -110,7 +112,7 @@ export default function Customers() {
                     </td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
+                {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
               </tbody>
             </table>
           </div>
