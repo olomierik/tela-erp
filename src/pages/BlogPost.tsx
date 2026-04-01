@@ -5,6 +5,7 @@ import { Calendar, Clock, ArrowLeft, ArrowRight, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { blogPosts } from '@/data/blog-posts';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
