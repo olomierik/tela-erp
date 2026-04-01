@@ -9,6 +9,7 @@ interface Profile {
   tenant_id: string;
   email: string;
   full_name: string;
+  phone: string;
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
