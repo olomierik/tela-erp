@@ -7,7 +7,7 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Building2, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
-  MoreHorizontal,
+  MoreHorizontal, BookOpen,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
