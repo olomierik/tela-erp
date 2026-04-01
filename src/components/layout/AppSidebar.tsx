@@ -50,7 +50,8 @@ const navSections: NavSection[] = [
     title: 'Customers',
     items: [
       { label: 'CRM', icon: UserCircle, path: '/crm' },
-      { label: 'Store', icon: Globe, path: '/online-store' },
+      { label: 'Stores', icon: Store, path: '/stores' },
+      { label: 'Online Store', icon: Globe, path: '/online-store' },
       { label: 'Marketing', icon: Megaphone, path: '/marketing' },
     ],
   },
