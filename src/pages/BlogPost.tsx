@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, ArrowLeft, ArrowRight, Building2, Tag } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, ArrowRight, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { blogPosts } from '@/data/blog-posts';
