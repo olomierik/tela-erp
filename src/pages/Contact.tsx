@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const P = 'hsl(230,65%,52%)';
 const A = 'hsl(32,95%,52%)';
