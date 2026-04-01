@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import erickPhoto from '@/assets/erick-olomi.jpg';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const P = 'hsl(230,65%,52%)';
 const A = 'hsl(32,95%,52%)';
@@ -76,10 +77,7 @@ export default function About() {
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: P }}>
-              <Cpu className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>
