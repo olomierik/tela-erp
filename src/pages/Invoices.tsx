@@ -509,6 +509,10 @@ export default function Invoices() {
                           <CheckCircle className="w-3 h-3" /> Mark Paid
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                        onClick={() => handleDownloadPDF(inv)} title="Download PDF">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
                         onClick={() => setEditInvoice(inv)}>
                         <RefreshCw className="w-3.5 h-3.5" />
