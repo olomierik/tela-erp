@@ -449,6 +449,11 @@ export default function HR() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Leave Requests</CardTitle>
+                {!isDemo && (
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-8 text-xs" onClick={() => setLeaveSheet(true)}>
+                    <Plus className="w-3.5 h-3.5" /> New Leave Request
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
