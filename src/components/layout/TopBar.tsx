@@ -243,9 +243,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </Select>
           )}
 
-          {/* Currency */}
+          {/* Currency — hidden on small screens */}
           <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-            <SelectTrigger className="w-[76px] h-8 text-xs border-border">
+            <SelectTrigger className="hidden sm:flex w-[76px] h-8 text-xs border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
