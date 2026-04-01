@@ -92,7 +92,7 @@ function CreatePOSheet({
   const handleSubmit = () => {
     if (!form.supplier_name) { toast.error('Supplier is required'); return; }
     if (lineItems.every(li => !li.description)) { toast.error('Add at least one item'); return; }
-    const poline: ProcurementLineItem[] = lineItems.map(li => ({
+    const poline = lineItems.map(li => ({
       item_id: li.item_id,
       description: li.description,
       quantity: li.quantity,
