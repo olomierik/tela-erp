@@ -14,6 +14,7 @@ import { useState } from 'react';
 import UserCountWidget from '@/components/ui/UserCountWidget';
 import heroImg from '@/assets/hero-dashboard.png';
 import paymentQr from '@/assets/payment-qr.jpeg';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
