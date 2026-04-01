@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { generateInvoicePDF } from '@/lib/pdf-reports';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -332,6 +334,49 @@ export default function Invoices() {
     await deleteInvoice.mutateAsync(id);
   };
 
+  const handleDownloadPDF = async (inv: any) => {
+    // Fetch line items for this invoice
+    let lineItems: any[] = [];
+    try {
+      const { data } = await (supabase as any).from('invoice_lines')
+        .select('*')
+        .eq('invoice_id', inv.id);
+      lineItems = data || [];
+    } catch { /* fallback to empty */ }
+
+    if (lineItems.length === 0) {
+      lineItems = [{
+        description: `Invoice ${inv.invoice_number}`,
+        quantity: 1,
+        unit_price: Number(inv.total_amount || 0),
+        discount_percent: 0,
+        line_total: Number(inv.total_amount || 0),
+      }];
+    }
+
+    generateInvoicePDF({
+      invoiceNumber: inv.invoice_number || `INV-${inv.id?.slice(-6)}`,
+      customerName: inv.customer_name || 'Customer',
+      issueDate: inv.issue_date || '',
+      dueDate: inv.due_date || '',
+      status: inv.status || 'draft',
+      subtotal: Number(inv.subtotal || inv.total_amount || 0),
+      taxRate: Number(inv.tax_rate || 0),
+      taxAmount: Number(inv.tax_amount || 0),
+      totalAmount: Number(inv.total_amount || 0),
+      notes: inv.notes || '',
+      lineItems: lineItems.map((li: any) => ({
+        description: li.description || '',
+        quantity: Number(li.quantity || 1),
+        unit_price: Number(li.unit_price || 0),
+        discount_percent: Number(li.discount_percent || 0),
+        line_total: Number(li.line_total || 0),
+      })),
+      formatMoney,
+    });
+    toast.success('Invoice PDF downloaded');
+  };
+
   return (
     <AppLayout title="Invoices" subtitle="Create, manage & track invoices">
       <div className="space-y-5">
@@ -464,6 +509,10 @@ export default function Invoices() {
                           <CheckCircle className="w-3 h-3" /> Mark Paid
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                        onClick={() => handleDownloadPDF(inv)} title="Download PDF">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
                         onClick={() => setEditInvoice(inv)}>
                         <RefreshCw className="w-3.5 h-3.5" />
