@@ -397,10 +397,7 @@ export default function Modules() {
       <footer className="border-t border-border py-10 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-7 w-auto" />
             <span>— Free &amp; Open Source</span>
           </div>
           <span className="text-xs">© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
