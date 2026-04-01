@@ -6,7 +6,7 @@ import { lovable } from '@/integrations/lovable/index';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Lock, ArrowRight, Wand2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Wand2, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { toast } from 'sonner';
