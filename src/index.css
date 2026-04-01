@@ -111,6 +111,11 @@ a[href*="lovable.app"] {
 
   * { @apply border-border; box-sizing: border-box; }
 
+  html, body, #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
