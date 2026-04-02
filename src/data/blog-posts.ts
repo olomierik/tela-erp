@@ -785,6 +785,464 @@ export const blogPosts: BlogPost[] = [
 `,
   },
 
+  {
+    slug: "how-to-reduce-stockouts-small-business",
+    title: "How to Eliminate Stockouts in Your Small Business (7 Proven Strategies)",
+    metaTitle: "How to Eliminate Stockouts | Small Business Inventory Tips",
+    metaDescription:
+      "Stockouts cost small businesses thousands in lost sales every year. Here are 7 proven strategies to eliminate stockouts — and how free ERP software automates them.",
+    date: "2026-04-02",
+    readTime: "8 min read",
+    category: "Inventory Management",
+    excerpt:
+      "A stockout doesn't just mean a lost sale — it means a frustrated customer who may never come back. This guide walks through 7 proven strategies to eliminate stockouts in your small business, from setting reorder points to demand forecasting, and shows how TELA-ERP automates the entire process for free.",
+    tags: [
+      "stockout prevention",
+      "inventory management tips",
+      "reorder point",
+      "stock management small business",
+      "inventory software",
+    ],
+    content: `
+<h2>What a Stockout Really Costs Your Business</h2>
+<p>A stockout is when a customer wants to buy something you sell — and you don't have it. The immediate cost is the lost sale. But the real cost is much higher:</p>
+<ul>
+  <li><strong>Lost customer loyalty:</strong> Studies consistently show that 30–40% of customers who experience a stockout will buy from a competitor instead — and many won't come back.</li>
+  <li><strong>Emergency purchasing costs:</strong> Rushing an order from a supplier often means paying a premium price or express shipping fees.</li>
+  <li><strong>Operational disruption:</strong> For manufacturers, a raw material stockout can halt an entire production line.</li>
+  <li><strong>Reputation damage:</strong> Repeated stockouts signal unreliability, and word travels fast in business communities.</li>
+</ul>
+<p>The good news: stockouts are almost entirely preventable with the right systems. Here are seven strategies that work.</p>
+
+<h2>Strategy 1: Set Reorder Points for Every Product</h2>
+<p>A reorder point is the minimum stock level that triggers a replenishment order. When stock falls below this level, you order more — before you run out. The formula is simple:</p>
+<p><em>Reorder Point = (Average Daily Sales × Lead Time in Days) + Safety Stock</em></p>
+<p>For example: if you sell 10 units per day and your supplier takes 5 days to deliver, your reorder point should be at least 50 units — plus a buffer. TELA-ERP lets you set reorder points for every product and automatically alerts you when stock falls below the threshold.</p>
+
+<h2>Strategy 2: Maintain Safety Stock</h2>
+<p>Safety stock is a buffer above your calculated reorder point that protects against demand spikes or supplier delays. The right amount depends on demand variability and how long it takes to restock. Even a small safety stock of 10–20% above your reorder point dramatically reduces stockout risk.</p>
+
+<h2>Strategy 3: Track Real-Time Stock Levels</h2>
+<p>You cannot manage what you cannot see. If your stock levels are updated once a week (or whenever someone remembers), your reorder points are useless. Real-time inventory tracking — where every sale, receipt, and transfer updates stock immediately — is the foundation of stockout prevention. This is exactly what TELA-ERP's inventory module provides.</p>
+
+<h2>Strategy 4: Analyse Demand Patterns</h2>
+<p>Not all products sell evenly throughout the year. Seasonal products, promotions, and market trends all affect demand. Review your sales history to identify patterns and adjust your reorder points and safety stock accordingly. TELA-ERP's sales reports make this analysis straightforward.</p>
+
+<h2>Strategy 5: Diversify Your Suppliers</h2>
+<p>Relying on a single supplier for critical products is a risk. If they experience a shortage, delay, or price increase, you have no backup. Identify alternative suppliers for your top-selling products and build those relationships before you need them urgently.</p>
+
+<h2>Strategy 6: Automate Purchase Orders</h2>
+<p>Manual procurement is slow and easy to forget. When stock hits the reorder point, your ERP should be able to draft a purchase order automatically — ready for your approval with one click. This eliminates the human lag between "we're running low" and "we've ordered more."</p>
+
+<h2>Strategy 7: Do Regular Stock Counts</h2>
+<p>Even the best systems have gaps — shrinkage, damage, miscounts. A regular cycle count (counting a portion of your inventory each week rather than doing a full annual stocktake) keeps your records accurate and catches discrepancies before they cause a stockout surprise.</p>
+
+<h2>Automate All 7 Strategies with TELA-ERP</h2>
+<p>TELA-ERP's inventory module implements all seven of these strategies in one place — at zero cost. Set reorder points, get automatic alerts, track stock in real time, analyse demand from built-in reports, and generate draft purchase orders automatically when stock runs low. <a href="/signup">Get started free</a> and eliminate stockouts from your business for good.</p>
+`,
+  },
+
+  {
+    slug: "cash-flow-management-small-business-guide",
+    title: "Cash Flow Management for Small Business: A Practical Guide",
+    metaTitle: "Cash Flow Management for Small Business | Practical Guide",
+    metaDescription:
+      "Poor cash flow is the #1 reason small businesses fail. This practical guide covers how to monitor, forecast, and improve cash flow — with free tools to help.",
+    date: "2026-04-02",
+    readTime: "9 min read",
+    category: "Accounting Basics",
+    excerpt:
+      "More small businesses fail due to cash flow problems than any other reason — even profitable ones. This guide explains why cash flow management matters, how to read a cash flow statement, and seven practical tactics to improve your cash position starting this month.",
+    tags: [
+      "cash flow management",
+      "small business cash flow",
+      "cash flow statement",
+      "working capital management",
+      "small business finance",
+    ],
+    content: `
+<h2>Why Profitable Businesses Still Run Out of Cash</h2>
+<p>Here's a scenario that plays out for small businesses every day: the business is profitable on paper — revenue is up, the order book is full — but there's no money in the bank to pay suppliers or staff this month. How is that possible?</p>
+<p>It happens because <strong>profit and cash are not the same thing</strong>. Profit is an accounting concept — revenue minus expenses, regardless of when cash actually changes hands. Cash flow is real money moving in and out of your bank account right now.</p>
+<p>You can record a sale today and not receive payment for 60 days. You can buy stock on credit this week and need to pay for it in 30 days. If the timing doesn't align — if cash goes out faster than it comes in — you have a cash flow crisis, even if your P&L looks healthy.</p>
+
+<h2>Reading a Cash Flow Statement</h2>
+<p>A cash flow statement tracks all cash inflows and outflows in three categories:</p>
+<ul>
+  <li><strong>Operating activities:</strong> Cash from your core business — customer payments received, supplier payments made, salaries paid, etc.</li>
+  <li><strong>Investing activities:</strong> Cash spent on or received from long-term assets — buying equipment, selling property.</li>
+  <li><strong>Financing activities:</strong> Cash from loans or investors, and repayments of debt.</li>
+</ul>
+<p>The net total across all three is the change in your cash balance for the period. A consistently negative operating cash flow is a serious warning sign, even if net profit is positive.</p>
+
+<h2>7 Practical Tactics to Improve Cash Flow</h2>
+
+<h3>1. Invoice Immediately</h3>
+<p>The moment goods are delivered or a service is completed, send the invoice. Every day of delay is a day of extra waiting for payment. Use software like TELA-ERP that lets you generate and send invoices in seconds from your phone.</p>
+
+<h3>2. Shorten Payment Terms</h3>
+<p>If you're giving customers Net 60 or Net 90 days, negotiate shorter terms — Net 30 or even Net 14. Offer a small early payment discount (e.g. 2% if paid within 10 days) to incentivise faster payment.</p>
+
+<h3>3. Chase Overdue Invoices Systematically</h3>
+<p>Set up automatic payment reminders — at due date, 7 days overdue, and 14 days overdue. Many customers simply forget. A polite automated reminder often gets payment without any conflict. TELA-ERP tracks every invoice's payment status and flags overdue accounts.</p>
+
+<h3>4. Negotiate Longer Terms with Suppliers</h3>
+<p>While shortening customer payment terms, push for longer terms with your suppliers. Paying suppliers in Net 45 instead of Net 15 gives your cash an extra month of breathing room. Build relationships with suppliers and they will often accommodate this.</p>
+
+<h3>5. Keep a Cash Flow Forecast</h3>
+<p>A cash flow forecast projects your expected cash inflows and outflows week by week for the next 4–12 weeks. It lets you see potential shortfalls before they happen — giving you time to arrange credit, delay a non-urgent purchase, or accelerate collections. This is one of the most powerful planning tools available to small businesses.</p>
+
+<h3>6. Manage Inventory Levels Carefully</h3>
+<p>Excess inventory is cash sitting on a shelf. Every unit you overstock is money that can't be used elsewhere. Use reorder points and demand data to keep inventory lean without risking stockouts.</p>
+
+<h3>7. Separate Business and Personal Finances</h3>
+<p>This sounds basic, but many small business owners mix personal and business spending. This makes cash flow tracking impossible and creates tax complications. Keep dedicated business bank accounts and track every business transaction separately.</p>
+
+<h2>How TELA-ERP Helps With Cash Flow</h2>
+<p>TELA-ERP gives you real-time visibility into the cash flow drivers that matter most:</p>
+<ul>
+  <li>Outstanding customer invoices and their age (who owes you, and how long they've owed it)</li>
+  <li>Upcoming supplier payments (what you owe and when it's due)</li>
+  <li>Bank and cash balances across all accounts</li>
+  <li>Cash flow reports showing operating, investing, and financing activity</li>
+</ul>
+<p>With this information at your fingertips, cash flow management goes from stressful guesswork to confident planning. <a href="/signup">Start free with TELA-ERP</a> and get your cash flow under control today.</p>
+`,
+  },
+
+  {
+    slug: "how-to-manage-suppliers-procurement-small-business",
+    title: "How to Manage Suppliers and Procurement for a Small Business",
+    metaTitle: "Supplier & Procurement Management for Small Business | TELA-ERP",
+    metaDescription:
+      "Learn how to manage suppliers, purchase orders, and procurement for your small business. Reduce costs, avoid delays, and automate with free ERP software.",
+    date: "2026-04-02",
+    readTime: "8 min read",
+    category: "How-To Guides",
+    excerpt:
+      "Your suppliers can make or break your business. Poor procurement management leads to late deliveries, inflated costs, and supply chain disruptions that hurt your customers. This guide covers the fundamentals of supplier management and procurement for small businesses — and how to automate it all with TELA-ERP.",
+    tags: [
+      "supplier management",
+      "procurement management small business",
+      "purchase order software",
+      "vendor management",
+      "procurement software free",
+    ],
+    content: `
+<h2>Why Procurement Management Matters for Small Businesses</h2>
+<p>For most product-based small businesses, purchasing — what you buy, from whom, and at what price — is one of the largest cost categories. Even a 5% reduction in procurement costs can meaningfully improve your profit margins. Yet many small businesses manage purchasing reactively: they order when they run out, negotiate prices informally, and track purchase orders in email threads.</p>
+<p>Professional procurement management changes this. It means buying strategically, on time, at the right prices — with full visibility into what's been ordered, received, and paid for.</p>
+
+<h2>Building Your Supplier Database</h2>
+<p>The foundation of good procurement is a structured supplier database. For each supplier, maintain:</p>
+<ul>
+  <li>Full contact details (account manager, phone, email)</li>
+  <li>Products or services they supply (and which products are single-sourced vs. multi-sourced)</li>
+  <li>Standard payment terms (Net 30, Net 60, etc.)</li>
+  <li>Lead times — how many days from order to delivery</li>
+  <li>Performance history — delivery reliability, quality issues, price changes</li>
+  <li>Minimum order quantities</li>
+</ul>
+<p>TELA-ERP's supplier module stores all of this and links each supplier to your purchase orders, goods receipts, and payables automatically.</p>
+
+<h2>The Purchase Order Process — Done Right</h2>
+<p>A purchase order (PO) is a formal document that authorises a purchase and creates a legal agreement between you and your supplier. Every significant purchase should have a PO. Here's the correct process:</p>
+
+<h3>Step 1: Create the Purchase Order</h3>
+<p>Specify the supplier, items, quantities, agreed prices, delivery date, and payment terms. The PO number becomes the reference for everything that follows.</p>
+
+<h3>Step 2: Get the Right Approval</h3>
+<p>Depending on the value, POs may need approval from a manager before being sent. This internal control prevents unauthorised spending.</p>
+
+<h3>Step 3: Send to Supplier</h3>
+<p>Send the PO to the supplier as a formal document (PDF). This protects you — if there's a dispute about what was ordered or at what price, the PO is your evidence.</p>
+
+<h3>Step 4: Goods Receipt</h3>
+<p>When goods arrive, check them against the PO. Record what was actually received (which may differ from what was ordered). Any discrepancies should be flagged immediately.</p>
+
+<h3>Step 5: Three-Way Match</h3>
+<p>Before paying a supplier invoice, match it against the PO and the goods receipt note. All three should agree on quantity and price. This simple process catches billing errors and prevents paying for goods you haven't received.</p>
+
+<h3>Step 6: Record the Payable and Pay</h3>
+<p>Once the three-way match is confirmed, approve the payable and schedule payment according to agreed terms.</p>
+
+<h2>Negotiating Better Supplier Terms</h2>
+<p>Procurement is not just administration — it's a commercial function. Good procurement managers actively negotiate:</p>
+<ul>
+  <li><strong>Volume discounts:</strong> Commit to buying a certain quantity over a period and negotiate a lower price per unit.</li>
+  <li><strong>Extended payment terms:</strong> Ask for Net 45 or Net 60 instead of Net 30 — this improves your cash flow at no extra cost.</li>
+  <li><strong>Consignment stock:</strong> Some suppliers will place stock with you and only charge when you sell it — powerful for cash flow.</li>
+  <li><strong>Early payment discounts:</strong> If you have strong cash reserves, paying early (e.g. 2/10 Net 30 — 2% discount if paid within 10 days) can yield better returns than leaving cash in a bank account.</li>
+</ul>
+
+<h2>How TELA-ERP Automates Procurement</h2>
+<p>TELA-ERP's procurement module covers the entire purchase-to-pay cycle:</p>
+<ul>
+  <li>Create and send professional purchase orders in minutes</li>
+  <li>Track PO status: sent, partially received, fully received, invoiced</li>
+  <li>Record goods receipts and automatically update inventory</li>
+  <li>Match supplier invoices to POs</li>
+  <li>Track payables and due dates</li>
+  <li>Generate procurement reports showing spend by supplier, category, and period</li>
+</ul>
+<p>Everything connects to your inventory and accounting automatically — no re-entering data. <a href="/signup">Get started free with TELA-ERP</a> and take control of your procurement today.</p>
+`,
+  },
+
+  {
+    slug: "vat-guide-small-business-tanzania-tra",
+    title: "VAT Guide for Small Businesses in Tanzania: Registration, Rates & Filing with TRA",
+    metaTitle: "VAT Guide Tanzania: Registration, Rates & TRA Filing | TELA-ERP",
+    metaDescription:
+      "Complete VAT guide for small businesses in Tanzania — when to register, the 18% VAT rate, how to file with TRA, and how TELA-ERP automates VAT calculations.",
+    date: "2026-04-02",
+    readTime: "10 min read",
+    category: "Accounting Basics",
+    excerpt:
+      "VAT compliance in Tanzania is mandatory for businesses above the registration threshold — and getting it wrong carries heavy penalties. This complete guide covers when you must register for VAT, how to calculate and collect it, how to file returns with TRA, and how TELA-ERP makes VAT compliance automatic.",
+    tags: [
+      "VAT Tanzania",
+      "TRA VAT registration",
+      "VAT small business Tanzania",
+      "Tanzania tax compliance",
+      "VAT filing Tanzania",
+    ],
+    content: `
+<h2>What Is VAT and How Does It Work in Tanzania?</h2>
+<p>Value Added Tax (VAT) is a consumption tax charged at each stage of the supply chain. In Tanzania, VAT is governed by the VAT Act and administered by the Tanzania Revenue Authority (TRA). The standard VAT rate in Tanzania is <strong>18%</strong>.</p>
+<p>As a VAT-registered business, you:</p>
+<ul>
+  <li><strong>Charge VAT</strong> on your taxable sales (output VAT)</li>
+  <li><strong>Pay VAT</strong> on your purchases from VAT-registered suppliers (input VAT)</li>
+  <li><strong>Remit the difference</strong> to TRA: Output VAT minus Input VAT = VAT payable</li>
+</ul>
+<p>If your input VAT exceeds your output VAT in a given period, you have a VAT credit that can be carried forward or (in some cases) refunded.</p>
+
+<h2>When Must You Register for VAT in Tanzania?</h2>
+<p>VAT registration is mandatory when your <strong>taxable turnover exceeds TZS 200 million per year</strong> (or TZS 50 million in any 3-month period). Below this threshold, registration is optional but can be beneficial — allowing you to claim back input VAT on your purchases.</p>
+<p>Registration is done through TRA's online portal (eTax). You will receive a VAT Registration Number (VRN) which must appear on all your tax invoices.</p>
+
+<h2>VAT-Exempt and Zero-Rated Supplies</h2>
+<p>Not all goods and services attract the 18% VAT rate:</p>
+<ul>
+  <li><strong>Zero-rated (0%):</strong> Exports, certain food staples, medical supplies, and agricultural inputs. You charge 0% VAT but can still claim input VAT.</li>
+  <li><strong>Exempt:</strong> Financial services, residential rental, certain educational services. No VAT charged and no input VAT can be claimed.</li>
+  <li><strong>Standard rated (18%):</strong> Most goods and services — retail sales, manufacturing, professional services, etc.</li>
+</ul>
+
+<h2>Issuing Correct Tax Invoices</h2>
+<p>A valid tax invoice in Tanzania must include:</p>
+<ul>
+  <li>Your business name and VRN</li>
+  <li>Customer name and address</li>
+  <li>Invoice date and unique invoice number</li>
+  <li>Description of goods/services</li>
+  <li>Taxable amount (before VAT)</li>
+  <li>VAT rate and VAT amount</li>
+  <li>Total amount including VAT</li>
+</ul>
+<p>For businesses using Electronic Fiscal Devices (EFDs), receipts must be issued through the EFD which automatically records transactions with TRA. Non-compliance with EFD requirements carries significant penalties.</p>
+
+<h2>Filing VAT Returns with TRA</h2>
+<p>VAT returns in Tanzania are filed monthly through TRA's eTax system. The process:</p>
+<ol>
+  <li>Log in to eTax (etax.tra.go.tz)</li>
+  <li>Complete the VAT return form with total output VAT, total input VAT, and net VAT payable</li>
+  <li>Submit the return by the <strong>last working day of the following month</strong></li>
+  <li>Pay the VAT liability through approved payment channels</li>
+</ol>
+<p>Late filing penalties are 2.5% of the unpaid tax per month, plus interest. Consistent late filing can trigger a TRA audit.</p>
+
+<h2>Common VAT Mistakes Small Businesses Make</h2>
+<ul>
+  <li>Failing to register when the turnover threshold is crossed</li>
+  <li>Issuing invoices without a VRN</li>
+  <li>Claiming input VAT on non-business expenses</li>
+  <li>Missing the monthly filing deadline</li>
+  <li>Incorrect VAT rate applied to mixed supplies</li>
+  <li>Not keeping proper records of all tax invoices (you need these for at least 5 years)</li>
+</ul>
+
+<h2>How TELA-ERP Makes VAT Compliance Automatic</h2>
+<p>TELA-ERP has Tanzania's 18% VAT built in. When you set up your company, you configure your VAT status and rate. From that point:</p>
+<ul>
+  <li>Every invoice automatically calculates and shows the correct VAT amount</li>
+  <li>Input VAT on supplier invoices is tracked separately</li>
+  <li>A VAT report shows your output VAT, input VAT, and net liability for any period</li>
+  <li>All the data you need for your monthly TRA filing is ready in one click</li>
+</ul>
+<p>No more manual VAT calculations, no more spreadsheet errors, no more missed returns. <a href="/signup">Get started free with TELA-ERP</a> and make VAT compliance the least of your worries.</p>
+`,
+  },
+
+  {
+    slug: "hr-software-small-business-employee-management",
+    title: "HR Software for Small Business: How to Manage Employees Without an HR Department",
+    metaTitle: "HR Software for Small Business | Employee Management Guide",
+    metaDescription:
+      "You don't need a full HR department to manage employees professionally. This guide covers attendance, leave, contracts, and payroll for small businesses using free HR software.",
+    date: "2026-04-02",
+    readTime: "8 min read",
+    category: "How-To Guides",
+    excerpt:
+      "Most small businesses can't afford a dedicated HR department — but that doesn't mean HR can be ignored. Poor people management leads to high turnover, compliance failures, and legal exposure. This guide shows how small businesses can manage employees professionally using free HR software built into TELA-ERP.",
+    tags: [
+      "HR software small business",
+      "employee management software",
+      "free HR software",
+      "attendance management",
+      "leave management software",
+    ],
+    content: `
+<h2>Why HR Matters Even for Small Businesses</h2>
+<p>When you have 5 employees, HR feels like a big company problem. But even with a small team, you're dealing with contracts, leave requests, payroll, performance concerns, statutory compliance, and the very human dynamics of a workplace. Without systems, these things get handled inconsistently — and inconsistency is where problems start.</p>
+<p>The consequences of poor HR management for small businesses include:</p>
+<ul>
+  <li>High staff turnover (replacing an employee typically costs 50–200% of their annual salary)</li>
+  <li>Non-compliance with labour laws — leading to fines or legal disputes</li>
+  <li>Payroll errors that damage trust and morale</li>
+  <li>No clear record of agreements, warnings, or performance reviews</li>
+  <li>Difficulty scaling — trying to add employees without proper systems is chaotic</li>
+</ul>
+<p>The good news: modern HR software makes it possible to manage your people professionally without a dedicated HR team.</p>
+
+<h2>Core HR Functions Every Small Business Needs</h2>
+
+<h3>Employee Records</h3>
+<p>Maintain a digital file for every employee: personal details, ID documents, employment contract, job title, department, start date, salary history, emergency contacts, and any notes. This becomes invaluable during audits, disputes, or when employees need reference letters.</p>
+
+<h3>Attendance Tracking</h3>
+<p>Know who is working, when they start, and when they leave. Even simple clock-in/clock-out tracking prevents time theft and gives you the data you need for accurate payroll calculations. For employees with variable hours or overtime, accurate attendance data directly affects your monthly payroll cost.</p>
+
+<h3>Leave Management</h3>
+<p>Employees in Tanzania are entitled to annual leave, sick leave, and other statutory leave types under the Employment and Labour Relations Act. Tracking leave manually leads to disputes about balances and approvals. A proper leave management system gives employees visibility into their balances and gives managers a calendar view of who's off when.</p>
+
+<h3>Contracts and Documents</h3>
+<p>Every employee should have a signed employment contract. Store copies digitally so you can access them when needed. Document any disciplinary proceedings, performance reviews, or agreed changes to terms — verbal agreements are nearly impossible to enforce.</p>
+
+<h3>Payroll Integration</h3>
+<p>HR and payroll should be linked. Attendance data should feed directly into payroll calculations — no manual re-entry of hours, leave days, or overtime. When HR and payroll are in the same system, errors drop dramatically.</p>
+
+<h3>Statutory Compliance</h3>
+<p>Tanzania's Employment and Labour Relations Act sets minimum standards for contracts, leave entitlements, working hours, and termination procedures. Your HR system should help you stay compliant — tracking leave entitlements, flagging when contracts expire, and ensuring payroll deductions meet statutory requirements.</p>
+
+<h2>How TELA-ERP's HR Module Works</h2>
+<p>TELA-ERP includes a full HR module at no extra cost. Here's what it covers:</p>
+<ul>
+  <li><strong>Employee profiles:</strong> Complete digital employee records with document storage</li>
+  <li><strong>Attendance tracking:</strong> Daily attendance records with clock-in/out</li>
+  <li><strong>Leave management:</strong> Leave requests, approvals, and balance tracking for annual, sick, and other leave types</li>
+  <li><strong>Department and position management:</strong> Organisational structure built into the system</li>
+  <li><strong>Payroll integration:</strong> Attendance and leave data feeds directly into monthly payroll calculations</li>
+  <li><strong>Statutory deductions:</strong> PAYE, NSSF, SDL, and WCF calculated automatically</li>
+  <li><strong>Payslip generation:</strong> Professional payslips generated for every employee every month</li>
+</ul>
+<p>Whether you have 3 employees or 300, TELA-ERP scales with you. <a href="/signup">Get started free</a> and bring professional HR management to your small business today — no HR department required.</p>
+`,
+  },
+
+  {
+    slug: "erp-implementation-guide-small-business",
+    title: "How to Implement ERP Software in a Small Business: A Step-by-Step Guide",
+    metaTitle: "ERP Implementation Guide for Small Business | Step-by-Step",
+    metaDescription:
+      "Worried about implementing ERP software? This step-by-step guide makes ERP implementation simple for small businesses — with a free checklist and TELA-ERP walkthrough.",
+    date: "2026-04-02",
+    readTime: "10 min read",
+    category: "ERP Guides",
+    excerpt:
+      "ERP implementation has a reputation for being complex, expensive, and risky. That reputation belongs to large enterprise projects from a decade ago. For small businesses using modern cloud ERP, implementation can be done in days — not months. Here's a practical step-by-step guide to getting your ERP live without the drama.",
+    tags: [
+      "ERP implementation",
+      "ERP implementation guide",
+      "how to implement ERP",
+      "ERP setup small business",
+      "ERP go-live checklist",
+    ],
+    content: `
+<h2>Why ERP Implementation Has a Bad Reputation</h2>
+<p>You've probably heard the horror stories: large companies spending millions on ERP implementations that go years over schedule and still fail. These disasters are real — but they involve 500+ user organisations implementing complex, heavily customised enterprise systems with armies of consultants.</p>
+<p>Small business ERP implementation is a fundamentally different exercise. With a modern cloud ERP like TELA-ERP, there's no server to configure, no database to set up, no custom code to write. The question is not "how do we install this?" but "how do we set it up to match how our business actually works?" — and that can be done methodically in a few days to a few weeks.</p>
+
+<h2>Step 1: Define Your Goals Before You Start</h2>
+<p>Before touching any software, be clear about what you're trying to achieve. Common goals for small business ERP implementation include:</p>
+<ul>
+  <li>Get real-time inventory visibility across all locations</li>
+  <li>Automate invoicing and reduce days-to-payment</li>
+  <li>Produce accurate monthly financial reports without manual work</li>
+  <li>Stop double-entering data between accounting and inventory tools</li>
+  <li>Run payroll in minutes instead of days</li>
+</ul>
+<p>Write these down. They become your success criteria — how you'll know the implementation worked.</p>
+
+<h2>Step 2: Assign an Internal Champion</h2>
+<p>ERP implementation needs someone to own it. In a small business, this is usually the owner, the finance manager, or the operations manager. The champion is responsible for making configuration decisions, coordinating data migration, training staff, and holding the go-live date. Without a clear owner, implementations drift and stall.</p>
+
+<h2>Step 3: Clean and Prepare Your Data</h2>
+<p>Your ERP is only as good as the data you put into it. Before importing anything, clean up:</p>
+<ul>
+  <li><strong>Product/inventory list:</strong> Remove duplicates, standardise naming, verify quantities</li>
+  <li><strong>Customer list:</strong> Remove duplicates, update contact details</li>
+  <li><strong>Supplier list:</strong> Same as above</li>
+  <li><strong>Opening balances:</strong> Get your accountant to confirm account balances as of the go-live date</li>
+</ul>
+<p>Importing messy data into a new system just recreates your old problems in a new environment. Spend time here — it's worth it.</p>
+
+<h2>Step 4: Configure the System</h2>
+<p>Work through the core configuration in this order:</p>
+<ol>
+  <li><strong>Company settings:</strong> Name, address, TIN, VRN, currency, financial year start</li>
+  <li><strong>Chart of Accounts:</strong> TELA-ERP provides a pre-built chart for your business type — customise as needed</li>
+  <li><strong>Warehouses and locations:</strong> Set up your storage structure</li>
+  <li><strong>Tax settings:</strong> Configure VAT rate, withholding tax, etc.</li>
+  <li><strong>User accounts:</strong> Create accounts for each staff member with appropriate permissions</li>
+</ol>
+
+<h2>Step 5: Import Your Master Data</h2>
+<p>Once the system is configured, import your cleaned data using CSV templates:</p>
+<ul>
+  <li>Product/item list with prices and reorder points</li>
+  <li>Customer database</li>
+  <li>Supplier database</li>
+  <li>Opening stock quantities (via stock entry)</li>
+  <li>Opening financial balances</li>
+</ul>
+
+<h2>Step 6: Train Your Team</h2>
+<p>Training doesn't need to be elaborate. Focus on the specific tasks each person will perform daily:</p>
+<ul>
+  <li>Sales staff: creating sales orders and invoices</li>
+  <li>Warehouse staff: receiving goods and recording stock movements</li>
+  <li>Finance staff: managing payables, running reports</li>
+  <li>Management: reading dashboards and key reports</li>
+</ul>
+<p>TELA-ERP's interface is intuitive enough that most users are comfortable within a day of hands-on practice.</p>
+
+<h2>Step 7: Run Parallel for One Month</h2>
+<p>Before fully switching over, run your new ERP alongside your old system for one month. Compare outputs — do the numbers match? Are reports making sense? This is your safety net. Once you're confident, cut over completely.</p>
+
+<h2>Step 8: Go Live and Iterate</h2>
+<p>Set a go-live date and commit to it. Accept that the first few weeks will have some friction — that's normal. Collect feedback from your team, fix configuration issues as they arise, and keep your eye on the goals you defined in Step 1.</p>
+
+<h2>Your ERP Implementation Checklist</h2>
+<ul>
+  <li>☐ Goals defined and written down</li>
+  <li>☐ Internal champion assigned</li>
+  <li>☐ Data cleaned and ready for import</li>
+  <li>☐ Company configured in TELA-ERP</li>
+  <li>☐ Chart of accounts set up</li>
+  <li>☐ Master data imported</li>
+  <li>☐ Opening balances recorded</li>
+  <li>☐ User accounts created with correct permissions</li>
+  <li>☐ Team trained on their specific tasks</li>
+  <li>☐ Parallel run completed</li>
+  <li>☐ Go-live date set and communicated</li>
+</ul>
+
+<p>TELA-ERP is designed to make this entire process as smooth as possible — with templates, guided setup, and documentation to support you at every step. <a href="/signup">Create your free account</a> and start your implementation today. Most small businesses are fully live within one week.</p>
+`,
+  },
+
   // ─── END NEW POSTS ─────────────────────────────────────────────────────────
 
   {
