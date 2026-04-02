@@ -13,7 +13,15 @@ export interface Tenant {
   subscription_tier?: 'starter' | 'pro' | 'enterprise';
   is_active: boolean;
   created_at: string;
-  parent_tenant_id?: string; // for reseller hierarchy
+  parent_tenant_id?: string;
+  business_type?: string;
+  tin?: string;
+  vrn?: string;
+  default_currency?: string;
+  financial_year_start?: string;
+  contact_email?: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface Profile {
