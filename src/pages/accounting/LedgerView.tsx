@@ -45,17 +45,24 @@ export default function LedgerView() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // Load entries for selected account
-  useEffect(() => {
+  const loadEntries = async () => {
     if (!selectedAccount || !tenant?.id) { setEntries([]); return; }
-    (supabase as any)
+    const { data } = await (supabase as any)
       .from('accounting_voucher_entries')
       .select('*, voucher:accounting_vouchers(voucher_number, voucher_date, voucher_type, narration, status)')
       .eq('tenant_id', tenant.id)
       .eq('account_id', selectedAccount)
       .order('created_at', { ascending: false })
-      .limit(500)
-      .then(({ data }: any) => setEntries(data ?? []));
-  }, [selectedAccount, tenant?.id]);
+      .limit(500);
+    setEntries(data ?? []);
+  };
+
+  useEffect(() => { loadEntries(); }, [selectedAccount, tenant?.id]);
+
+  const handleRefresh = () => {
+    loadData();
+    loadEntries();
+  };
 
   const selectedAccInfo = accounts.find(a => a.id === selectedAccount);
   const selectedBalance = balances.find(b => b.account_id === selectedAccount);
