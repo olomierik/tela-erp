@@ -183,6 +183,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Company Switcher */}
+          <CompanySwitcher />
+
           {/* ⌘K Search trigger */}
           <button
             onClick={() => setCmdOpen(true)}
