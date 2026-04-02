@@ -729,6 +729,7 @@ export type Database = {
           code: string
           created_at: string | null
           id: string
+          is_active: boolean
           is_system: boolean | null
           name: string
           parent_id: string | null
@@ -740,6 +741,7 @@ export type Database = {
           code: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean | null
           name: string
           parent_id?: string | null
@@ -751,6 +753,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean | null
           name?: string
           parent_id?: string | null
