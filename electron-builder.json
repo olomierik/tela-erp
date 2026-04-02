@@ -1,0 +1,41 @@
+{
+  "appId": "com.tela.erp",
+  "productName": "TELA ERP",
+  "main": "electron/main.js",
+  "directories": {
+    "buildResources": "public",
+    "output": "release"
+  },
+  "files": [
+    "dist-desktop/**/*",
+    "electron/**/*",
+    "node_modules/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "electron/schema.sql",
+      "to": "schema.sql"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/favicon.png"
+  },
+  "mac": {
+    "target": "dmg",
+    "icon": "public/favicon.png"
+  },
+  "linux": {
+    "target": "AppImage"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "public/favicon.png"
+  }
+}
