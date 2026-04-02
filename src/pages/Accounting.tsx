@@ -15,6 +15,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, Plus,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import CompanySwitcher from '@/components/company/CompanySwitcher';
 
 interface VoucherSummary {
   total: number;
