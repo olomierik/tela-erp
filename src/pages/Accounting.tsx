@@ -15,6 +15,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, Plus,
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import CompanySwitcher from '@/components/company/CompanySwitcher';
 
 interface VoucherSummary {
   total: number;
@@ -198,6 +199,14 @@ export default function Accounting() {
   return (
     <AppLayout title="Accounting" subtitle="Double-entry accounting engine">
       <div className="space-y-5">
+        {/* Company Switcher */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Accounting Dashboard</h2>
+            <p className="text-xs text-muted-foreground">Active company: {tenant?.name || 'Demo'}</p>
+          </div>
+          <CompanySwitcher />
+        </div>
         {/* Financial KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[

@@ -1,14 +1,19 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { BookOpen, ArrowUpDown, Printer, FileSpreadsheet, FileText, Filter, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import {
+  BookOpen, ArrowUpDown, Printer, FileSpreadsheet, FileText,
+  Filter, ChevronLeft, ChevronRight, Pencil, Trash2, Check, X, Save,
+} from 'lucide-react';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import type { Account, LedgerBalance } from './LedgerList';
 
@@ -33,12 +38,13 @@ interface Props {
   account: Account | undefined;
   balance: LedgerBalance | undefined;
   entries: LedgerEntry[];
+  onRefresh?: () => void;
 }
 
-const VOUCHER_TYPES = ['all', 'journal', 'sales', 'purchase', 'payment', 'receipt', 'contra'];
+const VOUCHER_TYPES = ['all', 'journal', 'sale', 'purchase', 'payment', 'receipt', 'contra'];
 const PAGE_SIZE = 50;
 
-export function LedgerDetail({ account, balance, entries }: Props) {
+export function LedgerDetail({ account, balance, entries, onRefresh }: Props) {
   const { formatMoney } = useCurrency();
   const { tenant } = useAuth();
 
@@ -51,6 +57,13 @@ export function LedgerDetail({ account, balance, entries }: Props) {
 
   // Pagination
   const [page, setPage] = useState(0);
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDebit, setEditDebit] = useState('');
+  const [editCredit, setEditCredit] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const postedEntries = entries.filter(e => e.voucher?.status === 'posted');
 
@@ -71,31 +84,25 @@ export function LedgerDetail({ account, balance, entries }: Props) {
     return result;
   }, [postedEntries, dateFrom, dateTo, voucherType, refSearch]);
 
-  // Running balance rows (oldest first for calculation, then display newest first)
+  // Running balance rows
   const rowsWithBalance = useMemo(() => {
     let runBal = 0;
     const sorted = [...filteredEntries].sort((a, b) =>
       (a.voucher?.voucher_date ?? '').localeCompare(b.voucher?.voucher_date ?? '') ||
       a.created_at.localeCompare(b.created_at)
     );
-    const rows = sorted.map(e => {
+    return sorted.map(e => {
       runBal += Number(e.debit) - Number(e.credit);
       return { ...e, runBal };
     });
-    return rows;
   }, [filteredEntries]);
 
-  // Display newest first
   const displayRows = useMemo(() => [...rowsWithBalance].reverse(), [rowsWithBalance]);
-
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(displayRows.length / PAGE_SIZE));
   const pagedRows = displayRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  // Reset page when filters change
   useMemo(() => setPage(0), [dateFrom, dateTo, voucherType, refSearch]);
 
-  // Totals
   const totalDebit = filteredEntries.reduce((s, e) => s + Number(e.debit), 0);
   const totalCredit = filteredEntries.reduce((s, e) => s + Number(e.credit), 0);
   const closingBalance = rowsWithBalance.length > 0 ? rowsWithBalance[rowsWithBalance.length - 1].runBal : 0;
@@ -107,9 +114,83 @@ export function LedgerDetail({ account, balance, entries }: Props) {
     refSearch && `Search: "${refSearch}"`,
   ].filter(Boolean).join(' | ');
 
-  // Export helpers - use ALL filtered data (not just current page)
+  // --- Edit / Delete handlers ---
+  const startEdit = (e: LedgerEntry & { runBal: number }) => {
+    setEditingId(e.id);
+    setEditDebit(String(Number(e.debit)));
+    setEditCredit(String(Number(e.credit)));
+    setEditDesc(e.description);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editingId || !tenant?.id) return;
+    setSaving(true);
+    const newDebit = parseFloat(editDebit) || 0;
+    const newCredit = parseFloat(editCredit) || 0;
+
+    const { error } = await (supabase as any)
+      .from('accounting_voucher_entries')
+      .update({ debit: newDebit, credit: newCredit, description: editDesc })
+      .eq('id', editingId)
+      .eq('tenant_id', tenant.id);
+
+    if (error) {
+      toast.error('Failed to update: ' + error.message);
+    } else {
+      toast.success('Transaction updated');
+      // Log audit
+      await (supabase as any).from('audit_log').insert({
+        tenant_id: tenant.id,
+        action: 'update_voucher_entry',
+        module: 'accounting',
+        reference_id: editingId,
+        details: { debit: newDebit, credit: newCredit, description: editDesc },
+      });
+      onRefresh?.();
+    }
+    setSaving(false);
+    setEditingId(null);
+  };
+
+  const deleteEntry = async (entry: LedgerEntry) => {
+    if (!tenant?.id) return;
+    const confirmed = window.confirm(
+      `Delete this transaction?\n\nRef: ${entry.voucher?.voucher_number}\nDebit: ${formatMoney(Number(entry.debit))}\nCredit: ${formatMoney(Number(entry.credit))}\n\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    const { error } = await (supabase as any)
+      .from('accounting_voucher_entries')
+      .delete()
+      .eq('id', entry.id)
+      .eq('tenant_id', tenant.id);
+
+    if (error) {
+      toast.error('Failed to delete: ' + error.message);
+    } else {
+      toast.success('Transaction deleted');
+      await (supabase as any).from('audit_log').insert({
+        tenant_id: tenant.id,
+        action: 'delete_voucher_entry',
+        module: 'accounting',
+        reference_id: entry.id,
+        details: {
+          voucher_number: entry.voucher?.voucher_number,
+          debit: entry.debit,
+          credit: entry.credit,
+          description: entry.description,
+        },
+      });
+      onRefresh?.();
+    }
+  };
+
+  // --- Export helpers ---
   const getExportRows = () => {
-    // Chronological order for export
     return rowsWithBalance.map(e => ({
       date: e.voucher?.voucher_date ? new Date(e.voucher.voucher_date).toLocaleDateString() : '—',
       type: e.voucher?.voucher_type ?? '',
@@ -189,8 +270,6 @@ export function LedgerDetail({ account, balance, entries }: Props) {
     const rows = getExportRows();
     const header = ['Date', 'Voucher Type', 'Reference', 'Narration', 'Debit', 'Credit', 'Balance'];
     const data = rows.map(r => [r.date, r.type, r.reference, r.narration, r.debit || '', r.credit || '', r.balance]);
-
-    // Add metadata rows at top
     const meta = [
       [`Company: ${tenant?.name || ''}`],
       [`Ledger: ${account?.name} (${account?.code})`],
@@ -198,7 +277,6 @@ export function LedgerDetail({ account, balance, entries }: Props) {
       [`Generated: ${new Date().toLocaleString()}`],
       [],
     ];
-
     const ws = XLSX.utils.aoa_to_sheet([...meta, header, ...data]);
     ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
@@ -229,7 +307,7 @@ export function LedgerDetail({ account, balance, entries }: Props) {
 
   return (
     <Card className="lg:col-span-2 flex flex-col">
-      {/* Header with account info + actions */}
+      {/* Header */}
       <CardHeader className="pb-2 space-y-2">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
@@ -330,32 +408,116 @@ export function LedgerDetail({ account, balance, entries }: Props) {
                     <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Debit</th>
                     <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Credit</th>
                     <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">Balance</th>
+                    <th className="text-center px-2 py-2 text-xs font-medium text-muted-foreground w-[80px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedRows.map(e => (
-                    <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
-                        {e.voucher?.voucher_date ? new Date(e.voucher.voucher_date).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{e.voucher?.voucher_type}</Badge>
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge variant="outline" className="font-mono text-[10px]">{e.voucher?.voucher_number}</Badge>
-                      </td>
-                      <td className="px-3 py-2 text-xs truncate max-w-[200px]">{e.voucher?.narration || e.description}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-xs font-medium">
-                        {Number(e.debit) > 0 && <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(Number(e.debit))}</span>}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-xs font-medium">
-                        {Number(e.credit) > 0 && <span className="text-destructive">{formatMoney(Number(e.credit))}</span>}
-                      </td>
-                      <td className={cn('px-3 py-2 text-right tabular-nums text-xs font-semibold', e.runBal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
-                        {formatMoney(Math.abs(e.runBal))} {e.runBal >= 0 ? 'Dr' : 'Cr'}
-                      </td>
-                    </tr>
-                  ))}
+                  {pagedRows.map(e => {
+                    const isEditing = editingId === e.id;
+
+                    if (isEditing) {
+                      return (
+                        <tr key={e.id} className="border-b border-border bg-primary/5">
+                          <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                            {e.voucher?.voucher_date ? new Date(e.voucher.voucher_date).toLocaleDateString() : '—'}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{e.voucher?.voucher_type}</Badge>
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge variant="outline" className="font-mono text-[10px]">{e.voucher?.voucher_number}</Badge>
+                          </td>
+                          <td className="px-3 py-1">
+                            <Input
+                              value={editDesc}
+                              onChange={ev => setEditDesc(ev.target.value)}
+                              className="h-6 text-xs"
+                            />
+                          </td>
+                          <td className="px-3 py-1">
+                            <Input
+                              type="number"
+                              value={editDebit}
+                              onChange={ev => setEditDebit(ev.target.value)}
+                              className="h-6 text-xs text-right w-[90px] ml-auto"
+                              min="0"
+                            />
+                          </td>
+                          <td className="px-3 py-1">
+                            <Input
+                              type="number"
+                              value={editCredit}
+                              onChange={ev => setEditCredit(ev.target.value)}
+                              className="h-6 text-xs text-right w-[90px] ml-auto"
+                              min="0"
+                            />
+                          </td>
+                          <td />
+                          <td className="px-2 py-1 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={saveEdit}
+                                disabled={saving}
+                                className="p-0.5 text-emerald-600 hover:text-emerald-700"
+                                title="Save"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={cancelEdit}
+                                className="p-0.5 text-muted-foreground hover:text-foreground"
+                                title="Cancel"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr key={e.id} className="group border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                          {e.voucher?.voucher_date ? new Date(e.voucher.voucher_date).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{e.voucher?.voucher_type}</Badge>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline" className="font-mono text-[10px]">{e.voucher?.voucher_number}</Badge>
+                        </td>
+                        <td className="px-3 py-2 text-xs truncate max-w-[200px]">{e.voucher?.narration || e.description}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-xs font-medium">
+                          {Number(e.debit) > 0 && <span className="text-emerald-600 dark:text-emerald-400">{formatMoney(Number(e.debit))}</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-xs font-medium">
+                          {Number(e.credit) > 0 && <span className="text-destructive">{formatMoney(Number(e.credit))}</span>}
+                        </td>
+                        <td className={cn('px-3 py-2 text-right tabular-nums text-xs font-semibold', e.runBal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
+                          {formatMoney(Math.abs(e.runBal))} {e.runBal >= 0 ? 'Dr' : 'Cr'}
+                        </td>
+                        <td className="px-2 py-2 text-center">
+                          <div className="hidden group-hover:flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => startEdit(e)}
+                              className="p-0.5 text-muted-foreground hover:text-foreground"
+                              title="Edit transaction"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => deleteEntry(e)}
+                              className="p-0.5 text-muted-foreground hover:text-destructive"
+                              title="Delete transaction"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {/* Totals row */}
                   <tr className="border-t-2 border-foreground/20 bg-muted/30 font-semibold">
                     <td colSpan={4} className="px-3 py-2 text-xs">
@@ -366,6 +528,7 @@ export function LedgerDetail({ account, balance, entries }: Props) {
                     <td className={cn('px-3 py-2 text-right tabular-nums text-xs', closingBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
                       {formatMoney(Math.abs(closingBalance))} {closingBalance >= 0 ? 'Dr' : 'Cr'}
                     </td>
+                    <td />
                   </tr>
                 </tbody>
               </table>
