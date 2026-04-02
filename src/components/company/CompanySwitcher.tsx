@@ -35,14 +35,31 @@ export default function CompanySwitcher() {
       return;
     }
 
-    // Get all tenants where user has an active profile
-    const { data: profiles } = await (supabase.from('profiles') as any)
+    // Get all companies the user belongs to via user_companies (multi-company aware)
+    const { data: memberships } = await (supabase.from('user_companies') as any)
       .select('tenant_id')
       .eq('user_id', user.id)
       .eq('is_active', true);
 
-    if (!profiles?.length) {
-      // Fallback: show current tenant if profiles query returns nothing
+    // Fallback: if user_companies table isn't populated yet, try profiles
+    const tenantIds: string[] = memberships?.length
+      ? memberships.map((m: any) => m.tenant_id)
+      : [];
+
+    if (!tenantIds.length) {
+      // Last resort: fall back to profiles table (original single-company flow)
+      const { data: profiles } = await (supabase.from('profiles') as any)
+        .select('tenant_id')
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      if (profiles?.length) {
+        tenantIds.push(...profiles.map((p: any) => p.tenant_id));
+      }
+    }
+
+    if (!tenantIds.length) {
+      // Nothing found — show current tenant as fallback
       if (tenant) {
         setCompanies([{
           id: tenant.id,
@@ -55,7 +72,6 @@ export default function CompanySwitcher() {
       return;
     }
 
-    const tenantIds = profiles.map((p: any) => p.tenant_id);
     const { data: tenants } = await (supabase.from('tenants') as any)
       .select('id, name, business_type, default_currency')
       .in('id', tenantIds)
