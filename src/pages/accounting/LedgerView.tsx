@@ -76,7 +76,7 @@ export default function LedgerView() {
             onSelect={setSelectedAccount}
             onRefresh={loadData}
           />
-          <LedgerDetail account={selectedAccInfo} balance={selectedBalance} entries={entries} />
+          <LedgerDetail account={selectedAccInfo} balance={selectedBalance} entries={entries} onRefresh={() => { loadData(); setSelectedAccount(selectedAccount); }} />
         </div>
       </div>
     </AppLayout>
