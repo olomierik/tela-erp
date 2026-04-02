@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import CommandPalette from '@/components/ui/CommandPalette';
+import CompanySwitcher from '@/components/company/CompanySwitcher';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
