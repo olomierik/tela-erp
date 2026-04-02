@@ -66,47 +66,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      // Check if user has a preferred tenant
-      const preferredTenant = localStorage.getItem('tela_active_tenant');
+      const preferredTenantId = localStorage.getItem('tela_active_tenant');
 
-      let profileQuery = supabase
+      // Always load the profile by user_id only (profiles has UNIQUE(user_id))
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .limit(1)
+        .single();
 
-      if (preferredTenant) {
-        profileQuery = profileQuery.eq('tenant_id', preferredTenant);
-      }
+      if (!profileData) return;
+      setProfile(profileData);
 
-      const { data: profileData } = await profileQuery.limit(1).single();
+      // Determine which tenant to activate:
+      // 1. If a preferred tenant is stored and the user is a member → use it
+      // 2. Otherwise fall back to the profile's own tenant
+      let activeTenantId = profileData.tenant_id;
 
-      if (profileData) {
-        setProfile(profileData);
-        const { data: tenantData } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('id', profileData.tenant_id)
-          .single();
-        if (tenantData) setTenant(tenantData as Tenant);
-      } else if (preferredTenant) {
-        // Preferred tenant not found for user, clear and retry with default
-        localStorage.removeItem('tela_active_tenant');
-        const { data: fallback } = await supabase
-          .from('profiles')
-          .select('*')
+      if (preferredTenantId && preferredTenantId !== profileData.tenant_id) {
+        // Verify the user actually belongs to the preferred tenant via user_companies
+        const { data: membership } = await (supabase as any)
+          .from('user_companies')
+          .select('tenant_id')
           .eq('user_id', userId)
+          .eq('tenant_id', preferredTenantId)
+          .eq('is_active', true)
           .limit(1)
           .single();
-        if (fallback) {
-          setProfile(fallback);
-          const { data: tenantData } = await supabase
-            .from('tenants')
-            .select('*')
-            .eq('id', fallback.tenant_id)
-            .single();
-          if (tenantData) setTenant(tenantData as Tenant);
+
+        if (membership) {
+          activeTenantId = preferredTenantId;
+        } else {
+          // Not a valid member — clear stale preference
+          localStorage.removeItem('tela_active_tenant');
         }
       }
+
+      // Load the active tenant
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', activeTenantId)
+        .single();
+
+      if (tenantData) setTenant(tenantData as Tenant);
 
       const { data: roleData } = await supabase
         .from('user_roles')
