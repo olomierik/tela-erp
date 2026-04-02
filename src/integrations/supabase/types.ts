@@ -4358,12 +4358,14 @@ export type Database = {
           address: string | null
           ai_model: string | null
           anthropic_api_key: string | null
+          business_type: string | null
           city: string | null
           contact_email: string | null
           country: string | null
           created_at: string
           custom_domain: string | null
           default_currency: string
+          financial_year_start: string | null
           id: string
           is_active: boolean
           logo_url: string | null
@@ -4377,18 +4379,22 @@ export type Database = {
           stripe_subscription_id: string | null
           subscription_tier: string | null
           timezone: string | null
+          tin: string | null
           updated_at: string
+          vrn: string | null
         }
         Insert: {
           address?: string | null
           ai_model?: string | null
           anthropic_api_key?: string | null
+          business_type?: string | null
           city?: string | null
           contact_email?: string | null
           country?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
+          financial_year_start?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -4402,18 +4408,22 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_tier?: string | null
           timezone?: string | null
+          tin?: string | null
           updated_at?: string
+          vrn?: string | null
         }
         Update: {
           address?: string | null
           ai_model?: string | null
           anthropic_api_key?: string | null
+          business_type?: string | null
           city?: string | null
           contact_email?: string | null
           country?: string | null
           created_at?: string
           custom_domain?: string | null
           default_currency?: string
+          financial_year_start?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -4427,7 +4437,9 @@ export type Database = {
           stripe_subscription_id?: string | null
           subscription_tier?: string | null
           timezone?: string | null
+          tin?: string | null
           updated_at?: string
+          vrn?: string | null
         }
         Relationships: [
           {
@@ -4688,6 +4700,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_company: {
+        Args: {
+          _address?: string
+          _business_type?: string
+          _company_name: string
+          _currency?: string
+          _email?: string
+          _financial_year_start?: string
+          _phone?: string
+          _tin?: string
+          _user_id: string
+          _vrn?: string
+        }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -4730,6 +4757,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      seed_company_coa: {
+        Args: { _business_type?: string; _tenant_id: string }
+        Returns: undefined
       }
     }
     Enums: {
