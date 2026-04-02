@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import CommandPalette from '@/components/ui/CommandPalette';
+import CompanySwitcher from '@/components/company/CompanySwitcher';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -182,6 +183,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Company Switcher */}
+          <CompanySwitcher />
+
           {/* ⌘K Search trigger */}
           <button
             onClick={() => setCmdOpen(true)}

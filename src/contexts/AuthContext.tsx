@@ -66,11 +66,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      const { data: profileData } = await supabase
+      // Check if user has a preferred tenant
+      const preferredTenant = localStorage.getItem('tela_active_tenant');
+
+      let profileQuery = supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', userId);
+
+      if (preferredTenant) {
+        profileQuery = profileQuery.eq('tenant_id', preferredTenant);
+      }
+
+      const { data: profileData } = await profileQuery.limit(1).single();
 
       if (profileData) {
         setProfile(profileData);
@@ -80,6 +88,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', profileData.tenant_id)
           .single();
         if (tenantData) setTenant(tenantData as Tenant);
+      } else if (preferredTenant) {
+        // Preferred tenant not found for user, clear and retry with default
+        localStorage.removeItem('tela_active_tenant');
+        const { data: fallback } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .limit(1)
+          .single();
+        if (fallback) {
+          setProfile(fallback);
+          const { data: tenantData } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('id', fallback.tenant_id)
+            .single();
+          if (tenantData) setTenant(tenantData as Tenant);
+        }
       }
 
       const { data: roleData } = await supabase

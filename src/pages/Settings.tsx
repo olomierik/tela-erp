@@ -363,21 +363,45 @@ export default function SettingsPage() {
                     <Label>Company Name</Label>
                     <Input value={companyName} onChange={e => setCompanyName(e.target.value)} />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label>Business Type</Label>
+                    <Select value={(tenant as any)?.business_type || 'trading'} disabled>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['trading','manufacturing','service','retail','construction','logistics'].map(t => (
+                          <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">Cannot be changed after transactions exist</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Financial Year Start</Label>
+                    <Input type="date" value={(tenant as any)?.financial_year_start || ''} disabled />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>TIN</Label>
+                    <Input value={(tenant as any)?.tin || ''} disabled placeholder="Tax ID Number" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>VRN</Label>
+                    <Input value={(tenant as any)?.vrn || ''} disabled placeholder="VAT Reg Number" />
+                  </div>
                   <div className="col-span-2 space-y-1.5">
                     <Label>Address</Label>
                     <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="123 Business Ave, Suite 100" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>City</Label>
-                    <Input value={companyCity} onChange={e => setCompanyCity(e.target.value)} placeholder="New York" />
+                    <Input value={companyCity} onChange={e => setCompanyCity(e.target.value)} placeholder="Dar es Salaam" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Country</Label>
-                    <Input value={companyCountry} onChange={e => setCompanyCountry(e.target.value)} placeholder="United States" />
+                    <Input value={companyCountry} onChange={e => setCompanyCountry(e.target.value)} placeholder="Tanzania" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Phone</Label>
-                    <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="+1 555 0100" />
+                    <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="+255 7XX XXX XXX" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Contact Email</Label>
