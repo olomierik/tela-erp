@@ -70,8 +70,8 @@ export default function Accounting() {
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!tenant?.id || isDemo) {
-      // Demo data
+    // Show demo data only when genuinely in demo mode (no real tenant)
+    if (isDemo || !tenant?.id) {
       setVoucherSummary({ total: 156, posted: 142, draft: 14, totalValue: 4850000 });
       setFinancial({
         totalRevenue: 12500000, totalExpenses: 8200000, netProfit: 4300000,
@@ -94,8 +94,10 @@ export default function Accounting() {
       return;
     }
 
+    // Real tenant — fetch live data
     loadData();
-  }, [tenant?.id, isDemo]);
+  // Re-run whenever the active company changes (tenant.id) or auth mode changes
+  }, [tenant?.id, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadData = async () => {
     if (!tenant?.id) return;
