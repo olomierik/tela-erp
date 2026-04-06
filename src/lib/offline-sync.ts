@@ -163,7 +163,7 @@ class OfflineSyncManager {
     }
 
     try {
-      let query = supabase.from(table).select('*');
+      let query = (supabase as any).from(table).select('*');
 
       if (lastSync) {
         query = query.gte('updated_at', lastSync.toISOString());

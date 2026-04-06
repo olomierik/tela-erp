@@ -50,7 +50,7 @@ export function MobileMoneyPayment({ amount, currency, onSuccess, onCancel }: Mo
       
       try {
         // Record the payment in the database
-        const { error } = await supabase.from('myerp_payments').insert({
+        const { error } = await (supabase as any).from('myerp_payments').insert({
           reference,
           type: 'incoming',
           amount,

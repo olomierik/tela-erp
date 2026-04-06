@@ -171,7 +171,7 @@ class ModuleIntegrationManager {
         });
 
         // Add credit to accounts receivable
-        await supabase.from('myerp_journal_lines').insert({
+        await (supabase as any).from('myerp_journal_lines').insert({
           entry_id: journalEntry.id,
           account_code: '1200', // Accounts receivable
           account_name: 'Accounts Receivable',
