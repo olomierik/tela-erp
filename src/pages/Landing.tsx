@@ -60,8 +60,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>TELA-ERP — Most Affordable Open Source ERP for Small Businesses | Just $20/Year</title>
-        <meta name="description" content="TELA-ERP is the most affordable cloud ERP for small businesses — just $20/year for all modules. Manage inventory, sales, production, accounting & procurement in one platform." />
+        <title>TELA-ERP — Most Affordable Open Source ERP for Small Businesses | Just $100/Year</title>
+        <meta name="description" content="TELA-ERP is the most affordable cloud ERP for small businesses — just $100/year for all modules. Manage inventory, sales, production, accounting & procurement in one platform." />
         <link rel="canonical" href="https://tela-erp.com/" />
       </Helmet>
       {/* NAV */}
@@ -121,7 +121,7 @@ export default function Landing() {
               for SMEs Everywhere
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              Manage production, inventory, sales, accounting, and more — just <strong>$20/year</strong>. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
+              Manage production, inventory, sales, accounting, and more — just <strong>$100/year</strong>. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
@@ -231,10 +231,10 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-3">💰 Affordable ERP</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">The Most Affordable ERP — Just $20/Year</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">The Most Affordable ERP — Just $100/Year</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
-              All 15+ modules, unlimited users, no hidden fees. Just <strong>$20/year</strong> for everything.
+              All 15+ modules, unlimited users, no hidden fees. Just <strong>$100/year</strong> for everything.
             </p>
           </motion.div>
 
@@ -247,10 +247,10 @@ export default function Landing() {
                   </div>
                   <h3 className="font-bold text-xl mb-1">Full Access</h3>
                   <div className="flex items-end justify-center gap-1 my-4">
-                    <span className="text-5xl font-extrabold">$20</span>
+                    <span className="text-5xl font-extrabold">$100</span>
                     <span className="text-muted-foreground text-sm mb-1">/year</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-1">That's less than $1.70/month</p>
+                  <p className="text-xs text-muted-foreground mb-1">That's less than $8.33/month</p>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
                     All 15+ modules, unlimited users, AI assistant, multi-currency, white-labeling, and more. No per-user fees. No hidden costs.
                   </p>
@@ -308,7 +308,7 @@ export default function Landing() {
               <div className="relative z-10">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Ready to Transform Your Business?</h2>
               <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-                  Join SMEs across Africa and the world using the most affordable ERP — just $20/year — to streamline operations and drive growth.
+                  Join SMEs across Africa and the world using the most affordable ERP — just $100/year — to streamline operations and drive growth.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
@@ -333,7 +333,7 @@ export default function Landing() {
                 <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                The most affordable open source ERP — just $20/year — built for SMEs in Africa and the world.
+                The most affordable open source ERP — just $100/year — built for SMEs in Africa and the world.
               </p>
             </div>
             <div>
