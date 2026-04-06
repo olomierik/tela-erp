@@ -270,9 +270,9 @@ export default function SettingsPage() {
 
   const handleClearKey = async () => {
     if (isDemo) return;
-    const { error } = await (supabase.from('tenants') as any)
+    const { error } = await (supabase.from('tenant_secrets') as any)
       .update({ anthropic_api_key: null })
-      .eq('id', tenant?.id);
+      .eq('tenant_id', tenant?.id);
     if (!error) {
       setAiConfigured(false);
       setAiKey('');
