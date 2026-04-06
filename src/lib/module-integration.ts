@@ -52,7 +52,7 @@ class ModuleIntegrationManager {
 
       // Create inventory reservations for each item
       for (const item of items) {
-        await supabase.from('inventory_reservations').insert({
+        await (supabase as any).from('inventory_reservations').insert({
           order_id,
           product_id: item.product_id,
           quantity: item.quantity,
