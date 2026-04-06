@@ -4389,11 +4389,45 @@ export type Database = {
           },
         ]
       }
+      tenant_secrets: {
+        Row: {
+          ai_model: string | null
+          anthropic_api_key: string | null
+          created_at: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_model?: string | null
+          anthropic_api_key?: string | null
+          created_at?: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_model?: string | null
+          anthropic_api_key?: string | null
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           address: string | null
           ai_model: string | null
-          anthropic_api_key: string | null
           business_type: string | null
           city: string | null
           contact_email: string | null
@@ -4422,7 +4456,6 @@ export type Database = {
         Insert: {
           address?: string | null
           ai_model?: string | null
-          anthropic_api_key?: string | null
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -4451,7 +4484,6 @@ export type Database = {
         Update: {
           address?: string | null
           ai_model?: string | null
-          anthropic_api_key?: string | null
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -4795,6 +4827,13 @@ export type Database = {
         Returns: number
       }
       get_profiles_count: { Args: never; Returns: number }
+      get_tenant_secret: {
+        Args: { _tenant_id: string }
+        Returns: {
+          ai_model: string
+          anthropic_api_key: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

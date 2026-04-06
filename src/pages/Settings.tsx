@@ -76,9 +76,7 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
-  const MIGRATION_SQL = `ALTER TABLE public.tenants
-  ADD COLUMN IF NOT EXISTS anthropic_api_key TEXT,
-  ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT 'claude-sonnet-4-6';`;
+  // AI config is now stored in tenant_secrets (not tenants)
 
   // Load company info
   useEffect(() => {
@@ -127,12 +125,11 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!tenant?.id || isDemo) return;
     (async () => {
-      const { data, error } = await (supabase.from('tenants') as any)
+      const { data, error } = await (supabase.from('tenant_secrets') as any)
         .select('anthropic_api_key, ai_model')
-        .eq('id', tenant.id)
+        .eq('tenant_id', tenant.id)
         .single();
-      if (error?.message?.includes('column') || error?.message?.includes('schema')) {
-        setNeedsMigration(true);
+      if (error && !error.message?.includes('0 rows')) {
         return;
       }
       if (data?.anthropic_api_key) {
@@ -224,20 +221,11 @@ export default function SettingsPage() {
     if (!aiKey.trim() && !aiConfigured) { toast.error('Please enter an Anthropic API key'); return; }
     setSaveAiLoading(true);
     try {
-      const updates: Record<string, any> = { ai_model: aiModel };
+      const updates: Record<string, any> = { tenant_id: tenant?.id, ai_model: aiModel };
       if (aiKey.trim()) updates.anthropic_api_key = aiKey.trim();
-      const { error } = await (supabase.from('tenants') as any)
-        .update(updates)
-        .eq('id', tenant?.id);
-      if (error) {
-        if (error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('ai_model')) {
-          setNeedsMigration(true);
-          toast.error('Database migration required — see the setup instructions below.');
-          return;
-        }
-        throw error;
-      }
-      setNeedsMigration(false);
+      const { error } = await (supabase.from('tenant_secrets') as any)
+        .upsert(updates, { onConflict: 'tenant_id' });
+      if (error) throw error;
       setAiConfigured(true);
       if (aiKey.trim()) setAiKey('');
       toast.success('AI settings saved successfully');
@@ -282,9 +270,9 @@ export default function SettingsPage() {
 
   const handleClearKey = async () => {
     if (isDemo) return;
-    const { error } = await (supabase.from('tenants') as any)
+    const { error } = await (supabase.from('tenant_secrets') as any)
       .update({ anthropic_api_key: null })
-      .eq('id', tenant?.id);
+      .eq('tenant_id', tenant?.id);
     if (!error) {
       setAiConfigured(false);
       setAiKey('');
@@ -599,18 +587,6 @@ npx supabase functions deploy ai-demand-forecast`}
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {needsMigration && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">⚠️ Database migration required first</p>
-                    <div className="relative">
-                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 rounded p-2 font-mono">{MIGRATION_SQL}</pre>
-                      <Button size="sm" variant="outline" className="absolute top-1 right-1 h-5 text-[10px] gap-1 border-amber-300"
-                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}>
-                        <Copy className="w-2.5 h-2.5" /> Copy
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Anthropic API Key</Label>
