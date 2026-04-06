@@ -142,14 +142,14 @@ class OfflineSyncManager {
 
     switch (operation) {
       case 'insert':
-        await supabase.from(table).insert(data);
+        await (supabase as any).from(table).insert(data);
         break;
       case 'update':
         const { id, ...updateData } = data;
-        await supabase.from(table).update(updateData).eq('id', id);
+        await (supabase as any).from(table).update(updateData).eq('id', id as string);
         break;
       case 'delete':
-        await supabase.from(table).delete().eq('id', data.id);
+        await (supabase as any).from(table).delete().eq('id', data.id as string);
         break;
     }
   }
@@ -163,7 +163,7 @@ class OfflineSyncManager {
     }
 
     try {
-      let query = supabase.from(table).select('*');
+      let query = (supabase as any).from(table).select('*');
 
       if (lastSync) {
         query = query.gte('updated_at', lastSync.toISOString());

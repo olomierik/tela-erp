@@ -52,7 +52,7 @@ class ModuleIntegrationManager {
 
       // Create inventory reservations for each item
       for (const item of items) {
-        await supabase.from('inventory_reservations').insert({
+        await (supabase as any).from('inventory_reservations').insert({
           order_id,
           product_id: item.product_id,
           quantity: item.quantity,
@@ -73,14 +73,14 @@ class ModuleIntegrationManager {
 
       // Deduct from inventory
       for (const item of items) {
-        const { data: stock } = await supabase
+        const { data: stock } = await (supabase as any)
           .from('inventory_stock')
           .select('quantity')
           .eq('product_id', item.product_id)
           .single();
 
         if (stock) {
-          await supabase
+          await (supabase as any)
             .from('inventory_stock')
             .update({ quantity: stock.quantity - item.quantity })
             .eq('product_id', item.product_id);
@@ -99,7 +99,7 @@ class ModuleIntegrationManager {
       const { product_id, current_quantity, reorder_point } = event.data as { product_id: string; current_quantity: number; reorder_point: number };
 
       // Create a notification
-      await supabase.from('notifications').insert({
+      await (supabase as any).from('notifications').insert({
         title: 'Low Stock Alert',
         message: `Product ${product_id} is below reorder point (${current_quantity}/${reorder_point})`,
         type: 'warning',
@@ -118,19 +118,19 @@ class ModuleIntegrationManager {
       const { production_order_id, product_id, quantity } = event.data as { production_order_id: string; product_id: string; quantity: number };
 
       // Add to inventory
-      const { data: stock } = await supabase
+      const { data: stock } = await (supabase as any)
         .from('inventory_stock')
         .select('quantity')
         .eq('product_id', product_id)
         .single();
 
       if (stock) {
-        await supabase
+        await (supabase as any)
           .from('inventory_stock')
           .update({ quantity: stock.quantity + quantity })
           .eq('product_id', product_id);
       } else {
-        await supabase.from('inventory_stock').insert({
+        await (supabase as any).from('inventory_stock').insert({
           product_id,
           quantity,
           warehouse_id: 'default',
@@ -149,7 +149,7 @@ class ModuleIntegrationManager {
       const { payment_id, amount, customer_id, invoice_id } = event.data as { payment_id: string; amount: number; customer_id: string; invoice_id: string };
 
       // Create accounting journal entry
-      const { data: journalEntry } = await supabase
+      const { data: journalEntry } = await (supabase as any)
         .from('myerp_journal_entries')
         .insert({
           reference: `PAY-${payment_id}`,
@@ -162,7 +162,7 @@ class ModuleIntegrationManager {
 
       if (journalEntry) {
         // Add debit to bank account
-        await supabase.from('myerp_journal_lines').insert({
+        await (supabase as any).from('myerp_journal_lines').insert({
           entry_id: journalEntry.id,
           account_code: '1010', // Bank account
           account_name: 'Bank',
@@ -171,7 +171,7 @@ class ModuleIntegrationManager {
         });
 
         // Add credit to accounts receivable
-        await supabase.from('myerp_journal_lines').insert({
+        await (supabase as any).from('myerp_journal_lines').insert({
           entry_id: journalEntry.id,
           account_code: '1200', // Accounts receivable
           account_name: 'Accounts Receivable',
