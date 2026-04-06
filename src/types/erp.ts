@@ -8,8 +8,6 @@ export interface Tenant {
   primary_color?: string;
   secondary_color?: string;
   custom_domain?: string;
-  stripe_customer_id?: string;
-  stripe_subscription_id?: string;
   subscription_tier?: 'starter' | 'pro' | 'enterprise';
   is_active: boolean;
   created_at: string;
