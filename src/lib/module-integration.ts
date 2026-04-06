@@ -73,7 +73,7 @@ class ModuleIntegrationManager {
 
       // Deduct from inventory
       for (const item of items) {
-        const { data: stock } = await supabase
+        const { data: stock } = await (supabase as any)
           .from('inventory_stock')
           .select('quantity')
           .eq('product_id', item.product_id)
