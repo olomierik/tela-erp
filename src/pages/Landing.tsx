@@ -230,7 +230,7 @@ export default function Landing() {
       <section id="pricing" className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-3">🌍 Open Source</Badge>
+            <Badge variant="secondary" className="mb-3">💰 Affordable ERP</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">The Most Affordable ERP — Just $20/Year</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
