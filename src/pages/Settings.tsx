@@ -125,12 +125,11 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!tenant?.id || isDemo) return;
     (async () => {
-      const { data, error } = await (supabase.from('tenants') as any)
+      const { data, error } = await (supabase.from('tenant_secrets') as any)
         .select('anthropic_api_key, ai_model')
-        .eq('id', tenant.id)
+        .eq('tenant_id', tenant.id)
         .single();
-      if (error?.message?.includes('column') || error?.message?.includes('schema')) {
-        setNeedsMigration(true);
+      if (error && !error.message?.includes('0 rows')) {
         return;
       }
       if (data?.anthropic_api_key) {
