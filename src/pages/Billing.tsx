@@ -5,14 +5,14 @@ import paymentQr from '@/assets/payment-qr.jpeg';
 
 export default function Billing() {
   return (
-    <AppLayout title="Billing & Subscription" subtitle="TELA-ERP — $20/year for full access">
+    <AppLayout title="Billing & Subscription" subtitle="TELA-ERP — $100/year for full access">
       <div className="max-w-2xl mx-auto text-center">
         <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-6">
           <Heart className="w-8 h-8 text-primary-foreground" />
         </div>
         <h2 className="text-2xl font-bold text-foreground mb-3">TELA-ERP — The Most Affordable ERP</h2>
         <p className="text-muted-foreground mb-8 leading-relaxed max-w-lg mx-auto">
-          Full access to all 15+ modules, unlimited users, and every feature for just <strong>$20/year</strong>.
+          Full access to all 15+ modules, unlimited users, and every feature for just <strong>$100/year</strong>.
           Built to empower SMEs in Africa and across the world. You can also support the continued
           development of this project by contributing via the QR code below.
         </p>

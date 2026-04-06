@@ -49,7 +49,7 @@ const allPlansInclude = [
 
 const faqs = [
   {
-    q: 'What do I get for $20/year?',
+    q: 'What do I get for $100/year?',
     a: 'Full access to every module, feature, and tool in TELA-ERP — unlimited users, warehouses, reports, AI assistant, API access, white-labeling, and more. No restrictions.',
   },
   {
@@ -62,7 +62,7 @@ const faqs = [
   },
   {
     q: 'Are there any hidden fees?',
-    a: 'None. $20/year covers everything. No per-user fees, no module add-ons, no setup charges.',
+    a: 'None. $100/year covers everything. No per-user fees, no module add-ons, no setup charges.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -76,11 +76,11 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Pricing — TELA-ERP | $20/Year Full Access ERP</title>
-        <meta name="description" content="TELA-ERP: $20/year for full access to all modules, unlimited users, AI assistant, and more. No hidden fees." />
+        <title>Pricing — TELA-ERP | $100/Year Full Access ERP</title>
+        <meta name="description" content="TELA-ERP: $100/year for full access to all modules, unlimited users, AI assistant, and more. No hidden fees." />
         <link rel="canonical" href="https://tela-erp.com/pricing" />
-        <meta property="og:title" content="Pricing — TELA-ERP | $20/Year Full Access" />
-        <meta property="og:description" content="Get full access to every ERP module for just $20/year. Unlimited users, AI-powered, no hidden fees." />
+        <meta property="og:title" content="Pricing — TELA-ERP | $100/Year Full Access" />
+        <meta property="og:description" content="Get full access to every ERP module for just $100/year. Unlimited users, AI-powered, no hidden fees." />
         <meta property="og:url" content="https://tela-erp.com/pricing" />
       </Helmet>
 
@@ -119,7 +119,7 @@ export default function Pricing() {
             <span style={{ color: P }}>Full access.</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Everything you need to run your business — all modules, unlimited users, no restrictions. Just <strong>$20/year</strong>.
+            Everything you need to run your business — all modules, unlimited users, no restrictions. Just <strong>$100/year</strong>.
           </p>
         </motion.div>
       </section>
@@ -137,11 +137,11 @@ export default function Pricing() {
             <CardHeader className="pb-4 text-center">
               <CardTitle className="text-2xl font-bold">TELA-ERP</CardTitle>
               <div className="flex items-end justify-center gap-1 mt-4">
-                <span className="text-5xl font-extrabold">$20</span>
+                <span className="text-5xl font-extrabold">$100</span>
                 <span className="text-muted-foreground text-sm mb-1">/year</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                That's less than $1.70/month
+                That's less than $8.33/month
               </p>
               <p className="text-sm text-muted-foreground mt-3">
                 Access every module, every feature, unlimited users. Renews annually.
@@ -253,7 +253,7 @@ export default function Pricing() {
             Start your 14-day free trial today
           </h2>
           <p className="text-muted-foreground mb-8">
-            No credit card needed. Full access to every module for 14 days, then just $20/year.
+            No credit card needed. Full access to every module for 14 days, then just $100/year.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Button size="lg" className="gap-2 text-white" style={{ background: P }} asChild>
