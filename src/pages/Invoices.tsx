@@ -116,7 +116,7 @@ function InvoiceSheet({
   customers: any[];
   onClose: () => void;
 }) {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const insert = useTenantInsert('invoices');
   const update = useTenantUpdate('invoices');
   const insertLine = useTenantInsert('invoice_lines');
@@ -173,6 +173,21 @@ function InvoiceSheet({
 
       if (invoice?.id) {
         await update.mutateAsync({ id: invoice.id, ...invoiceData });
+        // Delete old line items and re-insert updated ones
+        await (supabase as any).from('invoice_lines')
+          .delete()
+          .eq('invoice_id', invoice.id)
+          .eq('tenant_id', tenant?.id);
+        for (const line of items.filter(l => l.description.trim())) {
+          await insertLine.mutateAsync({
+            invoice_id: invoice.id,
+            description: line.description,
+            quantity: line.quantity,
+            unit_price: line.unit_price,
+            discount_percent: line.discount_percent,
+            line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
+          });
+        }
       } else {
         const created = await insert.mutateAsync(invoiceData);
         invoiceId = created.id;

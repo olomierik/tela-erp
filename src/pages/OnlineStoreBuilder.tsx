@@ -142,7 +142,7 @@ export default function OnlineStoreBuilder() {
               </div>
               <div>
                 <Label>Linked Physical Store (optional)</Label>
-                <Select value={form.store_id} onValueChange={v => setForm(f => ({ ...f, store_id: v }))}>
+                <Select value={form.store_id || 'none'} onValueChange={v => setForm(f => ({ ...f, store_id: v === 'none' ? '' : v }))}>
                   <SelectTrigger><SelectValue placeholder="All stores / None" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">All Stores (company-wide)</SelectItem>

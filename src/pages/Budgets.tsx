@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
 import {
-  PieChart, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2,
+  PieChart, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Trash2, Edit,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Progress } from '@/components/ui/progress';
-import { useTenantQuery, useTenantInsert } from '@/hooks/use-tenant-query';
+import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -26,9 +28,10 @@ const BUDGET_CATEGORIES = [
 ];
 
 export default function Budgets() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
   const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({
     name: '',
     fiscal_year: new Date().getFullYear().toString(),
@@ -37,11 +40,16 @@ export default function Budgets() {
     lines: BUDGET_CATEGORIES.map(c => ({ category: c, budgeted_amount: '' })),
   });
 
-  const { data: rawBudgets, isLoading } = useTenantQuery('budgets' as any);
+  const { data: rawBudgets, isLoading, refetch: refetchBudgets } = useTenantQuery('budgets');
+  const { data: rawLines } = useTenantQuery('budget_lines');
   const { data: transData } = useTenantQuery('transactions');
-  const insertBudget = useTenantInsert('budgets' as any);
+  const deleteBudget = useTenantDelete('budgets');
+  const updateBudget = useTenantUpdate('budgets');
+  useRealtimeSync('budgets');
+  useRealtimeSync('budget_lines');
 
   const transactions: any[] = transData ?? [];
+  const budgetLines: any[] = rawLines ?? [];
 
   const demoBudgets = [
     {
@@ -67,7 +75,20 @@ export default function Budgets() {
     },
   ];
 
-  const budgets: any[] = isDemo ? demoBudgets : (rawBudgets ?? []);
+  // Merge budget_lines into budgets for live data
+  const liveBudgets = (rawBudgets ?? []).map((b: any) => {
+    const lines = budgetLines.filter((l: any) => l.budget_id === b.id);
+    // Calculate actual_amount from transactions matching category
+    const enrichedLines = lines.map((l: any) => {
+      const actual = transactions
+        .filter((t: any) => t.category === l.category && t.type === 'expense')
+        .reduce((s: number, t: any) => s + Number(t.amount || 0), 0);
+      return { ...l, actual_amount: actual || Number(l.actual_amount || 0) };
+    });
+    return { ...b, lines: enrichedLines };
+  });
+
+  const budgets: any[] = isDemo ? demoBudgets : liveBudgets;
 
   const totalBudgeted = budgets.reduce((s, b) => s + Number(b.total_budget), 0);
   const totalActual = budgets.reduce((s, b) => {
@@ -75,18 +96,66 @@ export default function Budgets() {
   }, 0);
   const variance = totalBudgeted - totalActual;
 
-  const handleCreate = async () => {
-    const total = form.lines.reduce((s, l) => s + (Number(l.budgeted_amount) || 0), 0);
-    await insertBudget.mutateAsync({
-      name: form.name,
-      fiscal_year: Number(form.fiscal_year),
-      period: form.period,
-      department: form.department,
-      total_budget: total,
-      status: 'active',
-    });
-    toast.success('Budget created');
-    setCreateOpen(false);
+  const handleCreate = useCallback(async () => {
+    if (!form.name.trim()) { toast.error('Budget name is required'); return; }
+    if (!tenant?.id) return;
+
+    setCreating(true);
+    try {
+      const total = form.lines.reduce((s, l) => s + (Number(l.budgeted_amount) || 0), 0);
+
+      // 1. Insert budget header
+      const { data: budget, error: budgetErr } = await (supabase.from('budgets') as any)
+        .insert({
+          tenant_id: tenant.id,
+          name: form.name,
+          fiscal_year: Number(form.fiscal_year),
+          period: form.period,
+          department: form.department,
+          total_budget: total,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (budgetErr) throw budgetErr;
+
+      // 2. Insert budget lines (only non-zero amounts)
+      const linesToInsert = form.lines
+        .filter(l => Number(l.budgeted_amount) > 0)
+        .map(l => ({
+          tenant_id: tenant.id,
+          budget_id: budget.id,
+          category: l.category,
+          budgeted_amount: Number(l.budgeted_amount),
+          actual_amount: 0,
+        }));
+
+      if (linesToInsert.length > 0) {
+        const { error: linesErr } = await (supabase.from('budget_lines') as any)
+          .insert(linesToInsert);
+        if (linesErr) throw linesErr;
+      }
+
+      toast.success('Budget created with line items');
+      setCreateOpen(false);
+      setForm({
+        name: '',
+        fiscal_year: new Date().getFullYear().toString(),
+        period: 'annual',
+        department: '',
+        lines: BUDGET_CATEGORIES.map(c => ({ category: c, budgeted_amount: '' })),
+      });
+      refetchBudgets();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create budget');
+    } finally {
+      setCreating(false);
+    }
+  }, [form, tenant, refetchBudgets]);
+
+  const handleStatusChange = (budgetId: string, newStatus: string) => {
+    updateBudget.mutate({ id: budgetId, status: newStatus });
   };
 
   return (
@@ -128,13 +197,31 @@ export default function Budgets() {
                           <Badge variant="secondary" className="text-xs capitalize">{budget.period}</Badge>
                           {budget.department && <Badge variant="outline" className="text-xs">{budget.department}</Badge>}
                           <span className="text-xs text-muted-foreground">FY {budget.fiscal_year}</span>
+                          <Badge variant={budget.status === 'active' ? 'default' : 'secondary'} className="text-[10px]">{budget.status}</Badge>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-foreground">{formatMoney(budgetActual)} <span className="text-muted-foreground font-normal">/ {formatMoney(budget.total_budget)}</span></p>
-                        <p className={cn('text-xs font-medium', budgetVariance >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                          {budgetVariance >= 0 ? '↓' : '↑'} {formatMoney(Math.abs(budgetVariance))} {budgetVariance >= 0 ? 'under' : 'over'}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground">{formatMoney(budgetActual)} <span className="text-muted-foreground font-normal">/ {formatMoney(budget.total_budget)}</span></p>
+                          <p className={cn('text-xs font-medium', budgetVariance >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                            {budgetVariance >= 0 ? '↓' : '↑'} {formatMoney(Math.abs(budgetVariance))} {budgetVariance >= 0 ? 'under' : 'over'}
+                          </p>
+                        </div>
+                        {!isDemo && (
+                          <div className="flex items-center gap-1 ml-2">
+                            <Select value={budget.status} onValueChange={v => handleStatusChange(budget.id, v)}>
+                              <SelectTrigger className="h-7 w-24 text-[10px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="closed">Closed</SelectItem>
+                                <SelectItem value="draft">Draft</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteBudget.mutate(budget.id)}>
+                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-1.5">
@@ -157,27 +244,31 @@ export default function Budgets() {
                       </div>
 
                       {/* Line items */}
-                      <div className="space-y-2">
-                        {(budget.lines ?? []).map((line: any, li: number) => {
-                          const linePct = line.budgeted_amount > 0 ? (line.actual_amount / line.budgeted_amount) * 100 : 0;
-                          const overBudget = linePct > 100;
-                          return (
-                            <div key={li} className="grid grid-cols-12 items-center gap-2 text-sm">
-                              <span className="col-span-3 text-xs text-muted-foreground truncate">{line.category}</span>
-                              <div className="col-span-6">
-                                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                  <div
-                                    className={cn('h-full rounded-full', overBudget ? 'bg-red-500' : linePct > 80 ? 'bg-amber-500' : 'bg-emerald-500')}
-                                    style={{ width: `${Math.min(linePct, 100)}%` }}
-                                  />
+                      {(budget.lines ?? []).length > 0 ? (
+                        <div className="space-y-2">
+                          {(budget.lines ?? []).map((line: any, li: number) => {
+                            const linePct = line.budgeted_amount > 0 ? (Number(line.actual_amount) / Number(line.budgeted_amount)) * 100 : 0;
+                            const overBudget = linePct > 100;
+                            return (
+                              <div key={li} className="grid grid-cols-12 items-center gap-2 text-sm">
+                                <span className="col-span-3 text-xs text-muted-foreground truncate">{line.category}</span>
+                                <div className="col-span-6">
+                                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                      className={cn('h-full rounded-full', overBudget ? 'bg-red-500' : linePct > 80 ? 'bg-amber-500' : 'bg-emerald-500')}
+                                      style={{ width: `${Math.min(linePct, 100)}%` }}
+                                    />
+                                  </div>
                                 </div>
+                                <span className="col-span-2 text-xs text-right font-medium">{formatMoney(Number(line.actual_amount ?? 0))}</span>
+                                <span className="col-span-1 text-[10px] text-right text-muted-foreground">{formatMoney(Number(line.budgeted_amount))}</span>
                               </div>
-                              <span className="col-span-2 text-xs text-right font-medium">{formatMoney(line.actual_amount ?? 0)}</span>
-                              <span className="col-span-1 text-[10px] text-right text-muted-foreground">{formatMoney(line.budgeted_amount)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground text-center py-2">No budget lines configured</p>
+                      )}
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -237,8 +328,8 @@ export default function Budgets() {
             </div>
             <SheetFooter className="mt-6 flex-row gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button className="flex-1" disabled={!form.name || insertBudget.isPending} onClick={handleCreate}>
-                {insertBudget.isPending ? 'Creating...' : 'Create Budget'}
+              <Button className="flex-1" disabled={!form.name || creating} onClick={handleCreate}>
+                {creating ? 'Creating...' : 'Create Budget'}
               </Button>
             </SheetFooter>
           </SheetContent>

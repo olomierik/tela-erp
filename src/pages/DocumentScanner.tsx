@@ -119,9 +119,103 @@ export default function DocumentScanner() {
     } finally { setExtracting(false); }
   };
 
+  const [creating, setCreating] = useState(false);
+
   const createRecord = async (type: 'invoice' | 'purchase_order') => {
-    if (!extracted) return;
-    toast.success(`Draft ${type === 'invoice' ? 'invoice' : 'purchase order'} created from document`);
+    if (!extracted || !tenant?.id) {
+      toast.error(isDemo ? 'Record creation disabled in demo mode' : 'No extracted data available');
+      return;
+    }
+    setCreating(true);
+    try {
+      if (type === 'invoice') {
+        // Generate invoice number
+        const invNum = `INV-SCAN-${Date.now().toString(36).toUpperCase()}`;
+        const subtotal = extracted.subtotal ?? extracted.line_items?.reduce((s, l) => s + l.amount, 0) ?? 0;
+        const taxRate = extracted.tax_rate ?? 0;
+        const taxAmount = extracted.tax_amount ?? subtotal * taxRate / 100;
+        const totalAmount = extracted.total_amount ?? subtotal + taxAmount;
+
+        // Insert invoice header
+        const { data: inv, error: invErr } = await (supabase as any).from('invoices').insert({
+          tenant_id: tenant.id,
+          invoice_number: invNum,
+          customer_name: extracted.vendor_name || 'Scanned Document',
+          issue_date: extracted.document_date || new Date().toISOString().slice(0, 10),
+          due_date: extracted.due_date || null,
+          subtotal,
+          tax_rate: taxRate,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          status: 'draft',
+          notes: `Auto-created from scanned document: ${file?.name || 'unknown'}. Ref: ${extracted.document_number || 'N/A'}`,
+        }).select('id').single();
+
+        if (invErr) throw invErr;
+
+        // Insert line items
+        if (inv?.id && extracted.line_items?.length) {
+          const lines = extracted.line_items.map((li, idx) => ({
+            tenant_id: tenant.id,
+            invoice_id: inv.id,
+            description: li.description,
+            quantity: li.quantity,
+            unit_price: li.unit_price,
+            amount: li.amount,
+            sort_order: idx,
+          }));
+          await (supabase as any).from('invoice_lines').insert(lines);
+        }
+
+        toast.success(`Invoice ${invNum} created with ${extracted.line_items?.length || 0} line items`);
+
+      } else if (type === 'purchase_order') {
+        // Generate PO number
+        const poNum = `PO-SCAN-${Date.now().toString(36).toUpperCase()}`;
+        const subtotal = extracted.subtotal ?? extracted.line_items?.reduce((s, l) => s + l.amount, 0) ?? 0;
+        const taxRate = extracted.tax_rate ?? 0;
+        const taxAmount = extracted.tax_amount ?? subtotal * taxRate / 100;
+        const totalAmount = extracted.total_amount ?? subtotal + taxAmount;
+
+        // Insert purchase order header
+        const { data: po, error: poErr } = await (supabase as any).from('purchase_orders').insert({
+          tenant_id: tenant.id,
+          po_number: poNum,
+          supplier_name: extracted.vendor_name || 'Scanned Vendor',
+          order_date: extracted.document_date || new Date().toISOString().slice(0, 10),
+          expected_delivery: extracted.due_date || null,
+          subtotal,
+          tax_rate: taxRate,
+          tax_amount: taxAmount,
+          total_amount: totalAmount,
+          status: 'draft',
+          notes: `Auto-created from scanned document: ${file?.name || 'unknown'}. Ref: ${extracted.document_number || 'N/A'}`,
+        }).select('id').single();
+
+        if (poErr) throw poErr;
+
+        // Insert PO line items
+        if (po?.id && extracted.line_items?.length) {
+          const lines = extracted.line_items.map((li, idx) => ({
+            tenant_id: tenant.id,
+            purchase_order_id: po.id,
+            description: li.description,
+            quantity: li.quantity,
+            unit_price: li.unit_price,
+            amount: li.amount,
+            sort_order: idx,
+          }));
+          await (supabase as any).from('purchase_order_lines').insert(lines);
+        }
+
+        toast.success(`Purchase Order ${poNum} created with ${extracted.line_items?.length || 0} line items`);
+      }
+    } catch (err: any) {
+      console.error('[createRecord]', err);
+      toast.error(err.message || `Failed to create ${type}`);
+    } finally {
+      setCreating(false);
+    }
   };
 
   return (
@@ -231,11 +325,11 @@ export default function DocumentScanner() {
                 </CardTitle>
                 {extracted && (
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => createRecord('invoice')}>
-                      <FileText className="w-3 h-3" /> Invoice
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => createRecord('invoice')} disabled={creating}>
+                      {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />} Create Invoice
                     </Button>
-                    <Button size="sm" className="h-7 text-xs gap-1" onClick={() => createRecord('purchase_order')}>
-                      <Plus className="w-3 h-3" /> Create
+                    <Button size="sm" className="h-7 text-xs gap-1 bg-indigo-600 hover:bg-indigo-700 text-white" onClick={() => createRecord('purchase_order')} disabled={creating}>
+                      {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />} Create PO
                     </Button>
                   </div>
                 )}

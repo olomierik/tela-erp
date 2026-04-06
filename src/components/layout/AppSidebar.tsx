@@ -7,7 +7,8 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Building2, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
-  MoreHorizontal, BookOpen,
+  MoreHorizontal, BookOpen, Wallet, Landmark, ScanLine,
+  UsersRound, PiggyBank, Boxes, UserPlus,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -37,30 +38,23 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: 'Operations',
+    title: 'Sales & CRM',
     items: [
-      { label: 'Sales', icon: ShoppingCart, path: '/sales' },
+      { label: 'Sales Orders', icon: ShoppingCart, path: '/sales' },
       { label: 'Invoices', icon: FileText, path: '/invoices' },
-      { label: 'Procurement', icon: Truck, path: '/procurement' },
-      { label: 'Inventory', icon: Package, path: '/inventory' },
-      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers' },
-      { label: 'Production', icon: Factory, path: '/production' },
-    ],
-  },
-  {
-    title: 'Customers',
-    items: [
-      { label: 'CRM', icon: UserCircle, path: '/crm' },
-      { label: 'Stores', icon: Store, path: '/stores' },
-      { label: 'Online Store', icon: Globe, path: '/online-store' },
+      { label: 'Customers', icon: Users, path: '/customers' },
+      { label: 'CRM Pipeline', icon: UserCircle, path: '/crm' },
       { label: 'Marketing', icon: Megaphone, path: '/marketing' },
     ],
   },
   {
-    title: 'People',
+    title: 'Supply Chain',
     items: [
-      { label: 'HR & Payroll', icon: Briefcase, path: '/hr' },
-      { label: 'Projects', icon: FolderKanban, path: '/projects' },
+      { label: 'Inventory', icon: Package, path: '/inventory' },
+      { label: 'Procurement', icon: Truck, path: '/procurement' },
+      { label: 'Suppliers', icon: UserPlus, path: '/suppliers' },
+      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers' },
+      { label: 'Production', icon: Factory, path: '/production' },
     ],
   },
   {
@@ -71,6 +65,24 @@ const navSections: NavSection[] = [
       { label: 'Ledger', icon: BookOpen, path: '/accounting/ledger' },
       { label: 'Financials', icon: BarChart3, path: '/accounting/reports' },
       { label: 'Expenses', icon: Receipt, path: '/expenses' },
+      { label: 'Budgets', icon: PiggyBank, path: '/budgets' },
+      { label: 'Fixed Assets', icon: Landmark, path: '/fixed-assets' },
+    ],
+  },
+  {
+    title: 'People & Projects',
+    items: [
+      { label: 'HR & Payroll', icon: Briefcase, path: '/hr' },
+      { label: 'Team', icon: UsersRound, path: '/team' },
+      { label: 'Projects', icon: FolderKanban, path: '/projects' },
+    ],
+  },
+  {
+    title: 'Tools',
+    items: [
+      { label: 'Stores', icon: Store, path: '/stores' },
+      { label: 'Online Store', icon: Globe, path: '/online-store' },
+      { label: 'Doc Scanner', icon: ScanLine, path: '/document-scanner' },
       { label: 'Reports', icon: BarChart3, path: '/reports' },
     ],
   },
@@ -103,7 +115,7 @@ export default function AppSidebar() {
         to={item.path}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[16px] transition-colors duration-100 group select-none',
+          'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
           active
             ? 'bg-sidebar-accent text-sidebar-foreground font-semibold'
             : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
@@ -114,7 +126,7 @@ export default function AppSidebar() {
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-sidebar-primary" />
         )}
         <item.icon className={cn(
-          'w-[17px] h-[17px] shrink-0 transition-colors duration-100',
+          'w-[16px] h-[16px] shrink-0 transition-colors duration-100',
           active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
         )} />
         <AnimatePresence initial={false}>
@@ -152,7 +164,7 @@ export default function AppSidebar() {
       {/* Nav */}
       <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         {navSections.map(section => (
-          <div key={section.title} className="mb-1.5">
+          <div key={section.title} className="mb-1">
             <AnimatePresence initial={false}>
               {!collapsed && (
                 <motion.div
@@ -183,7 +195,7 @@ export default function AppSidebar() {
           to="/settings"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            'flex items-center gap-3 px-3 py-[7px] rounded-lg text-[16px] transition-colors duration-100 group select-none',
+            'flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
             isActive('/settings')
               ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
               : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
@@ -191,7 +203,7 @@ export default function AppSidebar() {
           title={collapsed ? 'Settings' : undefined}
         >
           <Settings className={cn(
-            'w-[17px] h-[17px] shrink-0',
+            'w-[16px] h-[16px] shrink-0',
             isActive('/settings') ? 'text-sidebar-primary' : 'text-sidebar-muted'
           )} />
           {!collapsed && <span>Settings</span>}
@@ -210,7 +222,7 @@ export default function AppSidebar() {
                   exit={{ opacity: 0 }}
                   className="flex-1 min-w-0"
                 >
-                  <p className="text-[13px] font-medium text-sidebar-accent-foreground truncate leading-tight">{profile?.full_name ?? 'User'}</p>
+                  <p className="text-[12px] font-medium text-sidebar-accent-foreground truncate leading-tight">{profile?.full_name ?? 'User'}</p>
                   <p className="text-[10px] text-sidebar-muted capitalize leading-tight">{role ?? 'user'}</p>
                 </motion.div>
               )}
@@ -219,10 +231,10 @@ export default function AppSidebar() {
         </Link>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-[7px] rounded-lg text-[16px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive"
+          className="flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive"
           title={collapsed ? 'Sign out' : undefined}
         >
-          <LogOut className="w-[17px] h-[17px] shrink-0" />
+          <LogOut className="w-[16px] h-[16px] shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -274,15 +286,14 @@ export default function AppSidebar() {
 
       {/* Desktop sidebar */}
       <motion.aside
-        animate={{ width: collapsed ? 64 : 230 }}
+        animate={{ width: collapsed ? 64 : 240 }}
         transition={{ duration: 0.2, ease: 'easeInOut' }}
         className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-lg shadow-black/5"
       >
         {sidebarContent}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-[52px] w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm z-10"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-[52px] w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm"
         >
           {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
         </button>
@@ -339,14 +350,14 @@ export default function AppSidebar() {
                         to={item.path}
                         onClick={() => setMoreOpen(false)}
                         className={cn(
-                          'flex flex-col items-center gap-1.5 p-3 rounded-xl text-[11px] font-medium text-center transition-colors',
+                          'flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors text-center',
                           active
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-muted/60 text-foreground hover:bg-muted'
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'border-border hover:bg-accent text-muted-foreground hover:text-foreground'
                         )}
                       >
-                        <item.icon className={cn('w-5 h-5', active ? 'text-primary' : 'text-muted-foreground')} />
-                        <span className="leading-tight">{item.label}</span>
+                        <item.icon className="w-5 h-5" />
+                        <span className="text-[11px] font-medium leading-tight">{item.label}</span>
                       </Link>
                     );
                   })}
