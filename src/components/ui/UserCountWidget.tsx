@@ -8,10 +8,14 @@ export default function UserCountWidget() {
   const [displayCount, setDisplayCount] = useState(0);
 
   const fetchCount = async () => {
-    const { count: total } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-    if (total !== null) setCount(total);
+    try {
+      const { count: total } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
+      if (total !== null) setCount(total);
+    } catch {
+      // Silently fail — widget is non-critical
+    }
   };
 
   useEffect(() => {
@@ -33,8 +37,8 @@ export default function UserCountWidget() {
   // Animate counting up
   useEffect(() => {
     if (count === 0) return;
-    const duration = 1500;
-    const steps = 40;
+    const duration = 1800;
+    const steps = 50;
     const increment = count / steps;
     let current = 0;
     const interval = setInterval(() => {
@@ -54,16 +58,38 @@ export default function UserCountWidget() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5, duration: 0.5 }}
-      className="inline-flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-2.5 shadow-sm"
+      className="inline-flex items-center gap-3 bg-card/80 backdrop-blur-sm border border-border/50 rounded-2xl px-5 py-3 shadow-lg"
     >
-      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-        <Users className="w-4 h-4 text-primary" />
+      {/* Icon with live pulse */}
+      <div className="relative">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+          <Users className="w-5 h-5 text-primary" />
+        </div>
+        {/* Live pulse dot */}
+        <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
+        </span>
       </div>
+
       <div className="text-left">
-        <p className="text-[11px] text-muted-foreground leading-tight">Welcome! Join our community</p>
-        <p className="text-sm font-bold text-foreground leading-tight">
-          {displayCount.toLocaleString()}+ <span className="font-normal text-muted-foreground text-xs">users signed up</span>
+        <p className="text-[11px] text-muted-foreground leading-tight font-medium uppercase tracking-wider">
+          Live Community
         </p>
+        <div className="flex items-baseline gap-1.5">
+          <motion.span
+            key={displayCount}
+            className="text-lg font-extrabold text-foreground tabular-nums"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {displayCount.toLocaleString()}
+          </motion.span>
+          <span className="text-xs text-muted-foreground font-medium">
+            businesses signed up
+          </span>
+        </div>
       </div>
     </motion.div>
   );
