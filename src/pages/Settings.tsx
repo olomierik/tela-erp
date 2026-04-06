@@ -76,9 +76,7 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
 
-  const MIGRATION_SQL = `ALTER TABLE public.tenants
-  ADD COLUMN IF NOT EXISTS anthropic_api_key TEXT,
-  ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT 'claude-sonnet-4-6';`;
+  // AI config is now stored in tenant_secrets (not tenants)
 
   // Load company info
   useEffect(() => {
