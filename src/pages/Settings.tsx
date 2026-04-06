@@ -587,18 +587,6 @@ npx supabase functions deploy ai-demand-forecast`}
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {needsMigration && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">⚠️ Database migration required first</p>
-                    <div className="relative">
-                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 rounded p-2 font-mono">{MIGRATION_SQL}</pre>
-                      <Button size="sm" variant="outline" className="absolute top-1 right-1 h-5 text-[10px] gap-1 border-amber-300"
-                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}>
-                        <Copy className="w-2.5 h-2.5" /> Copy
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Anthropic API Key</Label>
