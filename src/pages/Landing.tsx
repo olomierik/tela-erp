@@ -125,7 +125,7 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
-                <Link to="/signup">Get a Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
               </Button>
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
                 <Link to="/login">Sign In</Link>
