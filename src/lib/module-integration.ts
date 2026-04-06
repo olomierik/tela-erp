@@ -99,7 +99,7 @@ class ModuleIntegrationManager {
       const { product_id, current_quantity, reorder_point } = event.data as { product_id: string; current_quantity: number; reorder_point: number };
 
       // Create a notification
-      await supabase.from('notifications').insert({
+      await (supabase as any).from('notifications').insert({
         title: 'Low Stock Alert',
         message: `Product ${product_id} is below reorder point (${current_quantity}/${reorder_point})`,
         type: 'warning',
