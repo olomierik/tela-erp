@@ -221,20 +221,11 @@ export default function SettingsPage() {
     if (!aiKey.trim() && !aiConfigured) { toast.error('Please enter an Anthropic API key'); return; }
     setSaveAiLoading(true);
     try {
-      const updates: Record<string, any> = { ai_model: aiModel };
+      const updates: Record<string, any> = { tenant_id: tenant?.id, ai_model: aiModel };
       if (aiKey.trim()) updates.anthropic_api_key = aiKey.trim();
-      const { error } = await (supabase.from('tenants') as any)
-        .update(updates)
-        .eq('id', tenant?.id);
-      if (error) {
-        if (error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('ai_model')) {
-          setNeedsMigration(true);
-          toast.error('Database migration required — see the setup instructions below.');
-          return;
-        }
-        throw error;
-      }
-      setNeedsMigration(false);
+      const { error } = await (supabase.from('tenant_secrets') as any)
+        .upsert(updates, { onConflict: 'tenant_id' });
+      if (error) throw error;
       setAiConfigured(true);
       if (aiKey.trim()) setAiKey('');
       toast.success('AI settings saved successfully');
