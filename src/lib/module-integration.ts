@@ -162,7 +162,7 @@ class ModuleIntegrationManager {
 
       if (journalEntry) {
         // Add debit to bank account
-        await supabase.from('myerp_journal_lines').insert({
+        await (supabase as any).from('myerp_journal_lines').insert({
           entry_id: journalEntry.id,
           account_code: '1010', // Bank account
           account_name: 'Bank',
