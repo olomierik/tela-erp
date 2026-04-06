@@ -80,7 +80,7 @@ class ModuleIntegrationManager {
           .single();
 
         if (stock) {
-          await supabase
+          await (supabase as any)
             .from('inventory_stock')
             .update({ quantity: stock.quantity - item.quantity })
             .eq('product_id', item.product_id);
