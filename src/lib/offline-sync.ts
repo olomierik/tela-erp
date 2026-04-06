@@ -149,7 +149,7 @@ class OfflineSyncManager {
         await (supabase as any).from(table).update(updateData).eq('id', id as string);
         break;
       case 'delete':
-        await supabase.from(table).delete().eq('id', data.id);
+        await (supabase as any).from(table).delete().eq('id', data.id as string);
         break;
     }
   }
