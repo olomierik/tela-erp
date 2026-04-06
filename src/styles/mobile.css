@@ -1,0 +1,78 @@
+/* ─── Mobile & Touch Optimizations ─────────────────────────────── */
+
+/* Safe area insets for notched devices (iPhone, modern Android) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Prevent text selection on interactive elements */
+.touch-manipulation {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Smooth scrolling for all scroll containers */
+@media (max-width: 767px) {
+  /* Larger minimum touch targets on mobile */
+  button,
+  a,
+  [role="button"],
+  [role="tab"],
+  [role="menuitem"],
+  [role="option"] {
+    min-height: 36px;
+  }
+
+  /* Prevent rubber-banding on iOS */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Full-width inputs on mobile */
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+
+  /* Smoother scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Hide scrollbars on mobile for cleaner look */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* Active state feedback for touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .hover\:bg-muted\/40:active {
+    background-color: hsl(var(--muted) / 0.6);
+  }
+}
+
+/* Prevent horizontal scroll on the body */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Ensure viewport meta is respected */
+@viewport {
+  width: device-width;
+  initial-scale: 1;
+}

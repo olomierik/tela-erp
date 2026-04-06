@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
   Factory, Users, Globe, Megaphone, ArrowRightLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
-  Settings, Building2, LogOut, ChevronLeft, ChevronRight,
+  Settings, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal, BookOpen, Wallet, Landmark, ScanLine,
   UsersRound, PiggyBank, Boxes, UserPlus,
@@ -88,11 +88,12 @@ const navSections: NavSection[] = [
   },
 ];
 
+/* ─── Mobile bottom nav: 5 most-used items ────────────────────── */
 const mobileBottomNav: NavItem[] = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { label: 'Home', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Sales', icon: ShoppingCart, path: '/sales' },
   { label: 'Inventory', icon: Package, path: '/inventory' },
-  { label: 'CRM', icon: UserCircle, path: '/crm' },
+  { label: 'Finance', icon: Calculator, path: '/accounting' },
 ];
 
 export default function AppSidebar() {
@@ -102,6 +103,34 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
+
+  /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
+  const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchCurrentX.current = e.touches[0].clientX;
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    touchCurrentX.current = e.touches[0].clientX;
+    const diff = touchStartX.current - touchCurrentX.current;
+    if (diff > 0 && drawerRef.current) {
+      drawerRef.current.style.transform = `translateX(${-diff}px)`;
+    }
+  }, []);
+
+  const onTouchEnd = useCallback(() => {
+    const diff = touchStartX.current - touchCurrentX.current;
+    if (diff > 80) {
+      setMobileOpen(false);
+    }
+    if (drawerRef.current) {
+      drawerRef.current.style.transform = '';
+    }
+  }, []);
 
   const handleSignOut = async () => { await signOut(); navigate('/login'); };
 
@@ -115,10 +144,10 @@ export default function AppSidebar() {
         to={item.path}
         onClick={() => setMobileOpen(false)}
         className={cn(
-          'relative flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
+          'relative flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
           active
             ? 'bg-sidebar-accent text-sidebar-foreground font-semibold'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground active:bg-sidebar-accent/80'
         )}
         title={collapsed ? item.label : undefined}
       >
@@ -126,7 +155,7 @@ export default function AppSidebar() {
           <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-sidebar-primary" />
         )}
         <item.icon className={cn(
-          'w-[16px] h-[16px] shrink-0 transition-colors duration-100',
+          'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0 transition-colors duration-100',
           active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
         )} />
         <AnimatePresence initial={false}>
@@ -157,12 +186,12 @@ export default function AppSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-[52px] border-b border-sidebar-border shrink-0">
+      <div className="flex items-center gap-3 px-4 h-[56px] md:h-[52px] border-b border-sidebar-border shrink-0">
         <img src={telaLogo} alt="TELA ERP" className={cn("shrink-0 object-contain transition-all duration-150", collapsed ? "h-7 w-7" : "h-8 w-auto max-w-[140px]")} />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+      <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 overscroll-contain">
         {navSections.map(section => (
           <div key={section.title} className="mb-1">
             <AnimatePresence initial={false}>
@@ -172,7 +201,7 @@ export default function AppSidebar() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.1 }}
-                  className="px-3 mb-0.5 py-0.5"
+                  className="px-3 mb-0.5 py-1 md:py-0.5"
                 >
                   <span className="text-[10px] font-semibold text-sidebar-muted/60 uppercase tracking-[0.1em]">
                     {section.title}
@@ -180,7 +209,7 @@ export default function AppSidebar() {
                 </motion.div>
               )}
             </AnimatePresence>
-            <div className="space-y-[1px]">
+            <div className="space-y-[2px] md:space-y-[1px]">
               {section.items.map(item => (
                 <NavItemComponent key={item.path} item={item} />
               ))}
@@ -190,28 +219,28 @@ export default function AppSidebar() {
       </nav>
 
       {/* Settings + User footer */}
-      <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[1px]">
+      <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px] md:space-y-[1px]">
         <Link
           to="/settings"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            'flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none',
+            'flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
             isActive('/settings')
               ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/80'
           )}
           title={collapsed ? 'Settings' : undefined}
         >
           <Settings className={cn(
-            'w-[16px] h-[16px] shrink-0',
+            'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0',
             isActive('/settings') ? 'text-sidebar-primary' : 'text-sidebar-muted'
           )} />
           {!collapsed && <span>Settings</span>}
         </Link>
 
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
-          <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-sidebar-accent/60 transition-colors cursor-pointer group">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
+          <div className="flex items-center gap-2.5 px-2 py-2 md:py-1.5 rounded-lg hover:bg-sidebar-accent/60 active:bg-sidebar-accent/80 transition-colors cursor-pointer group touch-manipulation">
+            <div className="w-8 h-8 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
             <AnimatePresence initial={false}>
@@ -231,10 +260,10 @@ export default function AppSidebar() {
         </Link>
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-[7px] rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive"
+          className="flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20 touch-manipulation"
           title={collapsed ? 'Sign out' : undefined}
         >
-          <LogOut className="w-[16px] h-[16px] shrink-0" />
+          <LogOut className="w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0" />
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
@@ -243,16 +272,16 @@ export default function AppSidebar() {
 
   return (
     <>
-      {/* Mobile hamburger */}
+      {/* Mobile hamburger — larger touch target */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-50 w-9 h-9 rounded-lg bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent transition-colors"
+        className="md:hidden fixed top-3 left-3 z-50 w-11 h-11 rounded-xl bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors touch-manipulation"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Mobile overlay drawer */}
+      {/* Mobile overlay drawer with swipe-to-close */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -264,16 +293,20 @@ export default function AppSidebar() {
             onClick={() => setMobileOpen(false)}
           >
             <motion.aside
+              ref={drawerRef}
               initial={{ x: -280 }}
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0, 0.25, 1] }}
-              className="w-[260px] h-full bg-sidebar-background flex flex-col shadow-2xl"
+              className="w-[280px] h-full bg-sidebar-background flex flex-col shadow-2xl"
               onClick={e => e.stopPropagation()}
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute top-3.5 right-3 text-sidebar-muted hover:text-sidebar-accent-foreground transition-colors"
+                className="absolute top-4 right-3 w-9 h-9 rounded-lg flex items-center justify-center text-sidebar-muted hover:text-sidebar-accent-foreground active:bg-sidebar-accent/60 transition-colors touch-manipulation"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
@@ -299,8 +332,10 @@ export default function AppSidebar() {
         </button>
       </motion.aside>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-background border-t border-sidebar-border flex items-center justify-around px-1 py-1 safe-area-pb shadow-lg shadow-black/20">
+      {/* Mobile bottom nav — 5 items with larger touch targets */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-background border-t border-sidebar-border flex items-center justify-around px-1 safe-area-pb shadow-lg shadow-black/20"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)' }}
+      >
         {mobileBottomNav.map(item => {
           const active = isActive(item.path);
           return (
@@ -308,8 +343,8 @@ export default function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-colors min-w-[52px]',
-                active ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground'
+                'flex flex-col items-center justify-center gap-0.5 py-2 px-2 rounded-xl text-[10px] font-medium transition-colors min-w-[56px] min-h-[48px] touch-manipulation',
+                active ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground active:bg-sidebar-accent/60'
               )}
             >
               <item.icon className={cn('w-5 h-5', active && 'text-sidebar-primary')} />
@@ -320,8 +355,8 @@ export default function AppSidebar() {
         <button
           onClick={() => setMoreOpen(true)}
           className={cn(
-            'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-medium transition-colors min-w-[52px]',
-            moreOpen ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground'
+            'flex flex-col items-center justify-center gap-0.5 py-2 px-2 rounded-xl text-[10px] font-medium transition-colors min-w-[56px] min-h-[48px] touch-manipulation',
+            moreOpen ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground active:bg-sidebar-accent/60'
           )}
         >
           <MoreHorizontal className="w-5 h-5" />
@@ -329,13 +364,17 @@ export default function AppSidebar() {
         </button>
       </nav>
 
-      {/* More sheet */}
+      {/* More sheet — grid of all modules */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl bg-background border-border p-0">
-          <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
+          {/* Drag handle indicator */}
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
+          </div>
+          <SheetHeader className="px-5 pt-2 pb-3 border-b border-border">
             <SheetTitle className="text-base font-semibold">All Modules</SheetTitle>
           </SheetHeader>
-          <div className="overflow-y-auto h-full pb-20 px-4 pt-3">
+          <div className="overflow-y-auto h-full pb-20 px-4 pt-3 overscroll-contain">
             {navSections.map(section => (
               <div key={section.title} className="mb-5">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-2 px-1">
@@ -350,10 +389,10 @@ export default function AppSidebar() {
                         to={item.path}
                         onClick={() => setMoreOpen(false)}
                         className={cn(
-                          'flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors text-center',
+                          'flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-colors text-center min-h-[72px] justify-center touch-manipulation',
                           active
                             ? 'bg-primary/10 border-primary/30 text-primary'
-                            : 'border-border hover:bg-accent text-muted-foreground hover:text-foreground'
+                            : 'border-border hover:bg-accent active:bg-accent/80 text-muted-foreground hover:text-foreground'
                         )}
                       >
                         <item.icon className="w-5 h-5" />

@@ -500,7 +500,7 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" size="sm" onClick={() => setAddContactOpen(true)}>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-10 sm:h-8 touch-manipulation" size="sm" onClick={() => setAddContactOpen(true)}>
                 <Plus className="w-4 h-4" /> Add Contact
               </Button>
             </div>
@@ -547,10 +547,10 @@ export default function CRM() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-indigo-600" onClick={() => setSelectedContact(contact)}>
+                            <Button size="sm" variant="ghost" className="h-9 sm:h-7 text-xs gap-1 text-indigo-600 touch-manipulation" onClick={() => setSelectedContact(contact)}>
                               View <ArrowRight className="w-3 h-3" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500"
+                            <Button size="icon" variant="ghost" className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-red-500 touch-manipulation"
                               onClick={() => !isDemo && deleteContact.mutate(contact.id)}>
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
@@ -585,12 +585,12 @@ export default function CRM() {
                 <Plus className="w-3.5 h-3.5" /> Add Deal
               </Button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-3 px-3 sm:mx-0 sm:px-0 snap-x snap-mandatory">
               {stages.map(stage => {
                 const stageDeals = (deals as any[]).filter(d => d.stage === stage.id);
                 const stageValue = stageDeals.reduce((s, d) => s + Number(d.value || 0), 0);
                 return (
-                  <div key={stage.id} className="flex-shrink-0 w-[260px]">
+                  <div key={stage.id} className="flex-shrink-0 w-[280px] sm:w-[260px] snap-start">
                     <div className={cn('rounded-xl p-3 min-h-[200px]', stage.color)}>
                       <div className="flex items-center justify-between mb-3">
                         <span className={cn('text-xs font-semibold rounded-full px-2 py-0.5', stage.badge)}>
@@ -621,11 +621,11 @@ export default function CRM() {
                                   <Calendar className="w-2.5 h-2.5" />{deal.expected_close_date}
                                 </p>
                               )}
-                              <div className="mt-2 pt-2 border-t border-border flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="mt-2 pt-2 border-t border-border flex flex-wrap gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                 {nextStage && (
                                   <Button
                                     size="sm" variant="ghost"
-                                    className="h-6 text-[10px] text-blue-600 hover:bg-blue-50 px-1.5"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-2 sm:px-1.5 touch-manipulation"
                                     onClick={() => handleMoveDeal(deal.id, nextStage)}
                                   >
                                     → {stages.find(s => s.id === nextStage)?.label}
@@ -634,20 +634,20 @@ export default function CRM() {
                                 {deal.stage !== 'won' && (
                                   <Button
                                     size="sm" variant="ghost"
-                                    className="h-6 text-[10px] text-green-600 hover:bg-green-50 px-1.5"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-green-600 hover:bg-green-50 active:bg-green-100 px-2 sm:px-1.5 touch-manipulation"
                                     onClick={() => handleMoveDeal(deal.id, 'won')}
                                   >Won</Button>
                                 )}
                                 {deal.stage !== 'lost' && (
                                   <Button
                                     size="sm" variant="ghost"
-                                    className="h-6 text-[10px] text-red-500 hover:bg-red-50 px-1.5"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-red-500 hover:bg-red-50 active:bg-red-100 px-2 sm:px-1.5 touch-manipulation"
                                     onClick={() => handleMoveDeal(deal.id, 'lost')}
                                   >Lost</Button>
                                 )}
                                 <Button
                                   size="icon" variant="ghost"
-                                  className="h-6 w-6 text-red-400 hover:text-red-600 ml-auto"
+                                  className="h-8 w-8 sm:h-6 sm:w-6 text-red-400 hover:text-red-600 ml-auto touch-manipulation"
                                   onClick={() => !isDemo && deleteDeal.mutate(deal.id)}
                                 >
                                   <Trash2 className="w-3 h-3" />

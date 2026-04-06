@@ -30,19 +30,25 @@ const routeBreadcrumbs: Record<string, string[]> = {
   '/production': ['Operations', 'Production'],
   '/automations': ['Operations', 'Automations'],
   '/crm': ['Customers', 'CRM'],
+  '/customers': ['Customers', 'Customers'],
+  '/suppliers': ['Supply Chain', 'Suppliers'],
   '/online-store': ['Customers', 'Online Store'],
   '/marketing': ['Customers', 'Marketing'],
   '/hr': ['Workforce', 'HR & Payroll'],
+  '/team': ['Workforce', 'Team'],
   '/projects': ['Workforce', 'Projects'],
   '/settings/team': ['Admin', 'Settings', 'Team'],
   '/accounting': ['Finance', 'Accounting'],
-  '/assets': ['Finance', 'Fixed Assets'],
+  '/accounting/vouchers': ['Finance', 'Accounting', 'Vouchers'],
+  '/accounting/ledger': ['Finance', 'Accounting', 'Ledger'],
+  '/accounting/reports': ['Finance', 'Accounting', 'Reports'],
+  '/fixed-assets': ['Finance', 'Fixed Assets'],
   '/expenses': ['Finance', 'Expenses'],
   '/budgets': ['Finance', 'Budgets'],
   '/reports': ['Finance', 'Reports'],
   '/billing': ['Finance', 'Billing'],
   '/ai-cfo': ['AI Intelligence', 'AI CFO Assistant'],
-  '/documents': ['AI Intelligence', 'Document Scanner'],
+  '/document-scanner': ['Tools', 'Document Scanner'],
   '/stores': ['Admin', 'Stores'],
   '/settings/white-label': ['Admin', 'Settings', 'White Label'],
   '/settings/readiness': ['Admin', 'Settings', 'Readiness'],
@@ -52,7 +58,6 @@ const routeBreadcrumbs: Record<string, string[]> = {
 };
 
 function useBreadcrumbs(pathname: string): string[] {
-  // Try exact match first, then prefix match (longest wins)
   if (routeBreadcrumbs[pathname]) return routeBreadcrumbs[pathname];
   let best = '';
   for (const key of Object.keys(routeBreadcrumbs)) {
@@ -152,7 +157,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     <>
       <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
         {/* Left: breadcrumbs + title */}
-        <div className="min-w-0 pl-10 md:pl-0 flex flex-col justify-center">
+        <div className="min-w-0 pl-12 md:pl-0 flex flex-col justify-center">
           {crumbs.length > 1 ? (
             <>
               <Breadcrumb>
@@ -186,7 +191,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           {/* Company Switcher */}
           <CompanySwitcher />
 
-          {/* ⌘K Search trigger */}
+          {/* ⌘K Search trigger — desktop */}
           <button
             onClick={() => setCmdOpen(true)}
             className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors text-xs text-muted-foreground group"
@@ -198,20 +203,25 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </kbd>
           </button>
 
-          {/* Mobile search button */}
-          <Button variant="ghost" size="icon" className="md:hidden h-8 w-8" onClick={() => setCmdOpen(true)}>
-            <Search className="w-4 h-4" />
-          </Button>
-
-          {/* Dark / Light mode toggle */}
+          {/* Mobile search button — larger touch target */}
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="md:hidden h-10 w-10 touch-manipulation"
+            onClick={() => setCmdOpen(true)}
+          >
+            <Search className="w-5 h-5" />
+          </Button>
+
+          {/* Dark / Light mode toggle — larger on mobile */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 sm:h-8 sm:w-8 touch-manipulation"
             onClick={toggleDarkMode}
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {darkMode ? <Sun className="w-5 h-5 sm:w-4 sm:h-4" /> : <Moon className="w-5 h-5 sm:w-4 sm:h-4" />}
           </Button>
 
           {/* Store Switcher — hidden on small screens */}
@@ -259,11 +269,11 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </SelectContent>
           </Select>
 
-          {/* Notifications Bell */}
+          {/* Notifications Bell — larger touch target on mobile */}
           <Popover open={notifOpen} onOpenChange={setNotifOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-8 w-8">
-                <Bell className="w-4 h-4" />
+              <Button variant="ghost" size="icon" className="relative h-10 w-10 sm:h-8 sm:w-8 touch-manipulation">
+                <Bell className="w-5 h-5 sm:w-4 sm:h-4" />
                 {unreadCount > 0 && (
                   <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -271,20 +281,20 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-0 shadow-xl border-border">
+            <PopoverContent align="end" className="w-[calc(100vw-24px)] sm:w-80 p-0 shadow-xl border-border">
               <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm">Notifications</span>
                   {unreadCount > 0 && <Badge variant="destructive" className="text-[10px] h-4 px-1.5">{unreadCount}</Badge>}
                 </div>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1">
+                  <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1 touch-manipulation py-1 px-2 -mr-2">
                     <Check className="w-3 h-3" /> Mark all read
                   </button>
                 )}
               </div>
 
-              <div className="divide-y divide-border max-h-72 overflow-y-auto">
+              <div className="divide-y divide-border max-h-72 overflow-y-auto overscroll-contain">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center">
                     <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -296,7 +306,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                       key={n.id}
                       onClick={() => markRead(n.id)}
                       className={cn(
-                        'px-4 py-3 text-sm cursor-pointer hover:bg-accent transition-colors',
+                        'px-4 py-3 text-sm cursor-pointer hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation',
                         !n.read && 'bg-primary/5 hover:bg-primary/10'
                       )}
                     >
@@ -319,7 +329,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                 <Link
                   to="/settings"
                   onClick={() => setNotifOpen(false)}
-                  className="text-xs text-primary hover:underline w-full text-center block"
+                  className="text-xs text-primary hover:underline w-full text-center block touch-manipulation py-1"
                 >
                   Notification settings
                 </Link>
@@ -327,11 +337,11 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </PopoverContent>
           </Popover>
 
-          {/* User Avatar Menu */}
+          {/* User Avatar Menu — larger touch target on mobile */}
           <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-2 px-2 rounded-lg">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-sm">
+              <Button variant="ghost" size="sm" className="h-10 sm:h-8 gap-2 px-2 rounded-lg touch-manipulation">
+                <div className="w-8 h-8 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-sm">
                   {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                 </div>
                 <span className="hidden lg:block text-sm font-medium max-w-[90px] truncate">
@@ -355,7 +365,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
               <Link
                 to="/profile"
                 onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation"
               >
                 <User className="w-4 h-4 text-muted-foreground" />
                 My Profile
@@ -363,7 +373,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
               <Link
                 to="/settings"
                 onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-accent transition-colors"
+                className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation"
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
                 Settings
@@ -371,7 +381,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
               <div className="border-t border-border mt-1.5 pt-1.5">
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 w-full text-left transition-colors"
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-950/30 text-red-600 w-full text-left transition-colors touch-manipulation"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign out
