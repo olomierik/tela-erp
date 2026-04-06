@@ -328,7 +328,7 @@ export default function Landing() {
                 <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Free & open source ERP platform built for SMEs in Africa and the world.
+                The most affordable open source ERP — just $20/year — built for SMEs in Africa and the world.
               </p>
             </div>
             <div>
