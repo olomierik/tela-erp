@@ -142,7 +142,7 @@ class OfflineSyncManager {
 
     switch (operation) {
       case 'insert':
-        await supabase.from(table).insert(data);
+        await (supabase as any).from(table).insert(data);
         break;
       case 'update':
         const { id, ...updateData } = data;
