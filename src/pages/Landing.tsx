@@ -60,8 +60,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>TELA-ERP — Free Open Source ERP for Small Businesses | Sales, Inventory & Production</title>
-        <meta name="description" content="TELA-ERP is a free, open source cloud ERP for small businesses. Manage inventory, sales, production, accounting & procurement in one platform. Used in Tanzania, US, UK, Canada, India & worldwide." />
+        <title>TELA-ERP — Most Affordable Open Source ERP for Small Businesses | Just $20/Year</title>
+        <meta name="description" content="TELA-ERP is the most affordable cloud ERP for small businesses — just $20/year for all modules. Manage inventory, sales, production, accounting & procurement in one platform." />
         <link rel="canonical" href="https://tela-erp.com/" />
       </Helmet>
       {/* NAV */}
