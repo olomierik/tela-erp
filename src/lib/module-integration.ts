@@ -130,7 +130,7 @@ class ModuleIntegrationManager {
           .update({ quantity: stock.quantity + quantity })
           .eq('product_id', product_id);
       } else {
-        await supabase.from('inventory_stock').insert({
+        await (supabase as any).from('inventory_stock').insert({
           product_id,
           quantity,
           warehouse_id: 'default',
