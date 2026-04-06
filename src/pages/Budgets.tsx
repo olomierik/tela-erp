@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
 import {
-  PieChart, Plus, TrendingUp, TrendingDown, AlertTriangle, CheckCircle2, Trash2, Edit,
+  PieChart, Plus, Trash2, Edit, Save, X, PlusCircle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
-import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,8 +40,23 @@ export default function Budgets() {
     lines: BUDGET_CATEGORIES.map(c => ({ category: c, budgeted_amount: '' })),
   });
 
+  // Edit budget name dialog
+  const [editBudgetOpen, setEditBudgetOpen] = useState(false);
+  const [editBudgetId, setEditBudgetId] = useState<string | null>(null);
+  const [editBudgetName, setEditBudgetName] = useState('');
+  const [editBudgetDept, setEditBudgetDept] = useState('');
+
+  // Edit line dialog
+  const [editLineOpen, setEditLineOpen] = useState(false);
+  const [editLine, setEditLine] = useState<{ id: string; category: string; budgeted_amount: string } | null>(null);
+
+  // Add line dialog
+  const [addLineOpen, setAddLineOpen] = useState(false);
+  const [addLineBudgetId, setAddLineBudgetId] = useState<string | null>(null);
+  const [newLine, setNewLine] = useState({ category: '', budgeted_amount: '' });
+
   const { data: rawBudgets, isLoading, refetch: refetchBudgets } = useTenantQuery('budgets');
-  const { data: rawLines } = useTenantQuery('budget_lines');
+  const { data: rawLines, refetch: refetchLines } = useTenantQuery('budget_lines');
   const { data: transData } = useTenantQuery('transactions');
   const deleteBudget = useTenantDelete('budgets');
   const updateBudget = useTenantUpdate('budgets');
@@ -56,21 +71,21 @@ export default function Budgets() {
       id: '1', name: 'Q1 2026 Operating Budget', fiscal_year: 2026, period: 'quarterly', department: 'Operations',
       total_budget: 180000, status: 'active',
       lines: [
-        { category: 'Salaries & Wages', budgeted_amount: 95000, actual_amount: 92400 },
-        { category: 'Rent & Facilities', budgeted_amount: 28000, actual_amount: 28000 },
-        { category: 'Marketing', budgeted_amount: 25000, actual_amount: 31200 },
-        { category: 'Technology', budgeted_amount: 18000, actual_amount: 14800 },
-        { category: 'Travel & Entertainment', budgeted_amount: 14000, actual_amount: 9200 },
+        { id: 'd1', category: 'Salaries & Wages', budgeted_amount: 95000, actual_amount: 92400 },
+        { id: 'd2', category: 'Rent & Facilities', budgeted_amount: 28000, actual_amount: 28000 },
+        { id: 'd3', category: 'Marketing', budgeted_amount: 25000, actual_amount: 31200 },
+        { id: 'd4', category: 'Technology', budgeted_amount: 18000, actual_amount: 14800 },
+        { id: 'd5', category: 'Travel & Entertainment', budgeted_amount: 14000, actual_amount: 9200 },
       ],
     },
     {
       id: '2', name: 'Annual Marketing Budget', fiscal_year: 2026, period: 'annual', department: 'Marketing',
       total_budget: 120000, status: 'active',
       lines: [
-        { category: 'Digital Ads', budgeted_amount: 60000, actual_amount: 42000 },
-        { category: 'Events', budgeted_amount: 30000, actual_amount: 18500 },
-        { category: 'Content Creation', budgeted_amount: 20000, actual_amount: 15200 },
-        { category: 'Tools & Software', budgeted_amount: 10000, actual_amount: 8400 },
+        { id: 'd6', category: 'Digital Ads', budgeted_amount: 60000, actual_amount: 42000 },
+        { id: 'd7', category: 'Events', budgeted_amount: 30000, actual_amount: 18500 },
+        { id: 'd8', category: 'Content Creation', budgeted_amount: 20000, actual_amount: 15200 },
+        { id: 'd9', category: 'Tools & Software', budgeted_amount: 10000, actual_amount: 8400 },
       ],
     },
   ];
@@ -78,7 +93,6 @@ export default function Budgets() {
   // Merge budget_lines into budgets for live data
   const liveBudgets = (rawBudgets ?? []).map((b: any) => {
     const lines = budgetLines.filter((l: any) => l.budget_id === b.id);
-    // Calculate actual_amount from transactions matching category
     const enrichedLines = lines.map((l: any) => {
       const actual = transactions
         .filter((t: any) => t.category === l.category && t.type === 'expense')
@@ -96,6 +110,7 @@ export default function Budgets() {
   }, 0);
   const variance = totalBudgeted - totalActual;
 
+  // ─── Create Budget ─────────────────────────────────────────────────────────
   const handleCreate = useCallback(async () => {
     if (!form.name.trim()) { toast.error('Budget name is required'); return; }
     if (!tenant?.id) return;
@@ -104,7 +119,6 @@ export default function Budgets() {
     try {
       const total = form.lines.reduce((s, l) => s + (Number(l.budgeted_amount) || 0), 0);
 
-      // 1. Insert budget header
       const { data: budget, error: budgetErr } = await (supabase.from('budgets') as any)
         .insert({
           tenant_id: tenant.id,
@@ -120,7 +134,6 @@ export default function Budgets() {
 
       if (budgetErr) throw budgetErr;
 
-      // 2. Insert budget lines (only non-zero amounts)
       const linesToInsert = form.lines
         .filter(l => Number(l.budgeted_amount) > 0)
         .map(l => ({
@@ -132,27 +145,138 @@ export default function Budgets() {
         }));
 
       if (linesToInsert.length > 0) {
-        const { error: linesErr } = await (supabase.from('budget_lines') as any)
-          .insert(linesToInsert);
+        const { error: linesErr } = await (supabase.from('budget_lines') as any).insert(linesToInsert);
         if (linesErr) throw linesErr;
       }
 
       toast.success('Budget created with line items');
       setCreateOpen(false);
       setForm({
-        name: '',
-        fiscal_year: new Date().getFullYear().toString(),
-        period: 'annual',
-        department: '',
+        name: '', fiscal_year: new Date().getFullYear().toString(),
+        period: 'annual', department: '',
         lines: BUDGET_CATEGORIES.map(c => ({ category: c, budgeted_amount: '' })),
       });
       refetchBudgets();
+      refetchLines();
     } catch (err: any) {
       toast.error(err.message || 'Failed to create budget');
     } finally {
       setCreating(false);
     }
-  }, [form, tenant, refetchBudgets]);
+  }, [form, tenant, refetchBudgets, refetchLines]);
+
+  // ─── Edit Budget Name/Department ───────────────────────────────────────────
+  const openEditBudget = (budget: any) => {
+    setEditBudgetId(budget.id);
+    setEditBudgetName(budget.name);
+    setEditBudgetDept(budget.department || '');
+    setEditBudgetOpen(true);
+  };
+
+  const handleEditBudget = async () => {
+    if (!editBudgetId || !editBudgetName.trim()) return;
+    try {
+      updateBudget.mutate({ id: editBudgetId, name: editBudgetName, department: editBudgetDept });
+      toast.success('Budget updated');
+      setEditBudgetOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update budget');
+    }
+  };
+
+  // ─── Edit Budget Line ─────────────────────────────────────────────────────
+  const openEditLine = (line: any) => {
+    setEditLine({ id: line.id, category: line.category, budgeted_amount: String(line.budgeted_amount) });
+    setEditLineOpen(true);
+  };
+
+  const handleEditLine = async () => {
+    if (!editLine) return;
+    try {
+      const { error } = await (supabase.from('budget_lines') as any)
+        .update({
+          category: editLine.category,
+          budgeted_amount: Number(editLine.budgeted_amount) || 0,
+        })
+        .eq('id', editLine.id);
+      if (error) throw error;
+
+      // Recalculate budget total
+      const parentBudget = budgets.find(b => b.lines?.some((l: any) => l.id === editLine.id));
+      if (parentBudget) {
+        const newTotal = parentBudget.lines.reduce((s: number, l: any) => {
+          if (l.id === editLine.id) return s + (Number(editLine.budgeted_amount) || 0);
+          return s + Number(l.budgeted_amount || 0);
+        }, 0);
+        await (supabase.from('budgets') as any).update({ total_budget: newTotal }).eq('id', parentBudget.id);
+      }
+
+      toast.success('Budget line updated');
+      setEditLineOpen(false);
+      refetchLines();
+      refetchBudgets();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update line');
+    }
+  };
+
+  // ─── Delete Budget Line ───────────────────────────────────────────────────
+  const handleDeleteLine = async (lineId: string, budgetId: string) => {
+    try {
+      const { error } = await (supabase.from('budget_lines') as any).delete().eq('id', lineId);
+      if (error) throw error;
+
+      // Recalculate budget total
+      const parentBudget = budgets.find(b => b.id === budgetId);
+      if (parentBudget) {
+        const newTotal = parentBudget.lines
+          .filter((l: any) => l.id !== lineId)
+          .reduce((s: number, l: any) => s + Number(l.budgeted_amount || 0), 0);
+        await (supabase.from('budgets') as any).update({ total_budget: newTotal }).eq('id', parentBudget.id);
+      }
+
+      toast.success('Budget line deleted');
+      refetchLines();
+      refetchBudgets();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete line');
+    }
+  };
+
+  // ─── Add Budget Line ──────────────────────────────────────────────────────
+  const openAddLine = (budgetId: string) => {
+    setAddLineBudgetId(budgetId);
+    setNewLine({ category: '', budgeted_amount: '' });
+    setAddLineOpen(true);
+  };
+
+  const handleAddLine = async () => {
+    if (!addLineBudgetId || !newLine.category.trim() || !tenant?.id) return;
+    try {
+      const { error } = await (supabase.from('budget_lines') as any).insert({
+        tenant_id: tenant.id,
+        budget_id: addLineBudgetId,
+        category: newLine.category,
+        budgeted_amount: Number(newLine.budgeted_amount) || 0,
+        actual_amount: 0,
+      });
+      if (error) throw error;
+
+      // Recalculate budget total
+      const parentBudget = budgets.find(b => b.id === addLineBudgetId);
+      if (parentBudget) {
+        const newTotal = Number(parentBudget.total_budget || 0) + (Number(newLine.budgeted_amount) || 0);
+        await (supabase.from('budgets') as any).update({ total_budget: newTotal }).eq('id', addLineBudgetId);
+      }
+
+      toast.success('Budget line added');
+      setAddLineOpen(false);
+      refetchLines();
+      refetchBudgets();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add line');
+    }
+  };
 
   const handleStatusChange = (budgetId: string, newStatus: string) => {
     updateBudget.mutate({ id: budgetId, status: newStatus });
@@ -192,7 +316,14 @@ export default function Budgets() {
                   <Card className="border-border rounded-xl">
                     <CardHeader className="pb-2 flex-row items-start justify-between">
                       <div>
-                        <CardTitle className="text-base font-semibold">{budget.name}</CardTitle>
+                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                          {budget.name}
+                          {!isDemo && (
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditBudget(budget)}>
+                              <Edit className="w-3 h-3 text-muted-foreground" />
+                            </Button>
+                          )}
+                        </CardTitle>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="secondary" className="text-xs capitalize">{budget.period}</Badge>
                           {budget.department && <Badge variant="outline" className="text-xs">{budget.department}</Badge>}
@@ -237,37 +368,74 @@ export default function Budgets() {
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${Math.min(utilization, 100)}%` }}
-                            transition={{ delay: 0.2, duration: 0.8 }}
+                            transition={{ delay: bi * 0.05 + 0.2, duration: 0.5 }}
                             className={cn('h-full rounded-full', utilization > 100 ? 'bg-red-500' : utilization > 80 ? 'bg-amber-500' : 'bg-indigo-500')}
                           />
                         </div>
                       </div>
 
-                      {/* Line items */}
+                      {/* Line items table */}
                       {(budget.lines ?? []).length > 0 ? (
-                        <div className="space-y-2">
-                          {(budget.lines ?? []).map((line: any, li: number) => {
-                            const linePct = line.budgeted_amount > 0 ? (Number(line.actual_amount) / Number(line.budgeted_amount)) * 100 : 0;
-                            const overBudget = linePct > 100;
-                            return (
-                              <div key={li} className="grid grid-cols-12 items-center gap-2 text-sm">
-                                <span className="col-span-3 text-xs text-muted-foreground truncate">{line.category}</span>
-                                <div className="col-span-6">
-                                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                                    <div
-                                      className={cn('h-full rounded-full', overBudget ? 'bg-red-500' : linePct > 80 ? 'bg-amber-500' : 'bg-emerald-500')}
-                                      style={{ width: `${Math.min(linePct, 100)}%` }}
-                                    />
-                                  </div>
-                                </div>
-                                <span className="col-span-2 text-xs text-right font-medium">{formatMoney(Number(line.actual_amount ?? 0))}</span>
-                                <span className="col-span-1 text-[10px] text-right text-muted-foreground">{formatMoney(Number(line.budgeted_amount))}</span>
-                              </div>
-                            );
-                          })}
+                        <div className="rounded-lg border border-border overflow-hidden">
+                          <table className="w-full text-sm">
+                            <thead className="bg-muted/40">
+                              <tr className="text-xs text-muted-foreground">
+                                <th className="text-left px-3 py-2 font-medium">Category</th>
+                                <th className="text-right px-3 py-2 font-medium">Budgeted</th>
+                                <th className="text-right px-3 py-2 font-medium">Actual</th>
+                                <th className="text-center px-3 py-2 font-medium">Usage</th>
+                                {!isDemo && <th className="text-right px-3 py-2 font-medium">Actions</th>}
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border">
+                              {(budget.lines ?? []).map((line: any) => {
+                                const linePct = line.budgeted_amount > 0 ? (Number(line.actual_amount) / Number(line.budgeted_amount)) * 100 : 0;
+                                const overBudget = linePct > 100;
+                                return (
+                                  <tr key={line.id} className="hover:bg-accent/30 transition-colors">
+                                    <td className="px-3 py-2 text-xs font-medium text-foreground">{line.category}</td>
+                                    <td className="px-3 py-2 text-xs text-right tabular-nums">{formatMoney(Number(line.budgeted_amount))}</td>
+                                    <td className="px-3 py-2 text-xs text-right tabular-nums font-medium">{formatMoney(Number(line.actual_amount ?? 0))}</td>
+                                    <td className="px-3 py-2">
+                                      <div className="flex items-center gap-2 justify-center">
+                                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                                          <div
+                                            className={cn('h-full rounded-full', overBudget ? 'bg-red-500' : linePct > 80 ? 'bg-amber-500' : 'bg-emerald-500')}
+                                            style={{ width: `${Math.min(linePct, 100)}%` }}
+                                          />
+                                        </div>
+                                        <span className={cn('text-[10px] font-medium w-8 text-right', overBudget ? 'text-red-600' : 'text-muted-foreground')}>
+                                          {Math.round(linePct)}%
+                                        </span>
+                                      </div>
+                                    </td>
+                                    {!isDemo && (
+                                      <td className="px-3 py-2 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditLine(line)}>
+                                            <Edit className="w-3 h-3 text-muted-foreground" />
+                                          </Button>
+                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteLine(line.id, budget.id)}>
+                                            <Trash2 className="w-3 h-3 text-destructive" />
+                                          </Button>
+                                        </div>
+                                      </td>
+                                    )}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       ) : (
                         <p className="text-xs text-muted-foreground text-center py-2">No budget lines configured</p>
+                      )}
+
+                      {/* Add Line Button */}
+                      {!isDemo && (
+                        <Button variant="outline" size="sm" className="w-full mt-2 gap-1 text-xs h-8" onClick={() => openAddLine(budget.id)}>
+                          <PlusCircle className="w-3.5 h-3.5" /> Add Budget Line
+                        </Button>
                       )}
                     </CardContent>
                   </Card>
@@ -277,6 +445,7 @@ export default function Budgets() {
           </div>
         )}
 
+        {/* ─── Create Budget Sheet ─────────────────────────────────────────────── */}
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
           <SheetContent className="w-full sm:max-w-[540px] overflow-y-auto">
             <SheetHeader>
@@ -307,16 +476,31 @@ export default function Budgets() {
               </div>
 
               <div>
-                <Label className="mb-2 block">Budget Lines</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Budget Lines</Label>
+                  <Button variant="ghost" size="sm" className="h-6 text-xs gap-1"
+                    onClick={() => setForm(f => ({ ...f, lines: [...f.lines, { category: '', budgeted_amount: '' }] }))}>
+                    <Plus className="w-3 h-3" /> Add Line
+                  </Button>
+                </div>
                 <div className="space-y-2">
                   {form.lines.map((line, i) => (
-                    <div key={line.category} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-40 shrink-0">{line.category}</span>
+                    <div key={i} className="flex items-center gap-2">
                       <Input
-                        type="number" placeholder="0.00" className="h-8 text-xs"
+                        className="h-8 text-xs flex-1"
+                        value={line.category}
+                        onChange={e => setForm(f => ({ ...f, lines: f.lines.map((l, j) => j === i ? { ...l, category: e.target.value } : l) }))}
+                        placeholder="Category name"
+                      />
+                      <Input
+                        type="number" placeholder="0.00" className="h-8 text-xs w-28"
                         value={line.budgeted_amount}
                         onChange={e => setForm(f => ({ ...f, lines: f.lines.map((l, j) => j === i ? { ...l, budgeted_amount: e.target.value } : l) }))}
                       />
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0"
+                        onClick={() => setForm(f => ({ ...f, lines: f.lines.filter((_, j) => j !== i) }))}>
+                        <X className="w-3 h-3 text-destructive" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -334,6 +518,93 @@ export default function Budgets() {
             </SheetFooter>
           </SheetContent>
         </Sheet>
+
+        {/* ─── Edit Budget Name Dialog ─────────────────────────────────────────── */}
+        <Dialog open={editBudgetOpen} onOpenChange={setEditBudgetOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Budget</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Budget Name</Label>
+                <Input value={editBudgetName} onChange={e => setEditBudgetName(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Department</Label>
+                <Input value={editBudgetDept} onChange={e => setEditBudgetDept(e.target.value)} placeholder="Optional" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditBudgetOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditBudget} disabled={!editBudgetName.trim()}>
+                <Save className="w-4 h-4 mr-1" /> Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── Edit Budget Line Dialog ─────────────────────────────────────────── */}
+        <Dialog open={editLineOpen} onOpenChange={setEditLineOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Budget Line</DialogTitle>
+            </DialogHeader>
+            {editLine && (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Category</Label>
+                  <Input value={editLine.category} onChange={e => setEditLine({ ...editLine, category: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Budgeted Amount</Label>
+                  <Input type="number" value={editLine.budgeted_amount} onChange={e => setEditLine({ ...editLine, budgeted_amount: e.target.value })} />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditLineOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditLine}>
+                <Save className="w-4 h-4 mr-1" /> Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── Add Budget Line Dialog ──────────────────────────────────────────── */}
+        <Dialog open={addLineOpen} onOpenChange={setAddLineOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Budget Line</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Category</Label>
+                <Select value={newLine.category} onValueChange={v => setNewLine(l => ({ ...l, category: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Select or type category" /></SelectTrigger>
+                  <SelectContent>
+                    {BUDGET_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Input
+                  className="mt-1" placeholder="Or type custom category"
+                  value={newLine.category}
+                  onChange={e => setNewLine(l => ({ ...l, category: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Budgeted Amount</Label>
+                <Input type="number" value={newLine.budgeted_amount} onChange={e => setNewLine(l => ({ ...l, budgeted_amount: e.target.value }))} placeholder="0.00" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddLineOpen(false)}>Cancel</Button>
+              <Button onClick={handleAddLine} disabled={!newLine.category.trim()}>
+                <PlusCircle className="w-4 h-4 mr-1" /> Add Line
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

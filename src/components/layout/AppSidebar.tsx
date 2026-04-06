@@ -66,14 +66,14 @@ const navSections: NavSection[] = [
       { label: 'Financials', icon: BarChart3, path: '/accounting/reports' },
       { label: 'Expenses', icon: Receipt, path: '/expenses' },
       { label: 'Budgets', icon: PiggyBank, path: '/budgets' },
-      { label: 'Fixed Assets', icon: Landmark, path: '/fixed-assets' },
+      { label: 'Fixed Assets', icon: Landmark, path: '/assets' },
     ],
   },
   {
     title: 'People & Projects',
     items: [
       { label: 'HR & Payroll', icon: Briefcase, path: '/hr' },
-      { label: 'Team', icon: UsersRound, path: '/team' },
+      { label: 'Team', icon: UsersRound, path: '/settings/team' },
       { label: 'Projects', icon: FolderKanban, path: '/projects' },
     ],
   },
@@ -82,7 +82,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Stores', icon: Store, path: '/stores' },
       { label: 'Online Store', icon: Globe, path: '/online-store' },
-      { label: 'Doc Scanner', icon: ScanLine, path: '/document-scanner' },
+      { label: 'Doc Scanner', icon: ScanLine, path: '/documents' },
       { label: 'Reports', icon: BarChart3, path: '/reports' },
     ],
   },

@@ -103,7 +103,7 @@ export default function Accounting() {
     if (!tenant?.id) return;
     setLoading(true);
 
-    const [vouchersRes, balancesRes, accountsRes] = await Promise.all([
+    const [vouchersRes, balancesRes, accountsRes, invoicesRes, expensesRes, posRes, salesRes] = await Promise.all([
       (supabase as any).from('accounting_vouchers')
         .select('id, voucher_number, voucher_type, narration, voucher_date, status, is_auto, entries:accounting_voucher_entries(debit)')
         .eq('tenant_id', tenant.id)
@@ -114,6 +114,19 @@ export default function Accounting() {
         .eq('tenant_id', tenant.id),
       (supabase as any).from('chart_of_accounts')
         .select('id, name, account_type')
+        .eq('tenant_id', tenant.id),
+      // Pull real transactional data for KPI fallback
+      (supabase as any).from('invoices')
+        .select('id, total_amount, status, issue_date')
+        .eq('tenant_id', tenant.id),
+      (supabase as any).from('expenses')
+        .select('id, amount, status, expense_date')
+        .eq('tenant_id', tenant.id),
+      (supabase as any).from('purchase_orders')
+        .select('id, total_amount, status, order_date')
+        .eq('tenant_id', tenant.id),
+      (supabase as any).from('sales_orders')
+        .select('id, total_amount, status, order_date')
         .eq('tenant_id', tenant.id),
     ]);
 
@@ -133,7 +146,7 @@ export default function Accounting() {
       s + (v.entries ?? []).reduce((es: number, e: any) => es + Number(e.debit), 0), 0);
     setVoucherSummary({ total: vouchers.length, posted: posted.length, draft: drafts.length, totalValue });
 
-    // Financial summary from balances
+    // Financial summary from ledger balances
     let revenue = 0, expenses = 0, assets = 0, liabilities = 0, equity = 0, cash = 0, receivables = 0, payables = 0;
     balances.forEach((b: any) => {
       const type = accountTypeMap[b.account_id] || '';
@@ -154,6 +167,46 @@ export default function Accounting() {
       else if (type === 'equity') equity += Math.abs(bal);
     });
 
+    // Fallback: if ledger balances are empty, compute from transactional data
+    const invoices = invoicesRes.data ?? [];
+    const expenseRecords = expensesRes.data ?? [];
+    const purchaseOrders = posRes.data ?? [];
+    const salesOrders = salesRes.data ?? [];
+
+    if (revenue === 0 && expenses === 0) {
+      // Revenue from paid/sent invoices + confirmed sales orders
+      revenue = invoices
+        .filter((i: any) => ['paid', 'sent', 'overdue'].includes(i.status))
+        .reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
+      revenue += salesOrders
+        .filter((s: any) => ['confirmed', 'delivered'].includes(s.status))
+        .reduce((s: number, o: any) => s + Number(o.total_amount || 0), 0);
+
+      // Expenses from approved/paid expenses + received POs
+      expenses = expenseRecords
+        .filter((e: any) => ['approved', 'paid'].includes(e.status))
+        .reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+      expenses += purchaseOrders
+        .filter((p: any) => ['received', 'approved'].includes(p.status))
+        .reduce((s: number, p: any) => s + Number(p.total_amount || 0), 0);
+
+      // Receivables = unpaid invoices
+      receivables = invoices
+        .filter((i: any) => ['sent', 'overdue'].includes(i.status))
+        .reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
+
+      // Payables = approved but not paid POs
+      payables = purchaseOrders
+        .filter((p: any) => ['approved', 'submitted'].includes(p.status))
+        .reduce((s: number, p: any) => s + Number(p.total_amount || 0), 0);
+
+      // Cash = revenue - expenses (simplified)
+      cash = revenue - expenses;
+      assets = cash + receivables;
+      liabilities = payables;
+      equity = assets - liabilities;
+    }
+
     setFinancial({
       totalRevenue: revenue, totalExpenses: expenses, netProfit: revenue - expenses,
       totalAssets: assets, totalLiabilities: liabilities, totalEquity: equity,
@@ -166,7 +219,7 @@ export default function Accounting() {
       total_debit: (v.entries ?? []).reduce((s: number, e: any) => s + Number(e.debit), 0),
     })));
 
-    // Monthly chart data
+    // Monthly chart data — combine voucher data with transactional fallback
     const months: Record<string, { revenue: number; expenses: number }> = {};
     vouchers.filter((v: any) => v.status === 'posted').forEach((v: any) => {
       const m = new Date(v.voucher_date).toLocaleDateString('en-US', { month: 'short' });
@@ -175,6 +228,42 @@ export default function Accounting() {
       if (v.voucher_type === 'sale' || v.voucher_type === 'receipt') months[m].revenue += total;
       else if (v.voucher_type === 'purchase' || v.voucher_type === 'payment') months[m].expenses += total;
     });
+
+    // Fallback: if no voucher chart data, build from invoices/expenses/POs
+    if (Object.keys(months).length === 0) {
+      invoices.forEach((inv: any) => {
+        if (!inv.issue_date) return;
+        const m = new Date(inv.issue_date).toLocaleDateString('en-US', { month: 'short' });
+        if (!months[m]) months[m] = { revenue: 0, expenses: 0 };
+        if (['paid', 'sent', 'overdue'].includes(inv.status)) {
+          months[m].revenue += Number(inv.total_amount || 0);
+        }
+      });
+      salesOrders.forEach((so: any) => {
+        if (!so.order_date) return;
+        const m = new Date(so.order_date).toLocaleDateString('en-US', { month: 'short' });
+        if (!months[m]) months[m] = { revenue: 0, expenses: 0 };
+        if (['confirmed', 'delivered'].includes(so.status)) {
+          months[m].revenue += Number(so.total_amount || 0);
+        }
+      });
+      expenseRecords.forEach((exp: any) => {
+        if (!exp.expense_date) return;
+        const m = new Date(exp.expense_date).toLocaleDateString('en-US', { month: 'short' });
+        if (!months[m]) months[m] = { revenue: 0, expenses: 0 };
+        if (['approved', 'paid'].includes(exp.status)) {
+          months[m].expenses += Number(exp.amount || 0);
+        }
+      });
+      purchaseOrders.forEach((po: any) => {
+        if (!po.order_date) return;
+        const m = new Date(po.order_date).toLocaleDateString('en-US', { month: 'short' });
+        if (!months[m]) months[m] = { revenue: 0, expenses: 0 };
+        if (['received'].includes(po.status)) {
+          months[m].expenses += Number(po.total_amount || 0);
+        }
+      });
+    }
     setMonthlyData(Object.entries(months).map(([month, v]) => ({ month, ...v })));
 
     setLoading(false);

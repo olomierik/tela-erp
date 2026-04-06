@@ -20,6 +20,7 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { supabase } from '@/integrations/supabase/client';
+import { onProcurementReceived } from '@/hooks/use-cross-module';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -310,10 +311,34 @@ export default function Procurement() {
     });
   };
 
-  /** Receives a PO: updates status to 'received'.
-   * Inventory/accounting now run in backend automation to keep data consistent. */
-  const handleReceivePO = (po: any) => {
-    updateMutation.mutate({ id: po.id, status: 'received' });
+  /** Receives a PO: updates status to 'received' and triggers inventory + accounting updates. */
+  const handleReceivePO = async (po: any) => {
+    try {
+      // 1. Update PO status
+      await updateMutation.mutateAsync({ id: po.id, status: 'received' });
+
+      // 2. Trigger cross-module inventory + accounting update
+      if (tenant?.id) {
+        const lineItems = po.custom_fields?.line_items ?? [];
+        await onProcurementReceived(
+          tenant.id,
+          {
+            id: po.id,
+            po_number: po.po_number,
+            supplier_name: po.supplier_name || '',
+            total_amount: Number(po.total_amount) || 0,
+          },
+          lineItems.map((li: any) => ({
+            item_id: li.item_id || null,
+            description: li.description || '',
+            quantity: Number(li.quantity) || 0,
+            unit_price: Number(li.unit_price) || 0,
+          }))
+        );
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to receive PO');
+    }
   };
 
   return (
