@@ -521,6 +521,7 @@ export type Database = {
           category: string
           created_at: string | null
           id: string
+          name: string | null
           notes: string | null
           period_month: number | null
           period_year: number | null
@@ -533,6 +534,7 @@ export type Database = {
           category: string
           created_at?: string | null
           id?: string
+          name?: string | null
           notes?: string | null
           period_month?: number | null
           period_year?: number | null
@@ -545,6 +547,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
+          name?: string | null
           notes?: string | null
           period_month?: number | null
           period_year?: number | null
@@ -1317,7 +1320,9 @@ export type Database = {
         Row: {
           accumulated_depreciation: number | null
           asset_number: string
+          assigned_to: string | null
           category: string
+          condition: string | null
           created_at: string | null
           current_value: number | null
           depreciation_method: string | null
@@ -1339,7 +1344,9 @@ export type Database = {
         Insert: {
           accumulated_depreciation?: number | null
           asset_number: string
+          assigned_to?: string | null
           category?: string
+          condition?: string | null
           created_at?: string | null
           current_value?: number | null
           depreciation_method?: string | null
@@ -1361,7 +1368,9 @@ export type Database = {
         Update: {
           accumulated_depreciation?: number | null
           asset_number?: string
+          assigned_to?: string | null
           category?: string
+          condition?: string | null
           created_at?: string | null
           current_value?: number | null
           depreciation_method?: string | null
@@ -3496,6 +3505,7 @@ export type Database = {
           status: string
           store_id: string | null
           tenant_id: string
+          total_cost: number | null
           updated_at: string
         }
         Insert: {
@@ -3511,6 +3521,7 @@ export type Database = {
           status?: string
           store_id?: string | null
           tenant_id: string
+          total_cost?: number | null
           updated_at?: string
         }
         Update: {
@@ -3526,6 +3537,7 @@ export type Database = {
           status?: string
           store_id?: string | null
           tenant_id?: string
+          total_cost?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -3656,12 +3668,16 @@ export type Database = {
       projects: {
         Row: {
           budget: number | null
+          client: string | null
           created_at: string | null
           customer_id: string | null
           description: string | null
           end_date: string | null
           id: string
+          manager: string | null
           name: string
+          notes: string | null
+          spent: number | null
           start_date: string | null
           status: string | null
           tenant_id: string
@@ -3669,12 +3685,16 @@ export type Database = {
         }
         Insert: {
           budget?: number | null
+          client?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          manager?: string | null
           name: string
+          notes?: string | null
+          spent?: number | null
           start_date?: string | null
           status?: string | null
           tenant_id: string
@@ -3682,12 +3702,16 @@ export type Database = {
         }
         Update: {
           budget?: number | null
+          client?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          manager?: string | null
           name?: string
+          notes?: string | null
+          spent?: number | null
           start_date?: string | null
           status?: string | null
           tenant_id?: string
@@ -3779,6 +3803,7 @@ export type Database = {
           id: string
           order_date: string | null
           po_number: string
+          received_quantity: number | null
           status: string
           store_id: string | null
           supplier_id: string | null
@@ -3794,6 +3819,7 @@ export type Database = {
           id?: string
           order_date?: string | null
           po_number: string
+          received_quantity?: number | null
           status?: string
           store_id?: string | null
           supplier_id?: string | null
@@ -3809,6 +3835,7 @@ export type Database = {
           id?: string
           order_date?: string | null
           po_number?: string
+          received_quantity?: number | null
           status?: string
           store_id?: string | null
           supplier_id?: string | null
@@ -3931,6 +3958,8 @@ export type Database = {
           id: string
           linked_record_id: string | null
           linked_record_type: string | null
+          ocr_text: string | null
+          source: string | null
           status: string | null
           tenant_id: string
         }
@@ -3943,6 +3972,8 @@ export type Database = {
           id?: string
           linked_record_id?: string | null
           linked_record_type?: string | null
+          ocr_text?: string | null
+          source?: string | null
           status?: string | null
           tenant_id: string
         }
@@ -3955,6 +3986,8 @@ export type Database = {
           id?: string
           linked_record_id?: string | null
           linked_record_type?: string | null
+          ocr_text?: string | null
+          source?: string | null
           status?: string | null
           tenant_id?: string
         }
@@ -4170,6 +4203,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          rating: number | null
           store_id: string | null
           tax_id: string | null
           tenant_id: string
@@ -4188,6 +4222,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating?: number | null
           store_id?: string | null
           tax_id?: string | null
           tenant_id: string
@@ -4206,6 +4241,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating?: number | null
           store_id?: string | null
           tax_id?: string | null
           tenant_id?: string
@@ -4556,6 +4592,41 @@ export type Database = {
           },
         ]
       }
+      user_companies: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_companies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -4723,6 +4794,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_profiles_count: { Args: never; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
