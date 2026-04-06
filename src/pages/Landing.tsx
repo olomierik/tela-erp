@@ -303,7 +303,7 @@ export default function Landing() {
               <div className="relative z-10">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Ready to Transform Your Business?</h2>
               <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-                  Join SMEs across Africa and the world using this free, open source ERP to streamline operations and drive growth.
+                  Join SMEs across Africa and the world using the most affordable ERP — just $20/year — to streamline operations and drive growth.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
