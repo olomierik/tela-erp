@@ -149,7 +149,7 @@ class ModuleIntegrationManager {
       const { payment_id, amount, customer_id, invoice_id } = event.data as { payment_id: string; amount: number; customer_id: string; invoice_id: string };
 
       // Create accounting journal entry
-      const { data: journalEntry } = await supabase
+      const { data: journalEntry } = await (supabase as any)
         .from('myerp_journal_entries')
         .insert({
           reference: `PAY-${payment_id}`,
