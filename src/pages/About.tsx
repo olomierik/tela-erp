@@ -49,7 +49,7 @@ const values = [
 const stats = [
   { value: '15+', label: 'Integrated Modules', sub: 'Inventory to AI — one platform' },
   { value: '165+', label: 'Currencies Supported', sub: 'Live exchange rates built in' },
-  { value: '$20', label: 'Per Year', sub: 'Full access — the cheapest ERP' },
+  { value: '$100', label: 'Per Year', sub: 'Full access — the cheapest ERP' },
   { value: '∞', label: 'Scalability', sub: 'From 1 user to enterprise' },
 ];
 
