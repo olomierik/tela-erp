@@ -240,19 +240,24 @@ export default function Landing() {
 
           <div className="max-w-lg mx-auto">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-              <Card className="border-2 border-primary/20">
+               <Card className="border-2 border-primary/20">
                 <CardContent className="p-8 text-center">
                   <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5">
                     <CreditCard className="w-7 h-7 text-primary-foreground" />
                   </div>
-                  <h3 className="font-bold text-xl mb-2">Support the Project</h3>
+                  <h3 className="font-bold text-xl mb-1">Full Access</h3>
+                  <div className="flex items-end justify-center gap-1 my-4">
+                    <span className="text-5xl font-extrabold">$20</span>
+                    <span className="text-muted-foreground text-sm mb-1">/year</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">That's less than $1.70/month</p>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    TELA-ERP is maintained by a small team passionate about making enterprise software accessible to all.
-                    You can support the continued development of this project by contributing via the QR code below.
-                    Every contribution helps us build new features, fix bugs, and keep the platform running.
+                    All 15+ modules, unlimited users, AI assistant, multi-currency, white-labeling, and more. No per-user fees. No hidden costs.
                   </p>
-                  <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP support" className="w-64 mx-auto rounded-lg border border-border mb-4" />
-                  <p className="text-xs text-muted-foreground">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+                  <Button size="lg" className="w-full gradient-primary text-base" asChild>
+                    <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-3">No credit card required to start</p>
                 </CardContent>
               </Card>
             </motion.div>
