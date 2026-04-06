@@ -60,8 +60,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>TELA-ERP — Free Open Source ERP for Small Businesses | Sales, Inventory & Production</title>
-        <meta name="description" content="TELA-ERP is a free, open source cloud ERP for small businesses. Manage inventory, sales, production, accounting & procurement in one platform. Used in Tanzania, US, UK, Canada, India & worldwide." />
+        <title>TELA-ERP — Most Affordable Open Source ERP for Small Businesses | Just $20/Year</title>
+        <meta name="description" content="TELA-ERP is the most affordable cloud ERP for small businesses — just $20/year for all modules. Manage inventory, sales, production, accounting & procurement in one platform." />
         <link rel="canonical" href="https://tela-erp.com/" />
       </Helmet>
       {/* NAV */}
@@ -116,16 +116,16 @@ export default function Landing() {
               🌍 Open Source ERP for Africa & the World
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              The Free &{' '}
+              The Most Affordable{' '}
               <span className="text-gradient">Open Source ERP</span>{' '}
               for SMEs Everywhere
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              Manage production, inventory, sales, accounting, and more — completely free. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
+              Manage production, inventory, sales, accounting, and more — just <strong>$20/year</strong>. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
-                <Link to="/signup">Get a Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
               </Button>
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
                 <Link to="/login">Sign In</Link>
@@ -230,29 +230,34 @@ export default function Landing() {
       <section id="pricing" className="py-20 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-3">🌍 Open Source</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Free & Open Source ERP for Everyone</h2>
+            <Badge variant="secondary" className="mb-3">💰 Affordable ERP</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">The Most Affordable ERP — Just $20/Year</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
-              No subscriptions, no hidden fees. Just a powerful ERP system, completely free to use.
+              All 15+ modules, unlimited users, no hidden fees. Just <strong>$20/year</strong> for everything.
             </p>
           </motion.div>
 
           <div className="max-w-lg mx-auto">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-              <Card className="border-2 border-primary/20">
+               <Card className="border-2 border-primary/20">
                 <CardContent className="p-8 text-center">
                   <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5">
                     <CreditCard className="w-7 h-7 text-primary-foreground" />
                   </div>
-                  <h3 className="font-bold text-xl mb-2">Support the Project</h3>
+                  <h3 className="font-bold text-xl mb-1">Full Access</h3>
+                  <div className="flex items-end justify-center gap-1 my-4">
+                    <span className="text-5xl font-extrabold">$20</span>
+                    <span className="text-muted-foreground text-sm mb-1">/year</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">That's less than $1.70/month</p>
                   <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    TELA-ERP is maintained by a small team passionate about making enterprise software accessible to all.
-                    You can support the continued development of this project by contributing via the QR code below.
-                    Every contribution helps us build new features, fix bugs, and keep the platform running.
+                    All 15+ modules, unlimited users, AI assistant, multi-currency, white-labeling, and more. No per-user fees. No hidden costs.
                   </p>
-                  <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP support" className="w-64 mx-auto rounded-lg border border-border mb-4" />
-                  <p className="text-xs text-muted-foreground">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
+                  <Button size="lg" className="w-full gradient-primary text-base" asChild>
+                    <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-3">No credit card required to start</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -303,11 +308,11 @@ export default function Landing() {
               <div className="relative z-10">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Ready to Transform Your Business?</h2>
               <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-                  Join SMEs across Africa and the world using this free, open source ERP to streamline operations and drive growth.
+                  Join SMEs across Africa and the world using the most affordable ERP — just $20/year — to streamline operations and drive growth.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
-                    <Link to="/signup">Start Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                    <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
                   </Button>
                   <Button size="lg" variant="ghost" className="text-primary-foreground border border-primary-foreground/30 text-base px-8 hover:bg-primary-foreground/10" asChild>
                     <Link to="/login">Sign In</Link>
@@ -328,7 +333,7 @@ export default function Landing() {
                 <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Free & open source ERP platform built for SMEs in Africa and the world.
+                The most affordable open source ERP — just $20/year — built for SMEs in Africa and the world.
               </p>
             </div>
             <div>
