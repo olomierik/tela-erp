@@ -118,7 +118,7 @@ class ModuleIntegrationManager {
       const { production_order_id, product_id, quantity } = event.data as { production_order_id: string; product_id: string; quantity: number };
 
       // Add to inventory
-      const { data: stock } = await supabase
+      const { data: stock } = await (supabase as any)
         .from('inventory_stock')
         .select('quantity')
         .eq('product_id', product_id)
