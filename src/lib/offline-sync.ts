@@ -146,7 +146,7 @@ class OfflineSyncManager {
         break;
       case 'update':
         const { id, ...updateData } = data;
-        await supabase.from(table).update(updateData).eq('id', id);
+        await (supabase as any).from(table).update(updateData).eq('id', id as string);
         break;
       case 'delete':
         await supabase.from(table).delete().eq('id', data.id);
