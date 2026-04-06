@@ -307,7 +307,7 @@ export default function Landing() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
-                    <Link to="/signup">Start Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                    <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
                   </Button>
                   <Button size="lg" variant="ghost" className="text-primary-foreground border border-primary-foreground/30 text-base px-8 hover:bg-primary-foreground/10" asChild>
                     <Link to="/login">Sign In</Link>
