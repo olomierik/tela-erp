@@ -9,10 +9,8 @@ export default function UserCountWidget() {
 
   const fetchCount = async () => {
     try {
-      const { count: total } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      if (total !== null) setCount(total);
+      const { data, error } = await supabase.rpc('get_profiles_count');
+      if (!error && data !== null) setCount(data);
     } catch {
       // Silently fail — widget is non-critical
     }
