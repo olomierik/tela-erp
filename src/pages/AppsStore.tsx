@@ -38,6 +38,7 @@ export default function AppsStore() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | AppCategory>('all');
   const { isInstalled, isAdmin, installApp, uninstallApp, isLoading } = useTenantApps();
+  const navigate = useNavigate();
 
   const filteredApps = useMemo(() => {
     let apps = APP_CATALOG.filter(a => !a.isCore);
