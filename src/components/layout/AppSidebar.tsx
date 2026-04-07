@@ -345,7 +345,7 @@ export default function AppSidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-50 w-11 h-11 rounded-xl bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors touch-manipulation"
+        className="md:hidden fixed top-3 left-3 z-[60] w-11 h-11 rounded-xl bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors touch-manipulation"
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />
