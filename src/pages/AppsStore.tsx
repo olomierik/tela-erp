@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
   Factory, Users, Globe, Megaphone, ArrowRightLeft,
