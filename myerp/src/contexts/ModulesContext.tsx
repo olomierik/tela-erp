@@ -157,7 +157,7 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
     supabase
       .from('myerp_profiles')
       .select('active_modules, industry, onboarding_completed')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
@@ -176,7 +176,7 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     await supabase
       .from('myerp_profiles')
-      .upsert({ user_id: user.id, ...updates }, { onConflict: 'user_id' });
+      .upsert({ id: user.id, ...updates }, { onConflict: 'id' });
   }, [user]);
 
   const isModuleActive = useCallback((key: ModuleKey) => activeModules.includes(key), [activeModules]);
