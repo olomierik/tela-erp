@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const preferredTenantId = localStorage.getItem('tela_active_tenant');
 
       // Always load the profile by user_id only (profiles has UNIQUE(user_id))
-      const { data: profileData } = await supabase
+      let { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
@@ -77,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
 
       if (!profileData) return;
-      setProfile(profileData);
 
       // Determine which tenant to activate:
       // 1. If a preferred tenant is stored and the user is a member → use it
@@ -102,6 +101,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('tela_active_tenant');
         }
       }
+
+      // Keep the profile tenant in sync with the actively selected company so
+      // tenant-scoped backend policies resolve against the correct tenant.
+      if (activeTenantId !== profileData.tenant_id) {
+        const { data: syncedProfile, error: syncError } = await (supabase as any)
+          .from('profiles')
+          .update({ tenant_id: activeTenantId })
+          .eq('user_id', userId)
+          .select('*')
+          .single();
+
+        if (syncError) {
+          console.error('Error syncing active tenant to profile:', syncError);
+        } else if (syncedProfile) {
+          profileData = syncedProfile;
+        }
+      }
+
+      setProfile(profileData);
 
       // Load the active tenant
       const { data: tenantData } = await supabase
