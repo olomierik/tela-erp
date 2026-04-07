@@ -143,7 +143,8 @@ export default function AppSidebar() {
     const isVisibleByModule = (module?: ModuleKey) => {
       if (!module) return true;
       const appKey = MODULE_TO_APP_KEY[module] ?? module;
-      return activeModules.includes(module) || isInstalled(appKey);
+      // Only show modules that are explicitly installed via Apps store
+      return isInstalled(appKey);
     };
 
     return navSections
@@ -155,7 +156,7 @@ export default function AppSidebar() {
         }),
       }))
       .filter(section => section.items.length > 0);
-  }, [activeModules, isInstalled, role]);
+  }, [isInstalled, role]);
 
   /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
   const touchStartX = useRef(0);
