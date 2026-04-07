@@ -248,6 +248,52 @@ export const APP_CATALOG: AppDefinition[] = [
     tags: ['tasks', 'timesheets'],
   },
 
+  // ─── Operations ──────────────────────────────────────────────
+  {
+    key: 'pos',
+    name: 'Point of Sale',
+    summary: 'Retail POS & sessions',
+    description: 'Manage POS sessions, process walk-in sales, track cashier performance, and sync with inventory.',
+    category: 'sales',
+    icon: 'ShoppingCart',
+    color: 'bg-amber-500',
+    routes: ['/pos'],
+    tags: ['retail', 'cashier', 'register'],
+  },
+  {
+    key: 'fleet',
+    name: 'Fleet Management',
+    summary: 'Vehicles, fuel & service logs',
+    description: 'Track your vehicle fleet with fuel consumption, service schedules, and driver assignments.',
+    category: 'services',
+    icon: 'Truck',
+    color: 'bg-cyan-500',
+    routes: ['/fleet'],
+    tags: ['vehicles', 'fuel', 'transport'],
+  },
+  {
+    key: 'maintenance',
+    name: 'Maintenance',
+    summary: 'Equipment & work orders',
+    description: 'Schedule preventive maintenance, track repair requests, and manage equipment lifecycle.',
+    category: 'services',
+    icon: 'Settings',
+    color: 'bg-stone-500',
+    routes: ['/maintenance'],
+    tags: ['equipment', 'repairs', 'preventive'],
+  },
+  {
+    key: 'subscriptions',
+    name: 'Subscriptions',
+    summary: 'Recurring billing & plans',
+    description: 'Manage subscription plans, recurring invoices, and customer billing cycles.',
+    category: 'sales',
+    icon: 'Receipt',
+    color: 'bg-violet-500',
+    routes: ['/subscriptions'],
+    tags: ['recurring', 'plans', 'billing'],
+  },
+
   // ─── Productivity ────────────────────────────────────────────
   {
     key: 'ai-assistant',
@@ -321,4 +367,35 @@ export function getCoreApps(): AppDefinition[] {
 /** Get installable (non-core) apps */
 export function getInstallableApps(): AppDefinition[] {
   return APP_CATALOG.filter(a => !a.isCore);
+}
+
+/**
+ * Map onboarding ModuleKey values to APP_CATALOG keys.
+ * Some module keys map directly; others have different names in the catalog.
+ */
+const MODULE_TO_APP_KEY: Record<string, string> = {
+  production: 'manufacturing',
+  inventory: 'inventory',
+  sales: 'sales',
+  marketing: 'marketing',
+  accounting: 'accounting',
+  procurement: 'procurement',
+  hr: 'hr',
+  crm: 'crm',
+  projects: 'projects',
+  assets: 'fixed-assets',
+  expenses: 'expenses',
+  budgets: 'budgets',
+  fleet: 'fleet',
+  maintenance: 'maintenance',
+  pos: 'pos',
+  subscriptions: 'subscriptions',
+  ai: 'ai-assistant',
+};
+
+/** Convert onboarding module keys to app catalog keys */
+export function moduleKeysToAppKeys(moduleKeys: string[]): string[] {
+  return moduleKeys
+    .map(k => MODULE_TO_APP_KEY[k])
+    .filter((k): k is string => !!k);
 }
