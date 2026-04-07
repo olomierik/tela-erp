@@ -62,33 +62,33 @@ export default function Maintenance() {
 
   const demoData = [
     {
-      id: '1', request_number: 'MNT-001', equipment: 'CNC Machine #3', type: 'Corrective',
+      id: '1', request_number: 'MNT-001', equipment_name: 'CNC Machine #3', maintenance_type: 'Corrective',
       priority: 'critical', status: 'in_progress', assigned_to: 'John Mensah',
-      scheduled_date: new Date().toISOString().slice(0, 10), estimated_cost: 1800,
+      scheduled_date: new Date().toISOString().slice(0, 10), cost: 1800,
       created_at: new Date().toISOString(),
     },
     {
-      id: '2', request_number: 'MNT-002', equipment: 'Air Compressor', type: 'Preventive',
+      id: '2', request_number: 'MNT-002', equipment_name: 'Air Compressor', maintenance_type: 'Preventive',
       priority: 'medium', status: 'new', assigned_to: 'Grace Asante',
-      scheduled_date: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10), estimated_cost: 350,
+      scheduled_date: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10), cost: 350,
       created_at: new Date(Date.now() - 86400000).toISOString(),
     },
     {
-      id: '3', request_number: 'MNT-003', equipment: 'Forklift #2', type: 'Inspection',
+      id: '3', request_number: 'MNT-003', equipment_name: 'Forklift #2', maintenance_type: 'Inspection',
       priority: 'low', status: 'done', assigned_to: 'Samuel Adu',
-      scheduled_date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10), estimated_cost: 120,
+      scheduled_date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10), cost: 120,
       created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
     },
     {
-      id: '4', request_number: 'MNT-004', equipment: 'Conveyor Belt A', type: 'Emergency',
+      id: '4', request_number: 'MNT-004', equipment_name: 'Conveyor Belt A', maintenance_type: 'Emergency',
       priority: 'high', status: 'in_progress', assigned_to: 'Isaac Boateng',
-      scheduled_date: new Date().toISOString().slice(0, 10), estimated_cost: 2500,
+      scheduled_date: new Date().toISOString().slice(0, 10), cost: 2500,
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
     {
-      id: '5', request_number: 'MNT-005', equipment: 'Generator B', type: 'Preventive',
+      id: '5', request_number: 'MNT-005', equipment_name: 'Generator B', maintenance_type: 'Preventive',
       priority: 'medium', status: 'on_hold', assigned_to: 'Ama Owusu',
-      scheduled_date: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10), estimated_cost: 600,
+      scheduled_date: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10), cost: 600,
       created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
     },
   ];
