@@ -96,6 +96,8 @@ export default function CompanyCreationDialog({ open, onOpenChange, onCompanyCre
   };
 
   const handleSwitch = () => {
+    // Flag this as a new company so onboarding shows the industry selector
+    localStorage.setItem('tela_new_company', 'true');
     onCompanyCreated?.(newTenantId);
     onOpenChange(false);
     reset();
