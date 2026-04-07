@@ -78,7 +78,7 @@ export default function PointOfSale() {
   const totalSalesToday = sessions
     .filter(s => s.opened_at?.slice(0, 10) === today)
     .reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0);
-  const totalOrders = sessions.reduce((sum, s) => sum + Number(s.order_count ?? 0), 0);
+  const totalOrders = sessions.reduce((sum, s) => sum + Number(s.total_orders ?? 0), 0);
   const avgOrderValue = totalOrders > 0
     ? sessions.reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0) / totalOrders
     : 0;
