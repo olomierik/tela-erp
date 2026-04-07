@@ -128,8 +128,8 @@ export default function Maintenance() {
 
   const columns: Column[] = [
     { key: 'request_number', label: 'Request #', className: 'font-mono text-xs' },
-    { key: 'equipment', label: 'Equipment', render: v => <span className="font-medium">{v}</span> },
-    { key: 'type', label: 'Type', className: 'text-sm' },
+    { key: 'equipment_name', label: 'Equipment', render: v => <span className="font-medium">{v}</span> },
+    { key: 'maintenance_type', label: 'Type', className: 'text-sm' },
     {
       key: 'priority', label: 'Priority',
       render: v => (
