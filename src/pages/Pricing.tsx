@@ -76,7 +76,7 @@ const TIERS = [
     description: 'Unlimited scale, white-label, and full platform control.',
     highlight: false,
     cta: 'Get Enterprise',
-    ctaLink: '/signup?plan=enterprise',
+    ctaLink: '/contact',
     color: 'border-border',
     badge: null,
     users: 'Unlimited users',

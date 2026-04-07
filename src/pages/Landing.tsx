@@ -6,7 +6,7 @@ import {
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
   Menu, X, Car, Wrench, Briefcase, FolderKanban, Building,
-  Receipt, RefreshCw, CreditCard,
+  Receipt, RefreshCw, CreditCard, ScanLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,6 +41,7 @@ const modules = [
   { icon: Building, title: 'Fixed Assets', desc: 'Track business assets, depreciation schedules, and maintenance history.' },
   { icon: BarChart3, title: 'Reports & PDF', desc: 'Generate reports across all modules with date filters, charts, and one-click PDF export.' },
   { icon: Bot, title: 'AI CFO Assistant', desc: 'AI-powered business insights, trend analysis, and intelligent recommendations to grow faster.' },
+  { icon: ScanLine, title: 'Document Scanner', desc: 'Scan and digitize invoices, receipts, and business documents with OCR extraction and intelligent filing.' },
 ];
 
 const features = [
@@ -53,11 +54,12 @@ const features = [
 ];
 
 const faqs = [
-  { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform designed for African businesses. It manages production, inventory, sales, marketing, accounting, and procurement in one interconnected system.' },
-  { q: 'Is it suitable for my business size?', a: 'Yes. Whether you run a single shop or manage operations across multiple locations and countries, TELA-ERP scales with you.' },
+  { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform built for businesses of all sizes and industries. It unifies inventory, sales, production, accounting, HR, CRM, fleet, maintenance, projects, and more in one interconnected system.' },
+  { q: 'Which plan is right for me?', a: 'Start with Starter (free) if you only need Sales and Inventory with 1 user. Upgrade to Premium ($6/mo) to unlock all 17 modules for up to 5 users. Choose Enterprise ($13/mo) for unlimited users, white-labeling, reseller tools, and API access.' },
+  { q: 'Can I upgrade or downgrade later?', a: 'Yes. You can upgrade at any time and your new modules become available immediately. Downgrading takes effect at the end of your current billing period.' },
   { q: 'How does multi-tenancy work?', a: 'Each business gets fully isolated data with Row Level Security. Resellers can onboard and manage multiple client businesses from a single dashboard.' },
   { q: 'What currencies are supported?', a: 'TELA-ERP supports 165+ currencies with live exchange rates. Set your default currency and view reports in any currency on-the-fly.' },
-  { q: 'Can I white-label the platform?', a: 'Absolutely. Customize logos, colors, domains, and branding per tenant. Your clients see your brand, not ours.' },
+  { q: 'Can I white-label the platform?', a: 'White-labeling is available on the Enterprise plan. Customize logos, colors, domains, and branding per tenant — your clients see your brand, not ours.' },
   { q: 'How are the modules interconnected?', a: 'Completing production auto-adds inventory. Sales orders validate and deduct stock. Every transaction creates accounting entries. Everything syncs in real-time.' },
 ];
 
@@ -255,6 +257,7 @@ export default function Landing() {
               { icon: '🌱', label: 'Agriculture', modules: 'Inventory, Production, Assets' },
               { icon: '🏢', label: 'Real Estate', modules: 'Assets, Maintenance, CRM' },
               { icon: '💻', label: 'Technology', modules: 'Subscriptions, Projects, AI' },
+              { icon: '🏬', label: 'General Business', modules: 'Sales & POS, Accounting, HR' },
             ].map((ind, i) => (
               <motion.div key={ind.label} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.3}>
                 <Card className="h-full hover:border-primary/40 transition-colors">
@@ -284,7 +287,7 @@ export default function Landing() {
             {[
               { name: 'Starter', price: 'Free', period: 'forever', users: '1 user', desc: 'Perfect for solo entrepreneurs getting started.', features: ['Sales module', 'Inventory module', 'Dashboard & Reports', '14-day Premium trial'], cta: 'Start Free', link: '/signup', highlight: false },
               { name: 'Premium', price: '$6', period: '/month', users: 'Up to 5 users', desc: 'All 17 modules for growing businesses.', features: ['All 17 modules', 'AI CFO Assistant', 'Multi-currency (165+)', 'Industry presets', 'Fleet & Maintenance', 'Email support'], cta: 'Get Premium', link: '/signup?plan=premium', highlight: true },
-              { name: 'Enterprise', price: '$13', period: '/month', users: 'Unlimited users', desc: 'White-label and full platform control.', features: ['Everything in Premium', 'Unlimited users', 'White-label branding', 'Reseller portal', 'API access', 'Priority support'], cta: 'Get Enterprise', link: '/signup?plan=enterprise', highlight: false },
+              { name: 'Enterprise', price: '$13', period: '/month', users: 'Unlimited users', desc: 'White-label and full platform control.', features: ['Everything in Premium', 'Unlimited users', 'White-label branding', 'Reseller portal', 'API access', 'Priority support'], cta: 'Contact Sales', link: '/contact', highlight: false },
             ].map((tier, i) => (
               <motion.div key={tier.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1} className="relative">
                 {tier.highlight && (
