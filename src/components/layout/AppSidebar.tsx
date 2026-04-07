@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -8,13 +8,14 @@ import {
   Settings, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal, BookOpen, Wallet, Landmark, ScanLine,
-  UsersRound, PiggyBank, Boxes, UserPlus,
+  UsersRound, PiggyBank, Boxes, UserPlus, Grid3X3,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useTenantApps } from '@/hooks/use-tenant-apps';
 
 interface NavItem {
   label: string;
