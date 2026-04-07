@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
-  Factory, Users, Globe, Megaphone, ArrowRightLeft,
+  Factory, Users, Globe, Megaphone, ArrowRightLeft, ArrowLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Briefcase, Brain, Receipt, Store,
   ScanLine, UserPlus, PiggyBank, Landmark,
