@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useModules, type ModuleKey } from '@/contexts/ModulesContext';
+import { type ModuleKey } from '@/contexts/ModulesContext';
 import { useTenantApps } from '@/hooks/use-tenant-apps';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
@@ -136,14 +136,14 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
-  const { activeModules } = useModules();
   const { isInstalled } = useTenantApps();
 
   const filteredNavSections = useMemo(() => {
     const isVisibleByModule = (module?: ModuleKey) => {
       if (!module) return true;
       const appKey = MODULE_TO_APP_KEY[module] ?? module;
-      return activeModules.includes(module) || isInstalled(appKey);
+      // Only show modules that are explicitly installed via Apps store
+      return isInstalled(appKey);
     };
 
     return navSections
@@ -155,7 +155,7 @@ export default function AppSidebar() {
         }),
       }))
       .filter(section => section.items.length > 0);
-  }, [activeModules, isInstalled, role]);
+  }, [isInstalled, role]);
 
   /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
   const touchStartX = useRef(0);
