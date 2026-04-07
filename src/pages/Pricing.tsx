@@ -1,282 +1,317 @@
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  Check, ChevronRight, Shield, Globe, BarChart3, Lock, Zap,
-  HeadphonesIcon, HelpCircle, Star,
-} from 'lucide-react';
+import { Check, X, ChevronRight, Zap, Shield, Globe, Star, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import telaLogo from '@/assets/tela-erp-logo.png';
 import { useState } from 'react';
-
-const P = 'hsl(230,65%,52%)';
-const A = 'hsl(32,95%,52%)';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.08, duration: 0.5, ease: [0, 0, 0.2, 1] as const },
-  }),
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.4 } }),
 };
 
-const features = [
-  'Unlimited users',
-  'All 15+ modules',
-  'Unlimited warehouses',
-  'AI CFO Assistant',
-  'Multi-currency (165+)',
-  'Advanced reports + PDF exports',
-  'Full API access',
-  'White-label branding',
-  'Reseller portal',
-  'Priority support',
-  'Real-time updates',
-  'Role-based access control',
+const TIERS = [
+  {
+    key: 'starter',
+    name: 'Starter',
+    price: 'Free',
+    period: 'forever',
+    description: 'Get started with the essentials — no credit card needed.',
+    highlight: false,
+    cta: 'Start Free',
+    ctaLink: '/signup',
+    color: 'border-border',
+    badge: null,
+    users: '1 user',
+    features: [
+      { label: 'Sales module', included: true },
+      { label: 'Inventory module', included: true },
+      { label: 'Dashboard & Reports', included: true },
+      { label: 'Multi-currency', included: false },
+      { label: 'All 17 modules', included: false },
+      { label: 'HR & Payroll', included: false },
+      { label: 'Projects & CRM', included: false },
+      { label: 'Fleet & Maintenance', included: false },
+      { label: 'AI CFO Assistant', included: false },
+      { label: 'White-label branding', included: false },
+      { label: 'API access', included: false },
+      { label: 'Priority support', included: false },
+    ],
+  },
+  {
+    key: 'premium',
+    name: 'Premium',
+    price: '$6',
+    period: '/month',
+    description: 'Everything your growing business needs in one place.',
+    highlight: true,
+    cta: 'Get Premium',
+    ctaLink: '/signup?plan=premium',
+    color: 'border-primary ring-2 ring-primary/20',
+    badge: 'Most Popular',
+    users: 'Up to 5 users',
+    features: [
+      { label: 'All 17 modules', included: true },
+      { label: 'Multi-currency (165+)', included: true },
+      { label: 'Industry presets (13)', included: true },
+      { label: 'AI CFO Assistant', included: true },
+      { label: 'Advanced reports & PDF', included: true },
+      { label: 'HR & Payroll', included: true },
+      { label: 'Fleet & Maintenance', included: true },
+      { label: 'POS & Subscriptions', included: true },
+      { label: 'Real-time sync', included: true },
+      { label: 'Email support', included: true },
+      { label: 'White-label branding', included: false },
+      { label: 'API access', included: false },
+    ],
+  },
+  {
+    key: 'enterprise',
+    name: 'Enterprise',
+    price: '$13',
+    period: '/month',
+    description: 'Unlimited scale, white-label, and full platform control.',
+    highlight: false,
+    cta: 'Get Enterprise',
+    ctaLink: '/contact',
+    color: 'border-border',
+    badge: null,
+    users: 'Unlimited users',
+    features: [
+      { label: 'Everything in Premium', included: true },
+      { label: 'Unlimited users', included: true },
+      { label: 'White-label branding', included: true },
+      { label: 'Custom domain', included: true },
+      { label: 'Reseller portal', included: true },
+      { label: 'Full API access', included: true },
+      { label: 'Priority support', included: true },
+      { label: 'Dedicated onboarding', included: true },
+      { label: 'SLA guarantee', included: true },
+      { label: 'Audit logging', included: true },
+      { label: 'Multi-company management', included: true },
+      { label: 'Custom integrations', included: true },
+    ],
+  },
 ];
 
-const allPlansInclude = [
-  { icon: Shield, label: 'Row Level Security', desc: 'Your data is fully isolated from all other tenants.' },
-  { icon: Globe, label: 'Cloud-powered', desc: 'Reliable, scalable Postgres with real-time sync.' },
-  { icon: BarChart3, label: 'Full Analytics', desc: 'Dashboard KPIs and module-level reporting.' },
-  { icon: Lock, label: 'Role-based access', desc: 'Owner, admin, and staff roles out of the box.' },
-  { icon: Zap, label: 'Real-time updates', desc: 'Live inventory, sales, and financial data.' },
-  { icon: HeadphonesIcon, label: 'Priority support', desc: 'Direct email support with fast response times.' },
+const ALL_MODULES = [
+  'Sales Orders', 'Invoices', 'Inventory', 'Procurement', 'Production',
+  'Accounting & Vouchers', 'Fixed Assets', 'Expenses', 'Budgets',
+  'HR & Payroll', 'CRM Pipeline', 'Projects', 'Marketing',
+  'Fleet Management', 'Maintenance', 'Point of Sale', 'Subscriptions',
 ];
 
-const faqs = [
-  {
-    q: 'What do I get for $100/year?',
-    a: 'Full access to every module, feature, and tool in TELA-ERP — unlimited users, warehouses, reports, AI assistant, API access, white-labeling, and more. No restrictions.',
-  },
-  {
-    q: 'Is there a free trial?',
-    a: 'Yes. You get a 14-day free trial — no credit card required. You only start paying after you decide to continue.',
-  },
-  {
-    q: 'How does renewal work?',
-    a: 'Your subscription renews automatically every year. You can cancel anytime from your billing settings and retain access until the end of your billing period.',
-  },
-  {
-    q: 'Are there any hidden fees?',
-    a: 'None. $100/year covers everything. No per-user fees, no module add-ons, no setup charges.',
-  },
-  {
-    q: 'Can I cancel anytime?',
-    a: 'Yes. Cancel from your billing settings at any time. You keep full access until the end of your current billing year.',
-  },
+const MODULE_TIERS: Record<string, { starter: boolean; premium: boolean; enterprise: boolean }> = {
+  'Sales Orders':         { starter: true,  premium: true, enterprise: true },
+  'Inventory':            { starter: true,  premium: true, enterprise: true },
+  'Invoices':             { starter: false, premium: true, enterprise: true },
+  'Procurement':          { starter: false, premium: true, enterprise: true },
+  'Production':           { starter: false, premium: true, enterprise: true },
+  'Accounting & Vouchers':{ starter: false, premium: true, enterprise: true },
+  'Fixed Assets':         { starter: false, premium: true, enterprise: true },
+  'Expenses':             { starter: false, premium: true, enterprise: true },
+  'Budgets':              { starter: false, premium: true, enterprise: true },
+  'HR & Payroll':         { starter: false, premium: true, enterprise: true },
+  'CRM Pipeline':         { starter: false, premium: true, enterprise: true },
+  'Projects':             { starter: false, premium: true, enterprise: true },
+  'Marketing':            { starter: false, premium: true, enterprise: true },
+  'Fleet Management':     { starter: false, premium: true, enterprise: true },
+  'Maintenance':          { starter: false, premium: true, enterprise: true },
+  'Point of Sale':        { starter: false, premium: true, enterprise: true },
+  'Subscriptions':        { starter: false, premium: true, enterprise: true },
+};
+
+const FAQS = [
+  { q: 'Can I upgrade or downgrade at any time?', a: 'Yes. You can upgrade instantly and your new modules become available immediately. Downgrading takes effect at the end of your billing period.' },
+  { q: 'What happens if I exceed the user limit on Starter?', a: 'The system will notify you when you reach your limit. You can upgrade to Premium (5 users) or Enterprise (unlimited) at any time.' },
+  { q: 'Is there a free trial for Premium or Enterprise?', a: 'Yes — all new accounts start with a 14-day free trial of Premium features so you can explore all 17 modules before committing.' },
+  { q: 'Do you support mobile money payments?', a: 'Yes. We accept M-Pesa, Airtel Money, Tigo Pesa, and other regional mobile money methods in addition to card payments.' },
+  { q: 'Can I white-label TELA-ERP for my clients?', a: 'Absolutely. Enterprise plan includes full white-labeling — custom logo, colors, domain, and the Reseller Portal to manage multiple client tenants.' },
+  { q: 'Is my data safe?', a: 'Yes. All data is isolated with Row Level Security (RLS) in Supabase PostgreSQL. Each tenant can only see their own data.' },
 ];
 
 export default function Pricing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Pricing — TELA-ERP | $100/Year Full Access ERP</title>
-        <meta name="description" content="TELA-ERP: $100/year for full access to all modules, unlimited users, AI assistant, and more. No hidden fees." />
-        <link rel="canonical" href="https://tela-erp.com/pricing" />
-        <meta property="og:title" content="Pricing — TELA-ERP | $100/Year Full Access" />
-        <meta property="og:description" content="Get full access to every ERP module for just $100/year. Unlimited users, AI-powered, no hidden fees." />
-        <meta property="og:url" content="https://tela-erp.com/pricing" />
+        <title>Pricing — TELA-ERP | Starter Free, Premium $6/mo, Enterprise $13/mo</title>
+        <meta name="description" content="TELA-ERP pricing: Free Starter plan, Premium at $6/month (all modules, 5 users), Enterprise at $13/month (unlimited everything). Start free today." />
       </Helmet>
 
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>
-            <Link to="/modules" className="text-muted-foreground hover:text-foreground transition-colors">Modules</Link>
-            <Link to="/pricing" style={{ color: P }}>Pricing</Link>
-            <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact</Link>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
+            <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+            <Link to="/pricing" className="text-foreground">Pricing</Link>
+            <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild><Link to="/login">Sign in</Link></Button>
-            <Button size="sm" style={{ background: P }} className="text-white hover:opacity-90" asChild>
-              <Link to="/signup">Get started</Link>
-            </Button>
+          <div className="hidden md:flex items-center gap-3">
+            <Button variant="ghost" asChild><Link to="/login">Sign In</Link></Button>
+            <Button className="gradient-primary" asChild><Link to="/signup">Start Free</Link></Button>
           </div>
         </div>
       </nav>
 
       {/* HERO */}
-      <section className="py-24 text-center relative overflow-hidden" style={{
-        background: `linear-gradient(135deg, hsl(230,65%,52%,0.08) 0%, transparent 50%, hsl(32,95%,52%,0.05) 100%)`,
-      }}>
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0} className="max-w-3xl mx-auto px-4">
-          <Badge className="mb-4" style={{ background: `${P}18`, color: P, border: `1px solid ${P}33` }}>
-            Simple Pricing
-          </Badge>
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-5 leading-tight">
-            One plan.{' '}
-            <span style={{ color: P }}>Full access.</span>
+      <section className="py-20 text-center px-4">
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
+          <Badge variant="secondary" className="mb-4">Transparent Pricing</Badge>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            Simple plans for every <span className="text-primary">stage of growth</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Everything you need to run your business — all modules, unlimited users, no restrictions. Just <strong>$100/year</strong>.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Start free with the essentials, unlock everything for $6/month, or go unlimited for $13/month.
+            No hidden fees, no per-module charges.
           </p>
         </motion.div>
       </section>
 
-      {/* PRICING CARD */}
-      <section className="max-w-lg mx-auto px-4 sm:px-6 pb-24 -mt-8">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={1}>
-          <Card className="relative border-2 shadow-2xl shadow-[hsl(230,65%,52%)]/20" style={{ borderColor: P }}>
-            <div
-              className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white"
-              style={{ background: P }}
-            >
-              Full Access
-            </div>
-            <CardHeader className="pb-4 text-center">
-              <CardTitle className="text-2xl font-bold">TELA-ERP</CardTitle>
-              <div className="flex items-end justify-center gap-1 mt-4">
-                <span className="text-5xl font-extrabold">$100</span>
-                <span className="text-muted-foreground text-sm mb-1">/year</span>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                That's less than $8.33/month
-              </p>
-              <p className="text-sm text-muted-foreground mt-3">
-                Access every module, every feature, unlimited users. Renews annually.
-              </p>
-            </CardHeader>
-            <CardContent className="flex flex-col">
-              <ul className="space-y-3 mb-6">
-                {features.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: `${A}20` }}>
-                      <Check className="w-3 h-3" style={{ color: A }} />
-                    </div>
-                    <span className="text-foreground">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button
-                className="w-full gap-2 text-white"
-                size="lg"
-                style={{ background: P }}
-                asChild
-              >
-                <Link to="/signup">
-                  Start 14-day free trial <ChevronRight className="w-4 h-4" />
-                </Link>
-              </Button>
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                No credit card required to start
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </section>
-
-      {/* ALL PLANS INCLUDE */}
-      <section className="bg-muted/30 py-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold mb-3">Everything included</h2>
-            <p className="text-muted-foreground">No tiers, no add-ons — every feature ships with your subscription.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {allPlansInclude.map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <motion.div key={item.label} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
-                  <Card className="border-border/60 hover:shadow-md transition-shadow">
-                    <CardContent className="pt-6 flex gap-4">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${P}12` }}>
-                        <Icon className="w-5 h-5" style={{ color: P }} />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">{item.label}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-24">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold mb-3">Pricing FAQ</h2>
-          <p className="text-muted-foreground">Common questions about billing and access.</p>
-        </motion.div>
-        <div className="space-y-3">
-          {faqs.map((faq, i) => (
-            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
-              <Card
-                className="border-border/60 cursor-pointer hover:shadow-sm transition-all"
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-              >
-                <CardContent className="py-4 px-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3">
-                      <HelpCircle className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: P }} />
-                      <span className="font-medium text-sm">{faq.q}</span>
-                    </div>
-                    <ChevronRight
-                      className={`w-4 h-4 flex-shrink-0 text-muted-foreground transition-transform duration-200 ${openFaq === i ? 'rotate-90' : ''}`}
-                    />
+      {/* PRICING CARDS */}
+      <section className="max-w-6xl mx-auto px-4 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+          {TIERS.map((tier, i) => (
+            <motion.div key={tier.key} initial="hidden" animate="visible" variants={fadeUp} custom={i + 1}>
+              <Card className={`relative h-full flex flex-col ${tier.color}`}>
+                {tier.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="gradient-primary text-white px-4 py-1 text-xs font-semibold shadow-lg">
+                      <Star className="w-3 h-3 mr-1" />{tier.badge}
+                    </Badge>
                   </div>
-                  {openFaq === i && (
-                    <motion.p
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="mt-3 pl-7 text-sm text-muted-foreground leading-relaxed"
-                    >
-                      {faq.a}
-                    </motion.p>
-                  )}
+                )}
+                <CardHeader className="pt-8 pb-4 text-center">
+                  <h3 className="text-lg font-bold">{tier.name}</h3>
+                  <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
+                  <div className="flex items-end justify-center gap-1">
+                    <span className={`font-extrabold ${tier.price === 'Free' ? 'text-3xl' : 'text-5xl'}`}>{tier.price}</span>
+                    {tier.period !== 'forever' && <span className="text-muted-foreground text-sm mb-1">{tier.period}</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">{tier.users}</p>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col">
+                  <Button
+                    className={`w-full mb-6 ${tier.highlight ? 'gradient-primary' : ''}`}
+                    variant={tier.highlight ? 'default' : 'outline'}
+                    asChild
+                  >
+                    <Link to={tier.ctaLink}>{tier.cta} <ChevronRight className="w-4 h-4 ml-1" /></Link>
+                  </Button>
+                  <ul className="space-y-3">
+                    {tier.features.map(f => (
+                      <li key={f.label} className="flex items-start gap-2.5 text-sm">
+                        {f.included
+                          ? <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                          : <X className="w-4 h-4 text-muted-foreground/40 shrink-0 mt-0.5" />}
+                        <span className={f.included ? 'text-foreground' : 'text-muted-foreground'}>{f.label}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
+
+        {/* 14-day trial note */}
+        <p className="text-center text-sm text-muted-foreground mt-8">
+          <Zap className="inline w-4 h-4 mr-1 text-amber-500" />
+          All new accounts include a <strong>14-day free trial</strong> of Premium — no credit card required.
+        </p>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 text-center" style={{ background: `linear-gradient(135deg, ${P}10 0%, transparent 60%)` }}>
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0} className="max-w-2xl mx-auto px-4">
-          <Star className="w-8 h-8 mx-auto mb-4" style={{ color: A }} />
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
-            Start your 14-day free trial today
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            No credit card needed. Full access to every module for 14 days, then just $100/year.
-          </p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Button size="lg" className="gap-2 text-white" style={{ background: P }} asChild>
-              <Link to="/signup">Get started free <ChevronRight className="w-4 h-4" /></Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild>
-              <Link to="/contact">Talk to us</Link>
-            </Button>
+      {/* MODULE COMPARISON TABLE */}
+      <section className="max-w-5xl mx-auto px-4 pb-20">
+        <h2 className="text-2xl font-bold text-center mb-8">Module Availability by Plan</h2>
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left p-4 font-semibold">Module</th>
+                  <th className="text-center p-4 font-semibold">Starter</th>
+                  <th className="text-center p-4 font-semibold text-primary">Premium</th>
+                  <th className="text-center p-4 font-semibold">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ALL_MODULES.map((mod, i) => {
+                  const t = MODULE_TIERS[mod];
+                  return (
+                    <tr key={mod} className={i % 2 === 0 ? 'bg-muted/20' : ''}>
+                      <td className="p-3 pl-4 font-medium">{mod}</td>
+                      <td className="p-3 text-center">{t.starter ? <Check className="w-4 h-4 text-emerald-500 inline" /> : <X className="w-4 h-4 text-muted-foreground/40 inline" />}</td>
+                      <td className="p-3 text-center">{t.premium ? <Check className="w-4 h-4 text-emerald-500 inline" /> : <X className="w-4 h-4 text-muted-foreground/40 inline" />}</td>
+                      <td className="p-3 text-center">{t.enterprise ? <Check className="w-4 h-4 text-emerald-500 inline" /> : <X className="w-4 h-4 text-muted-foreground/40 inline" />}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        </motion.div>
+        </Card>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-border/60 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
-          <div className="flex gap-4">
-            <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
-          </div>
+      {/* TRUST BADGES */}
+      <section className="max-w-4xl mx-auto px-4 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { icon: Shield, title: 'Bank-Grade Security', desc: 'Row Level Security, encrypted at rest, SOC-2 grade infrastructure' },
+            { icon: Globe, title: 'Multi-Currency', desc: '165+ currencies with live exchange rates across all modules' },
+            { icon: Zap, title: 'Real-Time Sync', desc: 'Live updates across inventory, sales, accounting, and dashboards' },
+          ].map(b => (
+            <Card key={b.title}>
+              <CardContent className="p-5 flex items-start gap-3">
+                <b.icon className="w-8 h-8 text-primary shrink-0 mt-1" />
+                <div>
+                  <p className="font-semibold text-sm">{b.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{b.desc}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-      </footer>
+      </section>
+
+      {/* FAQ */}
+      <section className="max-w-3xl mx-auto px-4 pb-24">
+        <h2 className="text-2xl font-bold text-center mb-8 flex items-center justify-center gap-2">
+          <HelpCircle className="w-6 h-6 text-primary" /> Frequently Asked Questions
+        </h2>
+        <div className="space-y-3">
+          {FAQS.map((faq, i) => (
+            <Card key={i} className="cursor-pointer" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="font-medium text-sm">{faq.q}</p>
+                  <ChevronRight className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${openFaq === i ? 'rotate-90' : ''}`} />
+                </div>
+                {openFaq === i && <p className="text-sm text-muted-foreground mt-3 pt-3 border-t border-border">{faq.a}</p>}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* FOOTER CTA */}
+      <section className="bg-primary/5 border-t border-border py-16 text-center px-4">
+        <h2 className="text-3xl font-bold mb-3">Ready to get started?</h2>
+        <p className="text-muted-foreground mb-6">Join thousands of businesses running on TELA-ERP. Start free today.</p>
+        <div className="flex justify-center gap-4 flex-wrap">
+          <Button size="lg" className="gradient-primary" asChild><Link to="/signup">Start Free — No Credit Card</Link></Button>
+          <Button size="lg" variant="outline" asChild><Link to="/contact">Talk to Sales</Link></Button>
+        </div>
+      </section>
     </div>
   );
 }
