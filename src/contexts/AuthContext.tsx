@@ -50,7 +50,7 @@ const DEMO_TENANT: Tenant = {
   name: 'TELA Industries',
   slug: 'tela-industries',
   primary_color: '#3B82F6',
-  subscription_tier: 'pro',
+  subscription_tier: 'premium',
   is_active: true,
   created_at: new Date().toISOString(),
 };

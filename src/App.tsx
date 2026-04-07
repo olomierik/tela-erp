@@ -64,6 +64,7 @@ import Fleet from "./pages/Fleet";
 import Maintenance from "./pages/Maintenance";
 import PointOfSale from "./pages/PointOfSale";
 import Subscriptions from "./pages/Subscriptions";
+import IndustryInsights from "./pages/IndustryInsights";
 import Vouchers from "./pages/accounting/Vouchers";
 import VoucherForm from "./pages/accounting/VoucherForm";
 import LedgerView from "./pages/accounting/LedgerView";
@@ -146,6 +147,7 @@ const App = () => (
               <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
               <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
+              <Route path="/industry-insights" element={<ProtectedRoute><IndustryInsights /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />

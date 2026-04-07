@@ -8,7 +8,7 @@ export interface Tenant {
   primary_color?: string;
   secondary_color?: string;
   custom_domain?: string;
-  subscription_tier?: 'starter' | 'pro' | 'enterprise';
+  subscription_tier?: 'starter' | 'premium' | 'enterprise';
   is_active: boolean;
   created_at: string;
   parent_tenant_id?: string;
