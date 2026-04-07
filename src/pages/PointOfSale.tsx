@@ -90,11 +90,13 @@ export default function PointOfSale() {
       return;
     }
     await insertSession.mutateAsync({
-      ...form,
-      session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
+      cashier: form.cashier_name,
       opening_cash: Number(form.opening_cash) || 0,
+      status: form.status,
+      opened_at: form.opened_at,
+      session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
       total_sales: 0,
-      order_count: 0,
+      total_orders: 0,
     });
     toast.success('POS session opened');
     setCreateOpen(false);
