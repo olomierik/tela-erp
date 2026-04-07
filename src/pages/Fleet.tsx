@@ -54,11 +54,11 @@ export default function Fleet() {
   const insertVehicle = useTenantInsert('vehicles' as any);
 
   const demoData = [
-    { id: '1', name: 'Delivery Van 01', license_plate: 'ABC-1234', make: 'Toyota', model: 'HiAce', year: 2021, fuel_type: 'Diesel', status: 'active', driver_name: 'James Okafor', mileage: 42000 },
-    { id: '2', name: 'Company Truck 01', license_plate: 'XYZ-5678', make: 'Ford', model: 'Ranger', year: 2020, fuel_type: 'Petrol', status: 'active', driver_name: 'Grace Mensah', mileage: 68500 },
-    { id: '3', name: 'Executive SUV', license_plate: 'MGR-0012', make: 'Toyota', model: 'Land Cruiser', year: 2022, fuel_type: 'Diesel', status: 'active', driver_name: 'Unassigned', mileage: 15200 },
-    { id: '4', name: 'Service Van 02', license_plate: 'SVC-3344', make: 'Nissan', model: 'NV200', year: 2019, fuel_type: 'Diesel', status: 'in_repair', driver_name: 'Samuel Adu', mileage: 91000 },
-    { id: '5', name: 'Old Pickup', license_plate: 'OLD-9999', make: 'Mitsubishi', model: 'L200', year: 2015, fuel_type: 'Diesel', status: 'sold', driver_name: '—', mileage: 210000 },
+    { id: '1', name: 'Delivery Van 01', license_plate: 'ABC-1234', make: 'Toyota', model: 'HiAce', year: 2021, fuel_type: 'Diesel', status: 'active', driver_name: 'James Okafor', current_mileage: 42000 },
+    { id: '2', name: 'Company Truck 01', license_plate: 'XYZ-5678', make: 'Ford', model: 'Ranger', year: 2020, fuel_type: 'Petrol', status: 'active', driver_name: 'Grace Mensah', current_mileage: 68500 },
+    { id: '3', name: 'Executive SUV', license_plate: 'MGR-0012', make: 'Toyota', model: 'Land Cruiser', year: 2022, fuel_type: 'Diesel', status: 'active', driver_name: 'Unassigned', current_mileage: 15200 },
+    { id: '4', name: 'Service Van 02', license_plate: 'SVC-3344', make: 'Nissan', model: 'NV200', year: 2019, fuel_type: 'Diesel', status: 'in_repair', driver_name: 'Samuel Adu', current_mileage: 91000 },
+    { id: '5', name: 'Old Pickup', license_plate: 'OLD-9999', make: 'Mitsubishi', model: 'L200', year: 2015, fuel_type: 'Diesel', status: 'sold', driver_name: '—', current_mileage: 210000 },
   ];
 
   const vehicles: any[] = (isDemo ? demoData : rawData) ?? [];
@@ -75,9 +75,15 @@ export default function Fleet() {
       return;
     }
     await insertVehicle.mutateAsync({
-      ...form,
+      name: form.name,
+      license_plate: form.license_plate,
+      make: form.make,
+      model: form.model,
       year: Number(form.year),
-      mileage: Number(form.mileage) || 0,
+      fuel_type: form.fuel_type,
+      status: form.status,
+      driver_name: form.driver_name,
+      current_mileage: Number(form.mileage) || 0,
     });
     toast.success('Vehicle added successfully');
     setCreateOpen(false);
@@ -102,7 +108,7 @@ export default function Fleet() {
       ),
     },
     { key: 'driver_name', label: 'Driver', className: 'text-sm' },
-    { key: 'mileage', label: 'Mileage', render: v => <span className="text-sm">{Number(v).toLocaleString()} km</span> },
+    { key: 'current_mileage', label: 'Mileage', render: v => <span className="text-sm">{Number(v).toLocaleString()} km</span> },
   ];
 
   return (

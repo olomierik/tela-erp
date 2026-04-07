@@ -46,28 +46,28 @@ export default function PointOfSale() {
 
   const demoData = [
     {
-      id: '1', session_number: 'POS-001', cashier_name: 'Alice Boateng',
-      opening_cash: 500, total_sales: 4320, order_count: 38,
+      id: '1', session_number: 'POS-001', cashier: 'Alice Boateng',
+      opening_cash: 500, total_sales: 4320, total_orders: 38,
       status: 'open', opened_at: new Date().toISOString(),
     },
     {
-      id: '2', session_number: 'POS-002', cashier_name: 'James Asante',
-      opening_cash: 500, total_sales: 2890, order_count: 24,
+      id: '2', session_number: 'POS-002', cashier: 'James Asante',
+      opening_cash: 500, total_sales: 2890, total_orders: 24,
       status: 'open', opened_at: new Date(Date.now() - 3600000 * 2).toISOString(),
     },
     {
-      id: '3', session_number: 'POS-003', cashier_name: 'Grace Mensah',
-      opening_cash: 200, total_sales: 5100, order_count: 51,
+      id: '3', session_number: 'POS-003', cashier: 'Grace Mensah',
+      opening_cash: 200, total_sales: 5100, total_orders: 51,
       status: 'closed', opened_at: new Date(Date.now() - 86400000).toISOString(),
     },
     {
-      id: '4', session_number: 'POS-004', cashier_name: 'Samuel Owusu',
-      opening_cash: 300, total_sales: 1750, order_count: 16,
+      id: '4', session_number: 'POS-004', cashier: 'Samuel Owusu',
+      opening_cash: 300, total_sales: 1750, total_orders: 16,
       status: 'closed', opened_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
     {
-      id: '5', session_number: 'POS-005', cashier_name: 'Ama Frimpong',
-      opening_cash: 500, total_sales: 980, order_count: 9,
+      id: '5', session_number: 'POS-005', cashier: 'Ama Frimpong',
+      opening_cash: 500, total_sales: 980, total_orders: 9,
       status: 'paused', opened_at: new Date(Date.now() - 3600000).toISOString(),
     },
   ];
@@ -78,7 +78,7 @@ export default function PointOfSale() {
   const totalSalesToday = sessions
     .filter(s => s.opened_at?.slice(0, 10) === today)
     .reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0);
-  const totalOrders = sessions.reduce((sum, s) => sum + Number(s.order_count ?? 0), 0);
+  const totalOrders = sessions.reduce((sum, s) => sum + Number(s.total_orders ?? 0), 0);
   const avgOrderValue = totalOrders > 0
     ? sessions.reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0) / totalOrders
     : 0;
@@ -90,11 +90,13 @@ export default function PointOfSale() {
       return;
     }
     await insertSession.mutateAsync({
-      ...form,
-      session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
+      cashier: form.cashier_name,
       opening_cash: Number(form.opening_cash) || 0,
+      status: form.status,
+      opened_at: form.opened_at,
+      session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
       total_sales: 0,
-      order_count: 0,
+      total_orders: 0,
     });
     toast.success('POS session opened');
     setCreateOpen(false);
@@ -103,10 +105,10 @@ export default function PointOfSale() {
 
   const columns: Column[] = [
     { key: 'session_number', label: 'Session #', className: 'font-mono text-xs' },
-    { key: 'cashier_name', label: 'Cashier', render: v => <span className="font-medium">{v}</span> },
+    { key: 'cashier', label: 'Cashier', render: v => <span className="font-medium">{v}</span> },
     { key: 'opening_cash', label: 'Opening Cash', render: v => <span className="text-sm">{formatMoney(v)}</span> },
     { key: 'total_sales', label: 'Total Sales', render: v => <span className="font-semibold">{formatMoney(v)}</span> },
-    { key: 'order_count', label: 'Orders', className: 'text-sm text-center' },
+    { key: 'total_orders', label: 'Orders', className: 'text-sm text-center' },
     {
       key: 'status', label: 'Status',
       render: v => (
