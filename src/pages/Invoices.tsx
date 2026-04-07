@@ -313,7 +313,7 @@ function InvoiceSheet({
 
 export default function Invoices() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
