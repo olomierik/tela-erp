@@ -164,6 +164,9 @@ export function generatePDFReport({
 interface InvoicePDFOptions {
   invoiceNumber: string;
   customerName: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   issueDate: string;
   dueDate?: string;
   status: string;
@@ -174,6 +177,11 @@ interface InvoicePDFOptions {
   notes?: string;
   lineItems: Array<{ description: string; quantity: number; unit_price: number; discount_percent?: number; line_total: number }>;
   tenantName?: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  tenantAddress?: string;
+  tenantTin?: string;
+  tenantVrn?: string;
   formatMoney: (n: number) => string;
 }
 
@@ -181,66 +189,105 @@ export function generateInvoicePDF(opts: InvoicePDFOptions) {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
-  let y = 18;
+  let y = 0;
 
-  // Header bar
+  // ── Accent header bar ──────────────────────────────────────────────────────
   doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, pageWidth, 14, 'F');
+  doc.rect(0, 0, pageWidth, 6, 'F');
 
-  // Logo
-  try {
-    doc.addImage(TELA_LOGO_BASE64, 'PNG', margin, 2, 28, 10);
-  } catch {
-    doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.text(opts.tenantName || 'TELA-ERP', margin, 9);
-  }
+  y = 18;
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
-  doc.text('INVOICE', pageWidth - margin, 9, { align: 'right' });
-
-  // Invoice details
-  y += 10;
+  // ── Company name (large) ───────────────────────────────────────────────────
+  doc.setFontSize(20);
   doc.setTextColor(20, 20, 20);
-  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text(`Invoice ${opts.invoiceNumber}`, margin, y);
+  doc.text(opts.tenantName || 'Company', margin, y);
 
-  y += 10;
-  doc.setFontSize(10);
+  // "INVOICE" label on the right
+  doc.setFontSize(28);
+  doc.setTextColor(37, 99, 235);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INVOICE', pageWidth - margin, y, { align: 'right' });
+
+  // ── Company details (issuer) ───────────────────────────────────────────────
+  y += 7;
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 80);
+  const issuerLines: string[] = [];
+  if (opts.tenantAddress) issuerLines.push(opts.tenantAddress);
+  if (opts.tenantEmail) issuerLines.push(`Email: ${opts.tenantEmail}`);
+  if (opts.tenantPhone) issuerLines.push(`Phone: ${opts.tenantPhone}`);
+  if (opts.tenantTin) issuerLines.push(`TIN: ${opts.tenantTin}`);
+  if (opts.tenantVrn) issuerLines.push(`VRN: ${opts.tenantVrn}`);
+  issuerLines.forEach(line => {
+    doc.text(line, margin, y);
+    y += 4;
+  });
 
-  const leftInfo = [
-    ['Bill To:', opts.customerName],
-    ['Status:', opts.status.toUpperCase()],
-  ];
-  const rightInfo = [
+  // ── Divider ────────────────────────────────────────────────────────────────
+  y += 2;
+  doc.setDrawColor(220, 225, 240);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  // ── Invoice meta & customer info (two columns) ────────────────────────────
+  const leftColX = margin;
+  const rightColX = pageWidth / 2 + 10;
+
+  // Left column – Invoice details
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(37, 99, 235);
+  doc.text('INVOICE DETAILS', leftColX, y);
+
+  y += 6;
+  doc.setTextColor(60, 60, 60);
+  const metaRows = [
+    ['Invoice No:', opts.invoiceNumber],
     ['Issue Date:', opts.issueDate || '—'],
     ['Due Date:', opts.dueDate || '—'],
+    ['Status:', opts.status.toUpperCase()],
   ];
-
-  leftInfo.forEach(([label, value], i) => {
+  metaRows.forEach(([label, value]) => {
     doc.setFont('helvetica', 'bold');
-    doc.text(label, margin, y + i * 6);
+    doc.setFontSize(8);
+    doc.text(label, leftColX, y);
     doc.setFont('helvetica', 'normal');
-    doc.text(value, margin + 22, y + i * 6);
+    doc.text(value, leftColX + 24, y);
+    y += 5;
   });
 
-  rightInfo.forEach(([label, value], i) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(label, pageWidth - margin - 60, y + i * 6);
-    doc.setFont('helvetica', 'normal');
-    doc.text(value, pageWidth - margin - 35, y + i * 6);
+  // Right column – Bill To
+  let ry = y - 6 * 4 - 6; // align with left column start
+  ry = y - metaRows.length * 5; // recalc
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(37, 99, 235);
+  doc.text('BILL TO', rightColX, ry);
+  ry += 6;
+  doc.setTextColor(20, 20, 20);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text(opts.customerName, rightColX, ry);
+  ry += 5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  const custLines: string[] = [];
+  if (opts.customerAddress) custLines.push(opts.customerAddress);
+  if (opts.customerEmail) custLines.push(opts.customerEmail);
+  if (opts.customerPhone) custLines.push(opts.customerPhone);
+  custLines.forEach(line => {
+    doc.text(line, rightColX, ry);
+    ry += 4;
   });
 
-  y += 18;
+  y = Math.max(y, ry) + 6;
 
-  // Line items table
-  const headers = ['#', 'Description', 'Qty', 'Unit Price', 'Disc %', 'Total'];
+  // ── Line items table ───────────────────────────────────────────────────────
+  const headers = ['#', 'Item / Description', 'Qty', 'Unit Price', 'Disc %', 'Amount'];
   const rows = opts.lineItems.map((li, i) => [
     String(i + 1),
     li.description,
@@ -254,30 +301,46 @@ export function generateInvoicePDF(opts: InvoicePDFOptions) {
     startY: y,
     head: [headers],
     body: rows,
-    styles: { fontSize: 9, cellPadding: { top: 3, bottom: 3, left: 4, right: 4 } },
-    headStyles: { fillColor: [37, 99, 235], textColor: [255, 255, 255], fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [248, 251, 255] },
+    styles: {
+      fontSize: 8.5,
+      cellPadding: { top: 3.5, bottom: 3.5, left: 4, right: 4 },
+      lineColor: [230, 235, 245],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [37, 99, 235],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8,
+    },
+    alternateRowStyles: { fillColor: [248, 250, 255] },
     columnStyles: {
       0: { cellWidth: 10, halign: 'center' },
-      2: { halign: 'center', cellWidth: 15 },
-      3: { halign: 'right', cellWidth: 28 },
+      1: { cellWidth: 'auto' },
+      2: { halign: 'center', cellWidth: 16 },
+      3: { halign: 'right', cellWidth: 30 },
       4: { halign: 'center', cellWidth: 18 },
-      5: { halign: 'right', cellWidth: 30 },
+      5: { halign: 'right', cellWidth: 32 },
     },
     margin: { left: margin, right: margin },
   });
 
-  // Totals section
+  // ── Totals section ─────────────────────────────────────────────────────────
   const finalY = (doc as any).lastAutoTable?.finalY || y + 40;
-  let ty = finalY + 8;
-  const totalsX = pageWidth - margin - 70;
+  let ty = finalY + 10;
+  const totalsX = pageWidth - margin - 75;
+
+  // Summary box background
+  doc.setFillColor(248, 250, 255);
+  doc.setDrawColor(220, 225, 240);
+  doc.roundedRect(totalsX - 4, ty - 5, pageWidth - margin - totalsX + 8, 38, 2, 2, 'FD');
 
   const totals = [
     ['Subtotal', opts.formatMoney(opts.subtotal)],
     [`Tax (${opts.taxRate}%)`, opts.formatMoney(opts.taxAmount)],
   ];
 
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   totals.forEach(([label, value]) => {
     doc.setTextColor(80, 80, 80);
     doc.setFont('helvetica', 'normal');
@@ -286,37 +349,41 @@ export function generateInvoicePDF(opts: InvoicePDFOptions) {
     ty += 6;
   });
 
-  // Total line
-  ty += 2;
+  // Total highlight
+  ty += 3;
   doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.5);
+  doc.setLineWidth(0.6);
   doc.line(totalsX, ty - 3, pageWidth - margin, ty - 3);
   doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(37, 99, 235);
+  doc.text('TOTAL', totalsX, ty + 3);
   doc.setTextColor(20, 20, 20);
-  doc.text('Total', totalsX, ty + 3);
   doc.text(opts.formatMoney(opts.totalAmount), pageWidth - margin, ty + 3, { align: 'right' });
 
-  // Notes
+  // ── Payment terms / Notes ──────────────────────────────────────────────────
+  // Place notes on the left side, aligned with table start
+  let ny = finalY + 10;
   if (opts.notes) {
-    ty += 16;
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(80, 80, 80);
-    doc.text('Notes:', margin, ty);
+    doc.setTextColor(37, 99, 235);
+    doc.text('NOTES / TERMS', margin, ny);
+    ny += 5;
     doc.setFont('helvetica', 'normal');
-    doc.text(opts.notes, margin, ty + 5, { maxWidth: pageWidth - margin * 2 });
+    doc.setTextColor(80, 80, 80);
+    doc.text(opts.notes, margin, ny, { maxWidth: totalsX - margin - 10 });
   }
 
-  // Footer
+  // ── Footer ─────────────────────────────────────────────────────────────────
   const ph = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(200, 210, 235);
-  doc.line(margin, ph - 12, pageWidth - margin, ph - 12);
-  doc.setFontSize(8);
-  doc.setTextColor(140, 140, 160);
+  doc.setFillColor(37, 99, 235);
+  doc.rect(0, ph - 14, pageWidth, 14, 'F');
+  doc.setFontSize(7.5);
+  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Invoice ${opts.invoiceNumber} · Generated by TELA-ERP`, margin, ph - 6);
-  doc.text(new Date().toLocaleDateString(), pageWidth - margin, ph - 6, { align: 'right' });
+  doc.text(`${opts.tenantName || 'Company'} · Invoice ${opts.invoiceNumber}`, margin, ph - 5);
+  doc.text(`Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth - margin, ph - 5, { align: 'right' });
 
   doc.save(`invoice-${opts.invoiceNumber.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`);
 }

@@ -313,7 +313,7 @@ function InvoiceSheet({
 
 export default function Invoices() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
@@ -369,9 +369,19 @@ export default function Invoices() {
       }];
     }
 
+    // Fetch customer details if linked
+    let customerDetails: any = {};
+    if (inv.customer_id) {
+      const found = customers.find((c: any) => c.id === inv.customer_id);
+      if (found) customerDetails = found;
+    }
+
     generateInvoicePDF({
       invoiceNumber: inv.invoice_number || `INV-${inv.id?.slice(-6)}`,
       customerName: inv.customer_name || 'Customer',
+      customerEmail: customerDetails.email || '',
+      customerPhone: customerDetails.phone || '',
+      customerAddress: [customerDetails.address, customerDetails.city, customerDetails.country].filter(Boolean).join(', '),
       issueDate: inv.issue_date || '',
       dueDate: inv.due_date || '',
       status: inv.status || 'draft',
@@ -387,6 +397,12 @@ export default function Invoices() {
         discount_percent: Number(li.discount_percent || 0),
         line_total: Number(li.line_total || 0),
       })),
+      tenantName: tenant?.name || '',
+      tenantEmail: tenant?.contact_email || '',
+      tenantPhone: tenant?.phone || '',
+      tenantAddress: tenant?.address || '',
+      tenantTin: tenant?.tin || '',
+      tenantVrn: tenant?.vrn || '',
       formatMoney,
     });
     toast.success('Invoice PDF downloaded');
