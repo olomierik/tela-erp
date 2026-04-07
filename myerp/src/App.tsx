@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { SidebarProvider } from '@/contexts/SidebarContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { ModulesProvider } from '@/contexts/ModulesContext';
 
 // Auth pages (no layout)
 import Login          from '@/pages/auth/Login';
@@ -96,6 +97,9 @@ import Subscriptions from '@/pages/subscriptions/Subscriptions';
 // Point of Sale
 import PosSessions from '@/pages/pos/Sessions';
 import PosOrders   from '@/pages/pos/Orders';
+
+// Onboarding
+import Onboarding from '@/pages/onboarding/Onboarding';
 
 // Top-level
 import Reports        from '@/pages/Reports';
@@ -200,6 +204,9 @@ function ProtectedApp() {
         <Route path="/settings"        element={<Settings />} />
         <Route path="/components/demo" element={<ComponentsDemo />} />
 
+        {/* Onboarding */}
+        <Route path="/onboarding" element={<Onboarding />} />
+
         {/* Catch-all */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -211,17 +218,19 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SidebarProvider>
-          <BrowserRouter>
-            <Toaster richColors position="top-right" />
-            <Routes>
-              <Route path="/login"           element={<Login />} />
-              <Route path="/register"        element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/*"               element={<ProtectedApp />} />
-            </Routes>
-          </BrowserRouter>
-        </SidebarProvider>
+        <ModulesProvider>
+          <SidebarProvider>
+            <BrowserRouter>
+              <Toaster richColors position="top-right" />
+              <Routes>
+                <Route path="/login"           element={<Login />} />
+                <Route path="/register"        element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/*"               element={<ProtectedApp />} />
+              </Routes>
+            </BrowserRouter>
+          </SidebarProvider>
+        </ModulesProvider>
       </AuthProvider>
     </ThemeProvider>
   );
