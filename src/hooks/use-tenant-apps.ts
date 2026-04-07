@@ -21,7 +21,7 @@ export function useTenantApps() {
   const { data: installedApps = [], isLoading } = useQuery({
     queryKey: ['tenant-apps', tenant?.id],
     queryFn: async () => {
-      if (!tenant?.id) return [];
+      if (!tenant?.id || isDemo) return [];
       const { data, error } = await (supabase as any)
         .from('tenant_apps')
         .select('*')
