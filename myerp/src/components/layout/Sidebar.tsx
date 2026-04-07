@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, Handshake, Truck, Box, Users, Factory,
   ClipboardList, Building2, BarChart3, Settings, ChevronDown, ChevronRight,
-  Boxes, Layers, Receipt, HeadphonesIcon,
+  Boxes, Layers, Receipt, HeadphonesIcon, Car, Wrench, Mail, RefreshCw, ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -93,6 +93,37 @@ const NAV: NavItem[] = [
   },
   { label: 'Expenses',   icon: Receipt,         path: '/expenses' },
   { label: 'Helpdesk',   icon: HeadphonesIcon,  path: '/helpdesk' },
+  {
+    label: 'Fleet', icon: Car, children: [
+      { label: 'Vehicles',  path: '/fleet/vehicles' },
+      { label: 'Services',  path: '/fleet/services' },
+      { label: 'Fuel Logs', path: '/fleet/fuel-logs' },
+    ],
+  },
+  {
+    label: 'Maintenance', icon: Wrench, children: [
+      { label: 'Equipment', path: '/maintenance/equipment' },
+      { label: 'Requests',  path: '/maintenance/requests' },
+    ],
+  },
+  {
+    label: 'Marketing', icon: Mail, children: [
+      { label: 'Mailing Lists', path: '/marketing/mailing-lists' },
+      { label: 'Campaigns',     path: '/marketing/campaigns' },
+    ],
+  },
+  {
+    label: 'Subscriptions', icon: RefreshCw, children: [
+      { label: 'Plans',          path: '/subscriptions/plans' },
+      { label: 'Subscriptions',  path: '/subscriptions/subscriptions' },
+    ],
+  },
+  {
+    label: 'Point of Sale', icon: ShoppingCart, children: [
+      { label: 'Sessions', path: '/pos/sessions' },
+      { label: 'Orders',   path: '/pos/orders' },
+    ],
+  },
   { label: 'Reports',    icon: BarChart3,        path: '/reports' },
   { label: 'Settings',   icon: Settings,         path: '/settings' },
   { label: 'Components', icon: Layers,           path: '/components/demo' },

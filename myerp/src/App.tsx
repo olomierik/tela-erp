@@ -76,6 +76,27 @@ import Expenses from '@/pages/expenses/Expenses';
 // Helpdesk
 import Tickets from '@/pages/helpdesk/Tickets';
 
+// Fleet
+import Vehicles        from '@/pages/fleet/Vehicles';
+import VehicleServices from '@/pages/fleet/VehicleServices';
+import FuelLogs        from '@/pages/fleet/FuelLogs';
+
+// Maintenance
+import Equipment           from '@/pages/maintenance/Equipment';
+import MaintenanceRequests from '@/pages/maintenance/Requests';
+
+// Email Marketing
+import MailingLists from '@/pages/marketing/MailingLists';
+import Campaigns    from '@/pages/marketing/Campaigns';
+
+// Subscriptions
+import Plans         from '@/pages/subscriptions/Plans';
+import Subscriptions from '@/pages/subscriptions/Subscriptions';
+
+// Point of Sale
+import PosSessions from '@/pages/pos/Sessions';
+import PosOrders   from '@/pages/pos/Orders';
+
 // Top-level
 import Reports        from '@/pages/Reports';
 import Settings       from '@/pages/Settings';
@@ -152,6 +173,27 @@ function ProtectedApp() {
 
         {/* Helpdesk */}
         <Route path="/helpdesk" element={<Tickets />} />
+
+        {/* Fleet */}
+        <Route path="/fleet/vehicles"         element={<Vehicles />} />
+        <Route path="/fleet/services"         element={<VehicleServices />} />
+        <Route path="/fleet/fuel-logs"        element={<FuelLogs />} />
+
+        {/* Maintenance */}
+        <Route path="/maintenance/equipment" element={<Equipment />} />
+        <Route path="/maintenance/requests"  element={<MaintenanceRequests />} />
+
+        {/* Email Marketing */}
+        <Route path="/marketing/mailing-lists" element={<MailingLists />} />
+        <Route path="/marketing/campaigns"     element={<Campaigns />} />
+
+        {/* Subscriptions */}
+        <Route path="/subscriptions/plans"         element={<Plans />} />
+        <Route path="/subscriptions/subscriptions" element={<Subscriptions />} />
+
+        {/* Point of Sale */}
+        <Route path="/pos/sessions" element={<PosSessions />} />
+        <Route path="/pos/orders"   element={<PosOrders />} />
 
         {/* Top-level */}
         <Route path="/reports"         element={<Reports />} />
