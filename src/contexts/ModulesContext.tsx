@@ -208,6 +208,20 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
     if (authLoading) return;
     const key = storageKey(tenant?.id ?? 'demo');
     const saved = localStorage.getItem(key);
+
+    // Check if this is a newly created company that needs onboarding
+    const isNewCompany = localStorage.getItem('tela_new_company') === 'true';
+
+    if (isNewCompany && tenant?.id) {
+      // Clear the flag and show onboarding for the new company
+      localStorage.removeItem('tela_new_company');
+      setOnboardingCompleted(false);
+      setActiveModules(ALL_MODULES);
+      setIndustryState('general');
+      setLoading(false);
+      return;
+    }
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -218,15 +232,13 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
         setOnboardingCompleted(isDemo ? true : false);
       }
     } else {
-      // For returning users switching companies, skip onboarding and use all modules
-      // Only show onboarding for genuinely new first-time users (no tenant yet)
+      // For returning users switching to existing companies, skip onboarding
       const isCompanySwitch = !!localStorage.getItem('tela_active_tenant');
       const shouldSkip = isDemo || isCompanySwitch || !!tenant?.id;
       if (shouldSkip) {
         setActiveModules(ALL_MODULES);
         setIndustryState('general');
         setOnboardingCompleted(true);
-        // Persist so it doesn't re-trigger
         const k = storageKey(tenant?.id ?? 'demo');
         localStorage.setItem(k, JSON.stringify({ activeModules: ALL_MODULES, industry: 'general', onboardingCompleted: true }));
       } else {
