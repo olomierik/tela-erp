@@ -60,7 +60,12 @@ export default function AppsStore() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Apps</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Apps</h1>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Install the modules you need. Each app adds features to your dashboard and navigation.
         </p>
