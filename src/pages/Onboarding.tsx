@@ -10,6 +10,8 @@ import {
   ALL_MODULES,
   ModuleKey,
 } from '@/contexts/ModulesContext';
+import { useTenantApps } from '@/hooks/use-tenant-apps';
+import { moduleKeysToAppKeys } from '@/lib/app-registry';
 
 const BUSINESS_SIZES = [
   { key: 'solo', label: 'Solo / Freelancer', description: '1 person — just you running the show', icon: '👤' },
@@ -23,6 +25,7 @@ const STEPS = ['Industry', 'Business Size', 'Modules'];
 export default function Onboarding() {
   const navigate = useNavigate();
   const { completeOnboarding } = useModules();
+  const { installApp } = useTenantApps();
 
   const [step, setStep] = useState(0);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('');
@@ -45,6 +48,11 @@ export default function Onboarding() {
 
   const handleFinish = () => {
     completeOnboarding(selectedIndustry || 'general', selectedModules);
+    // Auto-install the selected modules as apps in the tenant
+    const appKeys = moduleKeysToAppKeys(selectedModules);
+    appKeys.forEach(appKey => {
+      installApp.mutate(appKey);
+    });
     navigate('/dashboard');
   };
 
