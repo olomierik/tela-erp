@@ -242,6 +242,23 @@ export default function AppSidebar() {
       {/* Settings + User footer */}
       <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px] md:space-y-[1px]">
         <Link
+          to="/apps"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
+            isActive('/apps')
+              ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
+              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/80'
+          )}
+          title={collapsed ? 'Apps' : undefined}
+        >
+          <Grid3X3 className={cn(
+            'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0',
+            isActive('/apps') ? 'text-sidebar-primary' : 'text-sidebar-muted'
+          )} />
+          {!collapsed && <span>Apps</span>}
+        </Link>
+        <Link
           to="/settings"
           onClick={() => setMobileOpen(false)}
           className={cn(
