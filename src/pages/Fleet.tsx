@@ -75,9 +75,15 @@ export default function Fleet() {
       return;
     }
     await insertVehicle.mutateAsync({
-      ...form,
+      name: form.name,
+      license_plate: form.license_plate,
+      make: form.make,
+      model: form.model,
       year: Number(form.year),
-      mileage: Number(form.mileage) || 0,
+      fuel_type: form.fuel_type,
+      status: form.status,
+      driver_name: form.driver_name,
+      current_mileage: Number(form.mileage) || 0,
     });
     toast.success('Vehicle added successfully');
     setCreateOpen(false);
