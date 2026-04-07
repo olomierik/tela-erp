@@ -107,9 +107,15 @@ export default function Maintenance() {
       return;
     }
     await insertRequest.mutateAsync({
-      ...form,
       request_number: `MNT-${Date.now().toString(36).toUpperCase()}`,
-      estimated_cost: Number(form.estimated_cost) || 0,
+      equipment_name: form.equipment,
+      maintenance_type: form.type,
+      priority: form.priority,
+      status: form.status,
+      assigned_to: form.assigned_to,
+      scheduled_date: form.scheduled_date,
+      cost: Number(form.estimated_cost) || 0,
+      notes: form.notes,
     });
     toast.success('Maintenance request created');
     setCreateOpen(false);
