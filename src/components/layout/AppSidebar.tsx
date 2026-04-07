@@ -413,7 +413,7 @@ export default function AppSidebar() {
             <SheetTitle className="text-base font-semibold">All Modules</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-full pb-20 px-4 pt-3 overscroll-contain">
-            {navSections.map(section => (
+            {filteredNavSections.map(section => (
               <div key={section.title} className="mb-5">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-2 px-1">
                   {section.title}
