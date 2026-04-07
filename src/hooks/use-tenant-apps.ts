@@ -14,14 +14,14 @@ interface TenantApp {
 }
 
 export function useTenantApps() {
-  const { tenant, user, role } = useAuth();
+  const { tenant, user, role, isDemo } = useAuth();
   const queryClient = useQueryClient();
   const isAdmin = role === 'admin' || role === 'reseller';
 
   const { data: installedApps = [], isLoading } = useQuery({
     queryKey: ['tenant-apps', tenant?.id],
     queryFn: async () => {
-      if (!tenant?.id) return [];
+      if (!tenant?.id || isDemo) return [];
       const { data, error } = await (supabase as any)
         .from('tenant_apps')
         .select('*')
@@ -52,6 +52,14 @@ export function useTenantApps() {
 
   const installApp = useMutation({
     mutationFn: async (appKey: string) => {
+      if (isDemo) {
+        // In demo mode, just update local state via query cache
+        queryClient.setQueryData(['tenant-apps', tenant?.id], (old: TenantApp[] = []) => [
+          ...old.filter(a => a.app_key !== appKey),
+          { id: crypto.randomUUID(), tenant_id: tenant?.id ?? '', app_key: appKey, installed_at: new Date().toISOString(), installed_by: null, is_active: true },
+        ]);
+        return;
+      }
       if (!tenant?.id || !user?.id) throw new Error('Not authenticated');
       const { error } = await (supabase as any)
         .from('tenant_apps')
@@ -73,6 +81,12 @@ export function useTenantApps() {
 
   const uninstallApp = useMutation({
     mutationFn: async (appKey: string) => {
+      if (isDemo) {
+        queryClient.setQueryData(['tenant-apps', tenant?.id], (old: TenantApp[] = []) =>
+          old.map(a => a.app_key === appKey ? { ...a, is_active: false } : a)
+        );
+        return;
+      }
       if (!tenant?.id) throw new Error('Not authenticated');
       const { error } = await (supabase as any)
         .from('tenant_apps')
