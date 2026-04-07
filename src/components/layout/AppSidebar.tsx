@@ -136,7 +136,6 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
-  const { activeModules } = useModules();
   const { isInstalled } = useTenantApps();
 
   const filteredNavSections = useMemo(() => {
