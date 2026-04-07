@@ -324,7 +324,7 @@ export default function Dashboard() {
       <div className="space-y-5">
 
         {/* ── KPI Strip ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <KpiCard title="Today's Sales" value={formatMoney(todaySalesVal)} change={12} icon={DollarSign} loading={salesLoading} />
           <KpiCard title="Monthly Revenue" value={formatMoney(monthlyRevenue)} change={8} icon={TrendingUp} />
           <KpiCard title="Monthly Expenses" value={formatMoney(monthlyExpenses)} change={-3} icon={TrendingDown} />
