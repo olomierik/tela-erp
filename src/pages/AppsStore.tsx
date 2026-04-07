@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingCart, FileText, Truck, Package,
-  Factory, Users, Globe, Megaphone, ArrowRightLeft,
+  Factory, Users, Globe, Megaphone, ArrowRightLeft, ArrowLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Briefcase, Brain, Receipt, Store,
   ScanLine, UserPlus, PiggyBank, Landmark,
@@ -37,6 +38,7 @@ export default function AppsStore() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<'all' | AppCategory>('all');
   const { isInstalled, isAdmin, installApp, uninstallApp, isLoading } = useTenantApps();
+  const navigate = useNavigate();
 
   const filteredApps = useMemo(() => {
     let apps = APP_CATALOG.filter(a => !a.isCore);
@@ -60,7 +62,12 @@ export default function AppsStore() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Apps</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard')}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <h1 className="text-2xl font-bold text-foreground">Apps</h1>
+        </div>
         <p className="text-sm text-muted-foreground mt-1">
           Install the modules you need. Each app adds features to your dashboard and navigation.
         </p>
