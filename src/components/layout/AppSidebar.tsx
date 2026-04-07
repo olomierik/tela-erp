@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { useModules, type ModuleKey } from '@/contexts/ModulesContext';
+import { type ModuleKey } from '@/contexts/ModulesContext';
 import { useTenantApps } from '@/hooks/use-tenant-apps';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
