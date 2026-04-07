@@ -144,7 +144,7 @@ export default function AiAssistant() {
         : err instanceof Anthropic.RateLimitError
         ? 'Rate limit reached. Please wait a moment and try again.'
         : err instanceof Anthropic.APIError
-        ? `API error (${(err as Anthropic.APIError).status}): ${(err as Anthropic.APIError).message}`
+        ? `API error (${(err as InstanceType<typeof Anthropic.APIError>).status}): ${(err as InstanceType<typeof Anthropic.APIError>).message}`
         : 'Something went wrong. Please try again.';
       setMessages(prev => {
         const updated = [...prev];
