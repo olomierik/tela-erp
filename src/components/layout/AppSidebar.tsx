@@ -104,6 +104,26 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
+  const { getActiveRoutes, isLoading: appsLoading } = useTenantApps();
+
+  // Filter nav sections to only show items whose routes are active
+  const activeRoutes = useMemo(() => {
+    const routes = new Set(getActiveRoutes());
+    // Always include these paths
+    routes.add('/dashboard');
+    routes.add('/settings');
+    routes.add('/apps');
+    return routes;
+  }, [getActiveRoutes]);
+
+  const filteredNavSections = useMemo(() => {
+    return navSections
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => activeRoutes.has(item.path)),
+      }))
+      .filter(section => section.items.length > 0);
+  }, [activeRoutes]);
 
   /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
   const touchStartX = useRef(0);
