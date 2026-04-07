@@ -56,6 +56,7 @@ import FixedAssets from "./pages/FixedAssets";
 import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
+import AppsStore from "./pages/AppsStore";
 import Profile from "./pages/Profile";
 import Vouchers from "./pages/accounting/Vouchers";
 import VoucherForm from "./pages/accounting/VoucherForm";
@@ -135,6 +136,7 @@ const App = () => (
               <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
               <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
               <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
+              <Route path="/apps" element={<ProtectedRoute><AppsStore /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* Reseller-only route */}

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -8,13 +8,14 @@ import {
   Settings, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal, BookOpen, Wallet, Landmark, ScanLine,
-  UsersRound, PiggyBank, Boxes, UserPlus,
+  UsersRound, PiggyBank, Boxes, UserPlus, Grid3X3,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useTenantApps } from '@/hooks/use-tenant-apps';
 
 interface NavItem {
   label: string;
@@ -103,6 +104,26 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
+  const { getActiveRoutes, isLoading: appsLoading } = useTenantApps();
+
+  // Filter nav sections to only show items whose routes are active
+  const activeRoutes = useMemo(() => {
+    const routes = new Set(getActiveRoutes());
+    // Always include these paths
+    routes.add('/dashboard');
+    routes.add('/settings');
+    routes.add('/apps');
+    return routes;
+  }, [getActiveRoutes]);
+
+  const filteredNavSections = useMemo(() => {
+    return navSections
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => activeRoutes.has(item.path)),
+      }))
+      .filter(section => section.items.length > 0);
+  }, [activeRoutes]);
 
   /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
   const touchStartX = useRef(0);
@@ -192,7 +213,7 @@ export default function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 overscroll-contain">
-        {navSections.map(section => (
+        {filteredNavSections.map(section => (
           <div key={section.title} className="mb-1">
             <AnimatePresence initial={false}>
               {!collapsed && (
@@ -220,6 +241,23 @@ export default function AppSidebar() {
 
       {/* Settings + User footer */}
       <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px] md:space-y-[1px]">
+        <Link
+          to="/apps"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
+            isActive('/apps')
+              ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
+              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/80'
+          )}
+          title={collapsed ? 'Apps' : undefined}
+        >
+          <Grid3X3 className={cn(
+            'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0',
+            isActive('/apps') ? 'text-sidebar-primary' : 'text-sidebar-muted'
+          )} />
+          {!collapsed && <span>Apps</span>}
+        </Link>
         <Link
           to="/settings"
           onClick={() => setMobileOpen(false)}
@@ -375,7 +413,7 @@ export default function AppSidebar() {
             <SheetTitle className="text-base font-semibold">All Modules</SheetTitle>
           </SheetHeader>
           <div className="overflow-y-auto h-full pb-20 px-4 pt-3 overscroll-contain">
-            {navSections.map(section => (
+            {filteredNavSections.map(section => (
               <div key={section.title} className="mb-5">
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-2 px-1">
                   {section.title}

@@ -4389,6 +4389,41 @@ export type Database = {
           },
         ]
       }
+      tenant_apps: {
+        Row: {
+          app_key: string
+          id: string
+          installed_at: string
+          installed_by: string | null
+          is_active: boolean
+          tenant_id: string
+        }
+        Insert: {
+          app_key: string
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          is_active?: boolean
+          tenant_id: string
+        }
+        Update: {
+          app_key?: string
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          is_active?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_apps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_secrets: {
         Row: {
           ai_model: string | null
