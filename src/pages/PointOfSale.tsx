@@ -105,10 +105,10 @@ export default function PointOfSale() {
 
   const columns: Column[] = [
     { key: 'session_number', label: 'Session #', className: 'font-mono text-xs' },
-    { key: 'cashier_name', label: 'Cashier', render: v => <span className="font-medium">{v}</span> },
+    { key: 'cashier', label: 'Cashier', render: v => <span className="font-medium">{v}</span> },
     { key: 'opening_cash', label: 'Opening Cash', render: v => <span className="text-sm">{formatMoney(v)}</span> },
     { key: 'total_sales', label: 'Total Sales', render: v => <span className="font-semibold">{formatMoney(v)}</span> },
-    { key: 'order_count', label: 'Orders', className: 'text-sm text-center' },
+    { key: 'total_orders', label: 'Orders', className: 'text-sm text-center' },
     {
       key: 'status', label: 'Status',
       render: v => (

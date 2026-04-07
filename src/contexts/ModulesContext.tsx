@@ -218,7 +218,20 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
         setOnboardingCompleted(isDemo ? true : false);
       }
     } else {
-      setOnboardingCompleted(isDemo ? true : false);
+      // For returning users switching companies, skip onboarding and use all modules
+      // Only show onboarding for genuinely new first-time users (no tenant yet)
+      const isCompanySwitch = !!localStorage.getItem('tela_active_tenant');
+      const shouldSkip = isDemo || isCompanySwitch || !!tenant?.id;
+      if (shouldSkip) {
+        setActiveModules(ALL_MODULES);
+        setIndustryState('general');
+        setOnboardingCompleted(true);
+        // Persist so it doesn't re-trigger
+        const k = storageKey(tenant?.id ?? 'demo');
+        localStorage.setItem(k, JSON.stringify({ activeModules: ALL_MODULES, industry: 'general', onboardingCompleted: true }));
+      } else {
+        setOnboardingCompleted(false);
+      }
     }
     setLoading(false);
   }, [authLoading, tenant?.id, isDemo]);

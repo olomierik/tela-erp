@@ -152,7 +152,7 @@ export default function Maintenance() {
       render: v => <span className="text-sm">{v ? new Date(v).toLocaleDateString() : '—'}</span>,
     },
     {
-      key: 'estimated_cost', label: 'Est. Cost',
+      key: 'cost', label: 'Est. Cost',
       render: v => <span className="font-semibold">{formatMoney(v)}</span>,
     },
   ];

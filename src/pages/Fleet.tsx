@@ -108,7 +108,7 @@ export default function Fleet() {
       ),
     },
     { key: 'driver_name', label: 'Driver', className: 'text-sm' },
-    { key: 'mileage', label: 'Mileage', render: v => <span className="text-sm">{Number(v).toLocaleString()} km</span> },
+    { key: 'current_mileage', label: 'Mileage', render: v => <span className="text-sm">{Number(v).toLocaleString()} km</span> },
   ];
 
   return (
