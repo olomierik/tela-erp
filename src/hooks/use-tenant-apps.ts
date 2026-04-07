@@ -14,7 +14,7 @@ interface TenantApp {
 }
 
 export function useTenantApps() {
-  const { tenant, user, role } = useAuth();
+  const { tenant, user, role, isDemo } = useAuth();
   const queryClient = useQueryClient();
   const isAdmin = role === 'admin' || role === 'reseller';
 
