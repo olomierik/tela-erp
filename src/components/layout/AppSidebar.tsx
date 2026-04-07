@@ -213,7 +213,7 @@ export default function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 overscroll-contain">
-        {navSections.map(section => (
+        {filteredNavSections.map(section => (
           <div key={section.title} className="mb-1">
             <AnimatePresence initial={false}>
               {!collapsed && (
