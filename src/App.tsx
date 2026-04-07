@@ -136,6 +136,7 @@ const App = () => (
               <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
               <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
               <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
+              <Route path="/apps" element={<ProtectedRoute><AppsStore /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
