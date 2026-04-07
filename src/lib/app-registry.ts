@@ -368,3 +368,34 @@ export function getCoreApps(): AppDefinition[] {
 export function getInstallableApps(): AppDefinition[] {
   return APP_CATALOG.filter(a => !a.isCore);
 }
+
+/**
+ * Map onboarding ModuleKey values to APP_CATALOG keys.
+ * Some module keys map directly; others have different names in the catalog.
+ */
+const MODULE_TO_APP_KEY: Record<string, string> = {
+  production: 'manufacturing',
+  inventory: 'inventory',
+  sales: 'sales',
+  marketing: 'marketing',
+  accounting: 'accounting',
+  procurement: 'procurement',
+  hr: 'hr',
+  crm: 'crm',
+  projects: 'projects',
+  assets: 'fixed-assets',
+  expenses: 'expenses',
+  budgets: 'budgets',
+  fleet: 'fleet',
+  maintenance: 'maintenance',
+  pos: 'pos',
+  subscriptions: 'subscriptions',
+  ai: 'ai-assistant',
+};
+
+/** Convert onboarding module keys to app catalog keys */
+export function moduleKeysToAppKeys(moduleKeys: string[]): string[] {
+  return moduleKeys
+    .map(k => MODULE_TO_APP_KEY[k])
+    .filter((k): k is string => !!k);
+}
