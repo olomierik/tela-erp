@@ -308,7 +308,7 @@ export default function Sales() {
             quantity: li.quantity,
             unit_price: li.unit_price,
           }));
-          (supabase.from('sales_order_lines') as any).insert(lines).then(() => {});
+          (supabase as any).from('sales_order_lines').insert(lines).then(() => {});
         }
 
         // Reserve inventory for each line item

@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { generateInvoicePDF } from '@/lib/pdf-reports';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
@@ -114,7 +116,7 @@ function InvoiceSheet({
   customers: any[];
   onClose: () => void;
 }) {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const insert = useTenantInsert('invoices');
   const update = useTenantUpdate('invoices');
   const insertLine = useTenantInsert('invoice_lines');
@@ -150,9 +152,13 @@ function InvoiceSheet({
 
     setSaving(true);
     try {
-      const invoiceData = {
+      // Auto-generate invoice number for new invoices
+      const invoiceNumber = invoice?.invoice_number || `INV-${Date.now().toString(36).toUpperCase()}`;
+
+      const invoiceData: Record<string, any> = {
         customer_id: customerId,
         customer_name: selectedCustomer?.name || '',
+        invoice_number: invoiceNumber,
         issue_date: issueDate,
         due_date: dueDate || null,
         status,
@@ -167,6 +173,21 @@ function InvoiceSheet({
 
       if (invoice?.id) {
         await update.mutateAsync({ id: invoice.id, ...invoiceData });
+        // Delete old line items and re-insert updated ones
+        await (supabase as any).from('invoice_lines')
+          .delete()
+          .eq('invoice_id', invoice.id)
+          .eq('tenant_id', tenant?.id);
+        for (const line of items.filter(l => l.description.trim())) {
+          await insertLine.mutateAsync({
+            invoice_id: invoice.id,
+            description: line.description,
+            quantity: line.quantity,
+            unit_price: line.unit_price,
+            discount_percent: line.discount_percent,
+            line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
+          });
+        }
       } else {
         const created = await insert.mutateAsync(invoiceData);
         invoiceId = created.id;
@@ -328,6 +349,49 @@ export default function Invoices() {
     await deleteInvoice.mutateAsync(id);
   };
 
+  const handleDownloadPDF = async (inv: any) => {
+    // Fetch line items for this invoice
+    let lineItems: any[] = [];
+    try {
+      const { data } = await (supabase as any).from('invoice_lines')
+        .select('*')
+        .eq('invoice_id', inv.id);
+      lineItems = data || [];
+    } catch { /* fallback to empty */ }
+
+    if (lineItems.length === 0) {
+      lineItems = [{
+        description: `Invoice ${inv.invoice_number}`,
+        quantity: 1,
+        unit_price: Number(inv.total_amount || 0),
+        discount_percent: 0,
+        line_total: Number(inv.total_amount || 0),
+      }];
+    }
+
+    generateInvoicePDF({
+      invoiceNumber: inv.invoice_number || `INV-${inv.id?.slice(-6)}`,
+      customerName: inv.customer_name || 'Customer',
+      issueDate: inv.issue_date || '',
+      dueDate: inv.due_date || '',
+      status: inv.status || 'draft',
+      subtotal: Number(inv.subtotal || inv.total_amount || 0),
+      taxRate: Number(inv.tax_rate || 0),
+      taxAmount: Number(inv.tax_amount || 0),
+      totalAmount: Number(inv.total_amount || 0),
+      notes: inv.notes || '',
+      lineItems: lineItems.map((li: any) => ({
+        description: li.description || '',
+        quantity: Number(li.quantity || 1),
+        unit_price: Number(li.unit_price || 0),
+        discount_percent: Number(li.discount_percent || 0),
+        line_total: Number(li.line_total || 0),
+      })),
+      formatMoney,
+    });
+    toast.success('Invoice PDF downloaded');
+  };
+
   return (
     <AppLayout title="Invoices" subtitle="Create, manage & track invoices">
       <div className="space-y-5">
@@ -460,6 +524,10 @@ export default function Invoices() {
                           <CheckCircle className="w-3 h-3" /> Mark Paid
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                        onClick={() => handleDownloadPDF(inv)} title="Download PDF">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
                         onClick={() => setEditInvoice(inv)}>
                         <RefreshCw className="w-3.5 h-3.5" />

@@ -3,26 +3,198 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TELA-ERP — Multi-Tenant Business Management</title>
-    <meta name="description" content="All-in-one ERP platform for production, inventory, sales, marketing, accounting, and procurement with white-label reseller capabilities.">
+
+    <!-- Performance: DNS prefetch & preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+    <link rel="dns-prefetch" href="https://storage.googleapis.com" />
+
+    <!-- Google Search Console Verification -->
+    <meta name="google-site-verification" content="3HCvGGbeN00BJ5DX-818AIuRKUbmJWmb997lPlgMumw" />
+
+    <!-- Primary SEO -->
+    <title>TELA-ERP — Free Open Source ERP for Small Businesses | Sales, Inventory & Production</title>
+    <meta name="description" content="TELA-ERP is a free, open source cloud ERP for small and medium businesses. Manage inventory, sales, production, accounting, procurement & more. Available globally — Tanzania, US, UK, Canada, India, Europe." />
+    <meta name="keywords" content="free ERP software, open source ERP, small business ERP, inventory management software, sales management, production management, ERP Tanzania, ERP Africa, cloud ERP, multi-tenant ERP, ERP for SME, accounting software, procurement software" />
     <meta name="author" content="TELA-ERP" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://tela-erp.com/" />
+
+    <!-- Geo targeting -->
+    <meta name="geo.region" content="TZ" />
+    <meta name="geo.placename" content="Tanzania" />
+
+    <!-- hreflang: international targeting -->
+    <link rel="alternate" hreflang="en" href="https://tela-erp.com/" />
+    <link rel="alternate" hreflang="en-TZ" href="https://tela-erp.com/" />
+    <link rel="alternate" hreflang="en-US" href="https://tela-erp.com/" />
+    <link rel="alternate" hreflang="en-GB" href="https://tela-erp.com/" />
+    <link rel="alternate" hreflang="en-IN" href="https://tela-erp.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://tela-erp.com/" />
+
+    <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#3B82F6" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TELA-ERP" />
 
-    
-    
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://tela-erp.com/" />
+    <meta property="og:site_name" content="TELA-ERP" />
+    <meta property="og:title" content="TELA-ERP — Free Open Source ERP for Small Businesses" />
+    <meta property="og:description" content="Free, open source cloud ERP for SMEs worldwide. Manage inventory, sales, production, accounting & procurement in one platform. No subscriptions, no hidden fees." />
+    <meta property="og:image" content="https://tela-erp.com/og-image.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TELA-ERP — Free Open Source ERP for Small Businesses" />
+    <meta property="og:locale" content="en_US" />
 
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta property="og:title" content="TELA-ERP — Multi-Tenant Business Management">
-  <meta name="twitter:title" content="TELA-ERP — Multi-Tenant Business Management">
-  <meta property="og:description" content="All-in-one ERP platform for production, inventory, sales, marketing, accounting, and procurement with white-label reseller capabilities.">
-  <meta name="twitter:description" content="All-in-one ERP platform for production, inventory, sales, marketing, accounting, and procurement with white-label reseller capabilities.">
-  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6ca89330-dde7-478a-9479-acddf085c762?Expires=1774184446&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=k%2FRqmw5v6RMCaJWIJg6FMKLbciZ4W%2BEflGO%2BM33TXsh9Mgvi4aq1kIHOI8bNnyWfb5sRUjhAqHsPkfa08xfU2PlPzN9kQ2nQW1Seazn02BPfNzSk0FEDNNgdZy7kRRZ572pJtLrJAK1avVw1jr0KCTBnvN6h3u8t53J%2FA4d6KpQS6v1fu8798T9mmxNKNkyQlVshUniSV66APkV6AR1fzhCwGatweZvNpJ4I%2Bx2jd4cpqT5cxfK%2FNbl4Tcfr1NjkbyMu%2BIi37J7Bd1TlOQCCzHHhp8H2c1OHsFcdf7rCcDSK%2FjvIxeM6MlqCR8j3CCv7IJHWdAAehPpnlEAibh%2FpwA%3D%3D">
-  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/6ca89330-dde7-478a-9479-acddf085c762?Expires=1774184446&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=k%2FRqmw5v6RMCaJWIJg6FMKLbciZ4W%2BEflGO%2BM33TXsh9Mgvi4aq1kIHOI8bNnyWfb5sRUjhAqHsPkfa08xfU2PlPzN9kQ2nQW1Seazn02BPfNzSk0FEDNNgdZy7kRRZ572pJtLrJAK1avVw1jr0KCTBnvN6h3u8t53J%2FA4d6KpQS6v1fu8798T9mmxNKNkyQlVshUniSV66APkV6AR1fzhCwGatweZvNpJ4I%2Bx2jd4cpqT5cxfK%2FNbl4Tcfr1NjkbyMu%2BIi37J7Bd1TlOQCCzHHhp8H2c1OHsFcdf7rCcDSK%2FjvIxeM6MlqCR8j3CCv7IJHWdAAehPpnlEAibh%2FpwA%3D%3D">
-</head>
+    <meta name="twitter:site" content="@tela_erp" />
+    <meta name="twitter:title" content="TELA-ERP — Free Open Source ERP for Small Businesses" />
+    <meta name="twitter:description" content="Free, open source cloud ERP for SMEs worldwide. Inventory, sales, production, accounting & procurement — all in one platform." />
+    <meta name="twitter:image" content="https://tela-erp.com/og-image.svg" />
+
+    <!-- Structured Data: SoftwareApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TELA-ERP",
+      "alternateName": "Tela ERP",
+      "url": "https://tela-erp.com",
+      "description": "TELA-ERP is a free, open source, cloud-based enterprise resource planning (ERP) platform for small and medium-sized businesses. It includes modules for inventory management, sales and POS, production, accounting, procurement, marketing, CRM, HR, and more.",
+      "applicationCategory": "BusinessApplication",
+      "applicationSubCategory": "ERP Software",
+      "operatingSystem": "Web, Android, iOS",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free and open source"
+      },
+      "featureList": [
+        "Inventory Management",
+        "Sales and POS",
+        "Production Management",
+        "Double-Entry Accounting",
+        "Procurement Management",
+        "Marketing Campaigns",
+        "CRM",
+        "HR Management",
+        "Multi-Currency (165+ currencies)",
+        "Multi-Tenant Architecture",
+        "White-Label Support",
+        "Reseller Portal",
+        "AI-Powered Insights",
+        "Real-Time Sync",
+        "PDF Reports"
+      ],
+      "screenshot": "https://tela-erp.com/og-image.svg",
+      "softwareVersion": "1.0",
+      "license": "https://opensource.org/licenses/MIT",
+      "isAccessibleForFree": true,
+      "sameAs": [
+        "https://github.com/olomierik/tela-erp"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data: Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "TELA-ERP",
+      "url": "https://tela-erp.com",
+      "logo": "https://tela-erp.com/images/tela-erp-logo.png",
+      "description": "Open source ERP platform for small and medium businesses in Africa and worldwide.",
+      "foundingLocation": {
+        "@type": "Place",
+        "addressCountry": "TZ",
+        "addressRegion": "Tanzania"
+      },
+      "sameAs": [
+        "https://github.com/olomierik/tela-erp"
+      ]
+    }
+    </script>
+
+    <!-- Structured Data: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is TELA-ERP?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TELA-ERP is a free, open source, cloud-based enterprise resource planning (ERP) platform designed for small and medium businesses. It manages production, inventory, sales, marketing, accounting, and procurement in one interconnected system."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is TELA-ERP free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. TELA-ERP is completely free and open source. There are no subscriptions, no hidden fees, and no usage limits. You can self-host it or use the cloud version at tela-erp.com."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is TELA-ERP suitable for small businesses?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. TELA-ERP is specifically built for small and medium enterprises (SMEs). Whether you run a single shop or manage operations across multiple locations, TELA-ERP scales with you."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What countries is TELA-ERP available in?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TELA-ERP is available globally, with a focus on Tanzania, Africa, the US, UK, Canada, India, China, and Europe. It supports 165+ currencies with live exchange rates."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I white-label TELA-ERP?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. TELA-ERP supports full white-labeling — custom logos, colors, domains, and branding per tenant. Resellers can onboard and manage multiple client businesses from a single dashboard."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What ERP modules does TELA-ERP include?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TELA-ERP includes: Inventory Management, Sales and POS, Production Management, Double-Entry Accounting, Procurement, Marketing, CRM, HR, Projects, Invoicing, Reports, and AI-powered insights."
+          }
+        }
+      ]
+    }
+    </script>
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NEDZZPEYLL"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-NEDZZPEYLL', {
+        page_title: document.title,
+        page_location: window.location.href,
+        send_page_view: true
+      });
+    </script>
+    <link rel="icon" href="/favicon.png" type="image/png" />
+  </head>
 
   <body>
     <div id="root"></div>

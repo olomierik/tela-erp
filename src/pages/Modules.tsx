@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -9,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -230,14 +232,19 @@ const categories = ['All', 'Operations', 'Revenue', 'Finance', 'People', 'AI', '
 export default function Modules() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Modules — TELA-ERP | All 15 ERP Modules Explained</title>
+        <meta name="description" content="Explore all 15 TELA-ERP modules: Production, Inventory, Sales & POS, Accounting, Procurement, Marketing, CRM, HR, Projects, AI CFO, and more. Free for small businesses." />
+        <link rel="canonical" href="https://tela-erp.com/modules" />
+        <meta property="og:title" content="TELA-ERP Modules | Production, Inventory, Sales, Accounting & More" />
+        <meta property="og:description" content="15 fully interconnected ERP modules for small businesses. Production, inventory, sales, accounting, HR, CRM, AI — all free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/modules" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
             <Link to="/modules" className="text-foreground">Modules</Link>
@@ -390,10 +397,7 @@ export default function Modules() {
       <footer className="border-t border-border py-10 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-7 w-auto" />
             <span>— Free &amp; Open Source</span>
           </div>
           <span className="text-xs">© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>

@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -8,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import erickPhoto from '@/assets/erick-olomi.jpg';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const P = 'hsl(230,65%,52%)';
 const A = 'hsl(32,95%,52%)';
@@ -47,7 +49,7 @@ const values = [
 const stats = [
   { value: '15+', label: 'Integrated Modules', sub: 'Inventory to AI — one platform' },
   { value: '165+', label: 'Currencies Supported', sub: 'Live exchange rates built in' },
-  { value: '100%', label: 'Open Source', sub: 'Free forever for SMEs' },
+  { value: '$100', label: 'Per Year', sub: 'Full access — the cheapest ERP' },
   { value: '∞', label: 'Scalability', sub: 'From 1 user to enterprise' },
 ];
 
@@ -63,14 +65,19 @@ const techStack = [
 export default function About() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>About — TELA-ERP | Built in Tanzania for SMEs Worldwide</title>
+        <meta name="description" content="Meet Erick Elibariki Olomi, the founder of TELA-ERP. A tax consultant from Tanga, Tanzania who built a free, open source ERP to make enterprise software accessible to every small business." />
+        <link rel="canonical" href="https://tela-erp.com/about" />
+        <meta property="og:title" content="About TELA-ERP | Our Story & Mission" />
+        <meta property="og:description" content="Built by a Tanzanian tax consultant, TELA-ERP exists to make world-class ERP software accessible to small businesses everywhere — free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/about" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: P }}>
-              <Cpu className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>

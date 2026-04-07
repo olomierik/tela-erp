@@ -14,6 +14,229 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_mappings: {
+        Row: {
+          created_at: string | null
+          credit_account_id: string | null
+          debit_account_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          module: string
+          tenant_id: string
+          transaction_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          module: string
+          tenant_id: string
+          transaction_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credit_account_id?: string | null
+          debit_account_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          module?: string
+          tenant_id?: string
+          transaction_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_mappings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_ledger_balances: {
+        Row: {
+          account_id: string
+          id: string
+          last_voucher_date: string | null
+          running_balance: number
+          tenant_id: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          id?: string
+          last_voucher_date?: string | null
+          running_balance?: number
+          tenant_id: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          id?: string
+          last_voucher_date?: string | null
+          running_balance?: number
+          tenant_id?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_voucher_entries: {
+        Row: {
+          account_id: string
+          created_at: string
+          credit: number
+          debit: number
+          description: string
+          id: string
+          tenant_id: string
+          voucher_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string
+          id?: string
+          tenant_id: string
+          voucher_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          description?: string
+          id?: string
+          tenant_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_voucher_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_vouchers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_auto: boolean
+          narration: string
+          reference: string | null
+          source_id: string | null
+          source_module: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          voucher_date: string
+          voucher_number: string
+          voucher_type: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean
+          narration?: string
+          reference?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          voucher_date?: string
+          voucher_number: string
+          voucher_type?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_auto?: boolean
+          narration?: string
+          reference?: string | null
+          source_id?: string | null
+          source_module?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          voucher_date?: string
+          voucher_number?: string
+          voucher_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_vouchers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -298,6 +521,7 @@ export type Database = {
           category: string
           created_at: string | null
           id: string
+          name: string | null
           notes: string | null
           period_month: number | null
           period_year: number | null
@@ -310,6 +534,7 @@ export type Database = {
           category: string
           created_at?: string | null
           id?: string
+          name?: string | null
           notes?: string | null
           period_month?: number | null
           period_year?: number | null
@@ -322,6 +547,7 @@ export type Database = {
           category?: string
           created_at?: string | null
           id?: string
+          name?: string | null
           notes?: string | null
           period_month?: number | null
           period_year?: number | null
@@ -506,6 +732,7 @@ export type Database = {
           code: string
           created_at: string | null
           id: string
+          is_active: boolean
           is_system: boolean | null
           name: string
           parent_id: string | null
@@ -517,6 +744,7 @@ export type Database = {
           code: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean | null
           name: string
           parent_id?: string | null
@@ -528,6 +756,7 @@ export type Database = {
           code?: string
           created_at?: string | null
           id?: string
+          is_active?: boolean
           is_system?: boolean | null
           name?: string
           parent_id?: string | null
@@ -672,6 +901,7 @@ export type Database = {
         Row: {
           address: string | null
           city: string | null
+          company: string | null
           country: string | null
           created_at: string | null
           credit_limit: number | null
@@ -685,11 +915,13 @@ export type Database = {
           store_id: string | null
           tax_id: string | null
           tenant_id: string
+          tier: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
           city?: string | null
+          company?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -703,11 +935,13 @@ export type Database = {
           store_id?: string | null
           tax_id?: string | null
           tenant_id: string
+          tier?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
           city?: string | null
+          company?: string | null
           country?: string | null
           created_at?: string | null
           credit_limit?: number | null
@@ -721,6 +955,7 @@ export type Database = {
           store_id?: string | null
           tax_id?: string | null
           tenant_id?: string
+          tier?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -768,6 +1003,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_send_state: {
+        Row: {
+          auth_email_ttl_minutes: number
+          batch_size: number
+          id: number
+          retry_after_until: string | null
+          send_delay_ms: number
+          transactional_email_ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       employees: {
         Row: {
@@ -998,7 +1320,9 @@ export type Database = {
         Row: {
           accumulated_depreciation: number | null
           asset_number: string
+          assigned_to: string | null
           category: string
+          condition: string | null
           created_at: string | null
           current_value: number | null
           depreciation_method: string | null
@@ -1020,7 +1344,9 @@ export type Database = {
         Insert: {
           accumulated_depreciation?: number | null
           asset_number: string
+          assigned_to?: string | null
           category?: string
+          condition?: string | null
           created_at?: string | null
           current_value?: number | null
           depreciation_method?: string | null
@@ -1042,7 +1368,9 @@ export type Database = {
         Update: {
           accumulated_depreciation?: number | null
           asset_number?: string
+          assigned_to?: string | null
           category?: string
+          condition?: string | null
           created_at?: string | null
           current_value?: number | null
           depreciation_method?: string | null
@@ -1555,6 +1883,1288 @@ export type Database = {
           },
         ]
       }
+      myerp_accounts: {
+        Row: {
+          balance: number
+          code: string
+          created_at: string
+          currency: string
+          description: string
+          id: string
+          is_header: boolean
+          name: string
+          parent_id: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          is_header?: boolean
+          name: string
+          parent_id?: string | null
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string
+          id?: string
+          is_header?: boolean
+          name?: string
+          parent_id?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myerp_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myerp_assets: {
+        Row: {
+          asset_number: string
+          category: string
+          condition: string
+          created_at: string
+          current_value: number
+          id: string
+          location: string
+          name: string
+          purchase_cost: number
+          purchase_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_number: string
+          category?: string
+          condition?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          location?: string
+          name: string
+          purchase_cost?: number
+          purchase_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_number?: string
+          category?: string
+          condition?: string
+          created_at?: string
+          current_value?: number
+          id?: string
+          location?: string
+          name?: string
+          purchase_cost?: number
+          purchase_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_bills: {
+        Row: {
+          amount: number
+          bill_date: string
+          category: string
+          created_at: string
+          due_date: string
+          id: string
+          notes: string
+          number: string
+          status: string
+          updated_at: string
+          user_id: string
+          vendor: string
+        }
+        Insert: {
+          amount?: number
+          bill_date?: string
+          category?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string
+          number: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          vendor?: string
+        }
+        Update: {
+          amount?: number
+          bill_date?: string
+          category?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string
+          number?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vendor?: string
+        }
+        Relationships: []
+      }
+      myerp_boms: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string
+          product_name: string
+          status: string
+          updated_at: string
+          user_id: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string
+          product_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string
+          product_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          version?: string
+        }
+        Relationships: []
+      }
+      myerp_customers: {
+        Row: {
+          company: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          industry: string
+          name: string
+          phone: string
+          status: string
+          total_orders: number
+          total_revenue: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string
+          name: string
+          phone?: string
+          status?: string
+          total_orders?: number
+          total_revenue?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          industry?: string
+          name?: string
+          phone?: string
+          status?: string
+          total_orders?: number
+          total_revenue?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_depreciation: {
+        Row: {
+          amount: number
+          asset_id: string
+          asset_name: string
+          book_value: number
+          created_at: string
+          date: string
+          id: string
+          period: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          asset_id: string
+          asset_name?: string
+          book_value?: number
+          created_at?: string
+          date?: string
+          id?: string
+          period?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          asset_id?: string
+          asset_name?: string
+          book_value?: number
+          created_at?: string
+          date?: string
+          id?: string
+          period?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myerp_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myerp_employees: {
+        Row: {
+          created_at: string
+          department: string
+          email: string
+          employee_id: string
+          full_name: string
+          hire_date: string | null
+          id: string
+          phone: string
+          position: string
+          salary: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string
+          email?: string
+          employee_id: string
+          full_name: string
+          hire_date?: string | null
+          id?: string
+          phone?: string
+          position?: string
+          salary?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string
+          email?: string
+          employee_id?: string
+          full_name?: string
+          hire_date?: string | null
+          id?: string
+          phone?: string
+          position?: string
+          salary?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_goods_receipts: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string
+          po_number: string
+          product_name: string
+          quantity_received: number
+          receipt_number: string
+          received_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          vendor: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string
+          po_number?: string
+          product_name?: string
+          quantity_received?: number
+          receipt_number: string
+          received_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          vendor?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string
+          po_number?: string
+          product_name?: string
+          quantity_received?: number
+          receipt_number?: string
+          received_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vendor?: string
+        }
+        Relationships: []
+      }
+      myerp_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          customer: string
+          due_date: string
+          id: string
+          issue_date: string
+          items_count: number
+          notes: string
+          number: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          items_count?: number
+          notes?: string
+          number: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer?: string
+          due_date?: string
+          id?: string
+          issue_date?: string
+          items_count?: number
+          notes?: string
+          number?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_job_postings: {
+        Row: {
+          applicants_count: number
+          closing_date: string | null
+          created_at: string
+          department: string
+          id: string
+          location: string
+          posted_date: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applicants_count?: number
+          closing_date?: string | null
+          created_at?: string
+          department?: string
+          id?: string
+          location?: string
+          posted_date?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applicants_count?: number
+          closing_date?: string | null
+          created_at?: string
+          department?: string
+          id?: string
+          location?: string
+          posted_date?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_journal_entries: {
+        Row: {
+          created_at: string
+          date: string
+          description: string
+          id: string
+          reference: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          reference: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          reference?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_journal_lines: {
+        Row: {
+          account_code: string
+          account_id: string | null
+          account_name: string
+          created_at: string
+          credit: number
+          debit: number
+          department: string
+          description: string
+          entry_id: string
+          id: string
+        }
+        Insert: {
+          account_code?: string
+          account_id?: string | null
+          account_name?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          department?: string
+          description?: string
+          entry_id: string
+          id?: string
+        }
+        Update: {
+          account_code?: string
+          account_id?: string | null
+          account_name?: string
+          created_at?: string
+          credit?: number
+          debit?: number
+          department?: string
+          description?: string
+          entry_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myerp_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myerp_journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myerp_leads: {
+        Row: {
+          assigned_to: string
+          company: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+          source: string
+          stage: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          assigned_to?: string
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          phone?: string
+          source?: string
+          stage?: string
+          updated_at?: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          assigned_to?: string
+          company?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+          source?: string
+          stage?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      myerp_leave_requests: {
+        Row: {
+          created_at: string
+          days: number
+          employee: string
+          from_date: string
+          id: string
+          note: string
+          status: string
+          to_date: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days?: number
+          employee?: string
+          from_date?: string
+          id?: string
+          note?: string
+          status?: string
+          to_date?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days?: number
+          employee?: string
+          from_date?: string
+          id?: string
+          note?: string
+          status?: string
+          to_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_mfg_products: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          sku: string
+          status: string
+          unit: string
+          unit_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          sku?: string
+          status?: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sku?: string
+          status?: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          date: string
+          id: string
+          method: string
+          party: string
+          reference: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          method?: string
+          party?: string
+          reference: string
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          method?: string
+          party?: string
+          reference?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_payroll_runs: {
+        Row: {
+          allowances: number
+          basic: number
+          created_at: string
+          deductions: number
+          employee: string
+          gross: number
+          id: string
+          net: number
+          period: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowances?: number
+          basic?: number
+          created_at?: string
+          deductions?: number
+          employee?: string
+          gross?: number
+          id?: string
+          net?: number
+          period?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowances?: number
+          basic?: number
+          created_at?: string
+          deductions?: number
+          employee?: string
+          gross?: number
+          id?: string
+          net?: number
+          period?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_production_orders: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string
+          order_number: string
+          product: string
+          quantity: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string
+          order_number: string
+          product?: string
+          quantity?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string
+          order_number?: string
+          product?: string
+          quantity?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_products: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+          reorder_level: number
+          selling_price: number
+          sku: string
+          status: string
+          stock_qty: number
+          unit: string
+          unit_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          reorder_level?: number
+          selling_price?: number
+          sku: string
+          status?: string
+          stock_qty?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          reorder_level?: number
+          selling_price?: number
+          sku?: string
+          status?: string
+          stock_qty?: number
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_projects: {
+        Row: {
+          budget: number
+          client: string
+          created_at: string
+          end_date: string | null
+          id: string
+          manager: string
+          name: string
+          notes: string
+          spent: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget?: number
+          client?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          manager?: string
+          name: string
+          notes?: string
+          spent?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget?: number
+          client?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          manager?: string
+          name?: string
+          notes?: string
+          spent?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_purchase_orders: {
+        Row: {
+          created_at: string
+          expected_date: string | null
+          id: string
+          items_count: number
+          order_date: string
+          po_number: string
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+          vendor: string
+        }
+        Insert: {
+          created_at?: string
+          expected_date?: string | null
+          id?: string
+          items_count?: number
+          order_date?: string
+          po_number: string
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id: string
+          vendor?: string
+        }
+        Update: {
+          created_at?: string
+          expected_date?: string | null
+          id?: string
+          items_count?: number
+          order_date?: string
+          po_number?: string
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+          vendor?: string
+        }
+        Relationships: []
+      }
+      myerp_quotes: {
+        Row: {
+          amount: number
+          created_at: string
+          customer: string
+          date: string
+          expiry_date: string | null
+          id: string
+          notes: string
+          quote_number: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer?: string
+          date?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string
+          quote_number: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer?: string
+          date?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string
+          quote_number?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_sales_orders: {
+        Row: {
+          created_at: string
+          customer: string
+          date: string
+          id: string
+          items_count: number
+          notes: string
+          order_number: string
+          payment_status: string
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer?: string
+          date?: string
+          id?: string
+          items_count?: number
+          notes?: string
+          order_number: string
+          payment_status?: string
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer?: string
+          date?: string
+          id?: string
+          items_count?: number
+          notes?: string
+          order_number?: string
+          payment_status?: string
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_stock_adjustments: {
+        Row: {
+          adjustment_type: string
+          created_at: string
+          date: string
+          id: string
+          product_id: string | null
+          quantity: number
+          reason: string
+          user_id: string
+          warehouse_id: string | null
+        }
+        Insert: {
+          adjustment_type: string
+          created_at?: string
+          date?: string
+          id?: string
+          product_id?: string | null
+          quantity: number
+          reason?: string
+          user_id: string
+          warehouse_id?: string | null
+        }
+        Update: {
+          adjustment_type?: string
+          created_at?: string
+          date?: string
+          id?: string
+          product_id?: string | null
+          quantity?: number
+          reason?: string
+          user_id?: string
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myerp_stock_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myerp_stock_adjustments_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myerp_stock_levels: {
+        Row: {
+          created_at: string
+          id: string
+          on_hand: number
+          product_id: string
+          reserved: number
+          updated_at: string
+          user_id: string
+          warehouse_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          on_hand?: number
+          product_id: string
+          reserved?: number
+          updated_at?: string
+          user_id: string
+          warehouse_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          on_hand?: number
+          product_id?: string
+          reserved?: number
+          updated_at?: string
+          user_id?: string
+          warehouse_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "myerp_stock_levels_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "myerp_stock_levels_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "myerp_warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      myerp_tasks: {
+        Row: {
+          assigned_to: string
+          created_at: string
+          due_date: string | null
+          id: string
+          priority: string
+          project: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          priority?: string
+          project?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          priority?: string
+          project?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_timesheets: {
+        Row: {
+          created_at: string
+          date: string
+          employee: string
+          hours: number
+          id: string
+          notes: string
+          project: string
+          status: string
+          task: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          employee?: string
+          hours?: number
+          id?: string
+          notes?: string
+          project?: string
+          status?: string
+          task?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          employee?: string
+          hours?: number
+          id?: string
+          notes?: string
+          project?: string
+          status?: string
+          task?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_vendors: {
+        Row: {
+          category: string
+          contact_person: string
+          country: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          payment_terms: string
+          phone: string
+          rating: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          contact_person?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name: string
+          payment_terms?: string
+          phone?: string
+          rating?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          contact_person?: string
+          country?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          payment_terms?: string
+          phone?: string
+          rating?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      myerp_warehouses: {
+        Row: {
+          created_at: string
+          id: string
+          location: string
+          manager: string
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string
+          manager?: string
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string
+          manager?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -1895,6 +3505,7 @@ export type Database = {
           status: string
           store_id: string | null
           tenant_id: string
+          total_cost: number | null
           updated_at: string
         }
         Insert: {
@@ -1910,6 +3521,7 @@ export type Database = {
           status?: string
           store_id?: string | null
           tenant_id: string
+          total_cost?: number | null
           updated_at?: string
         }
         Update: {
@@ -1925,6 +3537,7 @@ export type Database = {
           status?: string
           store_id?: string | null
           tenant_id?: string
+          total_cost?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1959,7 +3572,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
-          phone: string | null
+          phone: string
           tenant_id: string
           updated_at: string
           user_id: string
@@ -1971,7 +3584,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
-          phone?: string | null
+          phone?: string
           tenant_id: string
           updated_at?: string
           user_id: string
@@ -1983,7 +3596,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
-          phone?: string | null
+          phone?: string
           tenant_id?: string
           updated_at?: string
           user_id?: string
@@ -2055,12 +3668,16 @@ export type Database = {
       projects: {
         Row: {
           budget: number | null
+          client: string | null
           created_at: string | null
           customer_id: string | null
           description: string | null
           end_date: string | null
           id: string
+          manager: string | null
           name: string
+          notes: string | null
+          spent: number | null
           start_date: string | null
           status: string | null
           tenant_id: string
@@ -2068,12 +3685,16 @@ export type Database = {
         }
         Insert: {
           budget?: number | null
+          client?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          manager?: string | null
           name: string
+          notes?: string | null
+          spent?: number | null
           start_date?: string | null
           status?: string | null
           tenant_id: string
@@ -2081,12 +3702,16 @@ export type Database = {
         }
         Update: {
           budget?: number | null
+          client?: string | null
           created_at?: string | null
           customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          manager?: string | null
           name?: string
+          notes?: string | null
+          spent?: number | null
           start_date?: string | null
           status?: string | null
           tenant_id?: string
@@ -2109,6 +3734,67 @@ export type Database = {
           },
         ]
       }
+      purchase_order_lines: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          item_id: string | null
+          purchase_order_id: string
+          quantity: number
+          received_quantity: number
+          tenant_id: string
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          item_id?: string | null
+          purchase_order_id: string
+          quantity?: number
+          received_quantity?: number
+          tenant_id: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          item_id?: string | null
+          purchase_order_id?: string
+          quantity?: number
+          received_quantity?: number
+          tenant_id?: string
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_orders: {
         Row: {
           created_at: string
@@ -2117,6 +3803,7 @@ export type Database = {
           id: string
           order_date: string | null
           po_number: string
+          received_quantity: number | null
           status: string
           store_id: string | null
           supplier_id: string | null
@@ -2132,6 +3819,7 @@ export type Database = {
           id?: string
           order_date?: string | null
           po_number: string
+          received_quantity?: number | null
           status?: string
           store_id?: string | null
           supplier_id?: string | null
@@ -2147,6 +3835,7 @@ export type Database = {
           id?: string
           order_date?: string | null
           po_number?: string
+          received_quantity?: number | null
           status?: string
           store_id?: string | null
           supplier_id?: string | null
@@ -2269,6 +3958,8 @@ export type Database = {
           id: string
           linked_record_id: string | null
           linked_record_type: string | null
+          ocr_text: string | null
+          source: string | null
           status: string | null
           tenant_id: string
         }
@@ -2281,6 +3972,8 @@ export type Database = {
           id?: string
           linked_record_id?: string | null
           linked_record_type?: string | null
+          ocr_text?: string | null
+          source?: string | null
           status?: string | null
           tenant_id: string
         }
@@ -2293,6 +3986,8 @@ export type Database = {
           id?: string
           linked_record_id?: string | null
           linked_record_type?: string | null
+          ocr_text?: string | null
+          source?: string | null
           status?: string | null
           tenant_id?: string
         }
@@ -2508,6 +4203,7 @@ export type Database = {
           notes: string | null
           payment_terms: string | null
           phone: string | null
+          rating: number | null
           store_id: string | null
           tax_id: string | null
           tenant_id: string
@@ -2526,6 +4222,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating?: number | null
           store_id?: string | null
           tax_id?: string | null
           tenant_id: string
@@ -2544,6 +4241,7 @@ export type Database = {
           notes?: string | null
           payment_terms?: string | null
           phone?: string | null
+          rating?: number | null
           store_id?: string | null
           tax_id?: string | null
           tenant_id?: string
@@ -2565,6 +4263,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
       }
       tax_rates: {
         Row: {
@@ -2667,63 +4389,160 @@ export type Database = {
           },
         ]
       }
-      tenants: {
+      tenant_apps: {
+        Row: {
+          app_key: string
+          id: string
+          installed_at: string
+          installed_by: string | null
+          is_active: boolean
+          tenant_id: string
+        }
+        Insert: {
+          app_key: string
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          is_active?: boolean
+          tenant_id: string
+        }
+        Update: {
+          app_key?: string
+          id?: string
+          installed_at?: string
+          installed_by?: string | null
+          is_active?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_apps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_secrets: {
         Row: {
           ai_model: string | null
           anthropic_api_key: string | null
           created_at: string
-          custom_domain: string | null
-          default_currency: string
           id: string
-          is_active: boolean
-          logo_url: string | null
-          name: string
-          parent_tenant_id: string | null
-          primary_color: string | null
-          secondary_color: string | null
-          slug: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          subscription_tier: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
           ai_model?: string | null
           anthropic_api_key?: string | null
           created_at?: string
-          custom_domain?: string | null
-          default_currency?: string
           id?: string
-          is_active?: boolean
-          logo_url?: string | null
-          name: string
-          parent_tenant_id?: string | null
-          primary_color?: string | null
-          secondary_color?: string | null
-          slug: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          subscription_tier?: string | null
+          tenant_id: string
           updated_at?: string
         }
         Update: {
           ai_model?: string | null
           anthropic_api_key?: string | null
           created_at?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          address: string | null
+          ai_model: string | null
+          business_type: string | null
+          city: string | null
+          contact_email: string | null
+          country: string | null
+          created_at: string
+          custom_domain: string | null
+          default_currency: string
+          financial_year_start: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          parent_tenant_id: string | null
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          slug: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_tier: string | null
+          timezone: string | null
+          tin: string | null
+          updated_at: string
+          vrn: string | null
+        }
+        Insert: {
+          address?: string | null
+          ai_model?: string | null
+          business_type?: string | null
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
           custom_domain?: string | null
           default_currency?: string
+          financial_year_start?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          parent_tenant_id?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          slug: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          tin?: string | null
+          updated_at?: string
+          vrn?: string | null
+        }
+        Update: {
+          address?: string | null
+          ai_model?: string | null
+          business_type?: string | null
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
+          created_at?: string
+          custom_domain?: string | null
+          default_currency?: string
+          financial_year_start?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
           name?: string
           parent_tenant_id?: string | null
+          phone?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           slug?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_tier?: string | null
+          timezone?: string | null
+          tin?: string | null
           updated_at?: string
+          vrn?: string | null
         }
         Relationships: [
           {
@@ -2840,6 +4659,41 @@ export type Database = {
           },
         ]
       }
+      user_companies: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_companies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -2902,9 +4756,119 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      balance_sheet_view: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profit_loss_view: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trial_balance_view: {
+        Row: {
+          account_code: string | null
+          account_id: string | null
+          account_name: string | null
+          account_type: string | null
+          running_balance: number | null
+          tenant_id: string | null
+          total_credit: number | null
+          total_debit: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      auto_create_voucher: {
+        Args: {
+          _entries: Json
+          _narration: string
+          _source_id: string
+          _source_module: string
+          _tenant_id: string
+          _voucher_date: string
+          _voucher_type: string
+        }
+        Returns: string
+      }
+      create_company: {
+        Args: {
+          _address?: string
+          _business_type?: string
+          _company_name: string
+          _currency?: string
+          _email?: string
+          _financial_year_start?: string
+          _phone?: string
+          _tin?: string
+          _user_id: string
+          _vrn?: string
+        }
+        Returns: string
+      }
+      delete_email: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
+      enqueue_email: {
+        Args: { payload: Json; queue_name: string }
+        Returns: number
+      }
+      get_profiles_count: { Args: never; Returns: number }
+      get_tenant_secret: {
+        Args: { _tenant_id: string }
+        Returns: {
+          ai_model: string
+          anthropic_api_key: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -2919,6 +4883,31 @@ export type Database = {
         Returns: boolean
       }
       is_store_admin: { Args: { _user_id: string }; Returns: boolean }
+      move_to_dlq: {
+        Args: {
+          dlq_name: string
+          message_id: number
+          payload: Json
+          source_queue: string
+        }
+        Returns: number
+      }
+      next_voucher_number: {
+        Args: { _tenant_id: string; _type: string }
+        Returns: string
+      }
+      read_email_batch: {
+        Args: { batch_size: number; queue_name: string; vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      seed_company_coa: {
+        Args: { _business_type?: string; _tenant_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "reseller" | "admin" | "user"

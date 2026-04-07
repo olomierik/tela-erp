@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -8,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -137,14 +139,19 @@ export default function Features() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-[\'Plus_Jakarta_Sans\',sans-serif]">
+      <Helmet>
+        <title>Features — TELA-ERP | Inventory, Sales, Production, Accounting & More</title>
+        <meta name="description" content="Explore TELA-ERP's full feature set: inventory management, sales & POS, production, double-entry accounting, procurement, HR & payroll, AI insights, and more. Free for small businesses." />
+        <link rel="canonical" href="https://tela-erp.com/features" />
+        <meta property="og:title" content="Features — TELA-ERP | Free ERP for Small Businesses" />
+        <meta property="og:description" content="15+ integrated ERP modules — inventory, sales, production, accounting, HR, AI & more. Free and open source." />
+        <meta property="og:url" content="https://tela-erp.com/features" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[hsl(230,65%,52%)] flex items-center justify-center">
-              <Cpu className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link to="/features" className="text-[hsl(230,65%,52%)]">Features</Link>

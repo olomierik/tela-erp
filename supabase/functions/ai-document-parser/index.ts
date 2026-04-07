@@ -25,15 +25,15 @@ async function getTenantApiConfig(req: Request) {
 
   if (!profile?.tenant_id) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
 
-  const { data: tenant } = await supabase
-    .from('tenants')
+  const { data: secret } = await supabase
+    .from('tenant_secrets')
     .select('anthropic_api_key, ai_model')
-    .eq('id', profile.tenant_id)
+    .eq('tenant_id', profile.tenant_id)
     .single()
 
   return {
-    apiKey: tenant?.anthropic_api_key || Deno.env.get('ANTHROPIC_API_KEY'),
-    model: tenant?.ai_model || 'claude-sonnet-4-6',
+    apiKey: secret?.anthropic_api_key || Deno.env.get('ANTHROPIC_API_KEY'),
+    model: secret?.ai_model || 'claude-sonnet-4-6',
   }
 }
 

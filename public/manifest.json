@@ -1,12 +1,15 @@
 {
-  "name": "TELA-ERP",
-  "short_name": "TELA",
-  "description": "Multi-tenant ERP platform with white-label capabilities for resellers",
-  "start_url": "/dashboard",
+  "name": "TELA-ERP — Free Open Source ERP for Small Businesses",
+  "short_name": "TELA-ERP",
+  "description": "Free, open source cloud ERP for small and medium businesses. Manage inventory, sales, production, accounting & procurement in one platform.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#3B82F6",
   "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -21,7 +24,8 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"],
+  "categories": ["business", "productivity", "finance"],
   "screenshots": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "related_applications": []
 }

@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ interface Field {
   options?: { label: string; value: string }[];
   required?: boolean;
   defaultValue?: string;
+  placeholder?: string;
 }
 
 interface CreateDialogProps {
@@ -49,7 +50,7 @@ export function CreateDialog({ title, buttonLabel, fields, onSubmit, isPending }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">{buttonLabel}</Button>
+        <Button size="sm" className="h-10 sm:h-8 touch-manipulation">{buttonLabel}</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -57,13 +58,19 @@ export function CreateDialog({ title, buttonLabel, fields, onSubmit, isPending }
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {fields.map(f => (
-            <div key={f.name} className="space-y-1.5">
-              <Label htmlFor={f.name}>{f.label}</Label>
+            <div key={f.name} className="space-y-2">
+              <Label htmlFor={f.name} className="text-sm font-medium">{f.label}</Label>
               {f.type === 'select' && f.options ? (
                 <Select value={values[f.name]} onValueChange={v => setValues(prev => ({ ...prev, [f.name]: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-11 sm:h-9 text-sm">
+                    <SelectValue placeholder={f.placeholder ?? `Select ${f.label.toLowerCase()}`} />
+                  </SelectTrigger>
                   <SelectContent>
-                    {f.options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    {f.options.map(o => (
+                      <SelectItem key={o.value} value={o.value} className="py-2.5 sm:py-1.5">
+                        {o.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (
@@ -74,13 +81,29 @@ export function CreateDialog({ title, buttonLabel, fields, onSubmit, isPending }
                   value={values[f.name]}
                   onChange={e => setValues(prev => ({ ...prev, [f.name]: e.target.value }))}
                   step={f.type === 'number' ? '0.01' : undefined}
+                  placeholder={f.placeholder}
+                  className="h-11 sm:h-9 text-sm"
                 />
               )}
             </div>
           ))}
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Creating...' : 'Create'}
-          </Button>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="h-11 sm:h-9 touch-manipulation"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="h-11 sm:h-9 touch-manipulation"
+              disabled={isPending}
+            >
+              {isPending ? 'Creating...' : 'Create'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

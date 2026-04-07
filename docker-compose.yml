@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # Main Tela ERP Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    volumes:
+      - ./offline-server/data:/app/offline-server/data
+    depends_on:
+      - postgres
+    networks:
+      - tela-network
+    restart: unless-stopped
+
+  # PostgreSQL Database (for offline mode)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tela_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-tela_password}
+      POSTGRES_DB: tela_erp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - tela-network
+    restart: unless-stopped
+
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@tela-erp.local
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - tela-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  tela-network:
+    driver: bridge
