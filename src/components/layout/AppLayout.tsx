@@ -1,8 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AppSidebar from './AppSidebar';
 import TopBar from './TopBar';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useModules } from '@/contexts/ModulesContext';
 import { cn } from '@/lib/utils';
 
 interface AppLayoutProps {
@@ -19,6 +21,14 @@ const pageVariants = {
 
 export default function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const { collapsed } = useSidebar();
+  const { onboardingCompleted, loading: modulesLoading } = useModules();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!modulesLoading && !onboardingCompleted) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [modulesLoading, onboardingCompleted, navigate]);
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">

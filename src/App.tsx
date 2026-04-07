@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { ModulesProvider } from "@/contexts/ModulesContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
@@ -58,6 +59,11 @@ import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import AppsStore from "./pages/AppsStore";
 import Profile from "./pages/Profile";
+import Onboarding from "./pages/Onboarding";
+import Fleet from "./pages/Fleet";
+import Maintenance from "./pages/Maintenance";
+import PointOfSale from "./pages/PointOfSale";
+import Subscriptions from "./pages/Subscriptions";
 import Vouchers from "./pages/accounting/Vouchers";
 import VoucherForm from "./pages/accounting/VoucherForm";
 import LedgerView from "./pages/accounting/LedgerView";
@@ -80,6 +86,7 @@ const App = () => (
         <ThemeProvider>
           <CurrencyProvider>
           <StoreProvider>
+          <ModulesProvider>
           <SidebarProvider>
           <Toaster />
           <Sonner />
@@ -102,6 +109,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/join/:inviteId" element={<JoinInvite />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
+              <Route path="/onboarding" element={<Onboarding />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -122,14 +130,10 @@ const App = () => (
               <Route path="/online-store" element={<ProtectedRoute><OnlineStoreBuilder /></ProtectedRoute>} />
               <Route path="/stores" element={<ProtectedRoute><Stores /></ProtectedRoute>} />
               <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
-
-              {/* New module routes */}
               <Route path="/hr" element={<ProtectedRoute><HR /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><CRM /></ProtectedRoute>} />
               <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
               <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
-
-              {/* Enterprise & AI routes */}
               <Route path="/ai-cfo" element={<ProtectedRoute><AICFOAssistant /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><DocumentScanner /></ProtectedRoute>} />
               <Route path="/assets" element={<ProtectedRoute><FixedAssets /></ProtectedRoute>} />
@@ -138,6 +142,10 @@ const App = () => (
               <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
               <Route path="/apps" element={<ProtectedRoute><AppsStore /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/fleet" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />
+              <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
+              <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
@@ -158,6 +166,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
           </SidebarProvider>
+          </ModulesProvider>
           </StoreProvider>
           </CurrencyProvider>
         </ThemeProvider>

@@ -10,7 +10,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Loader2, User, Building2, Bot, Palette, Bell, AlertTriangle } from 'lucide-react';
+import { Loader2, User, Building2, Bot, Palette, Bell, AlertTriangle, LayoutGrid } from 'lucide-react';
+import { useModules, INDUSTRY_PRESETS, ALL_MODULES, ModuleKey, MODULE_LABELS } from '@/contexts/ModulesContext';
+import { Switch } from '@/components/ui/switch';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -104,6 +106,7 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boo
 export default function Settings() {
   const { user, profile } = useAuth();
   const { darkMode, toggleDarkMode } = useTheme();
+  const { activeModules, industry, toggleModule, setIndustry } = useModules();
 
   // Profile loading
   const [profileLoading, setProfileLoading] = useState(true);
@@ -395,7 +398,86 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* 2. User Profile */}
+            {/* 2. Modules & Apps */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <LayoutGrid className="w-4 h-4 text-muted-foreground" />
+                  Modules & Apps
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+
+                {/* Industry selector */}
+                <div className="space-y-2">
+                  <Label>Industry</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(INDUSTRY_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setIndustry(key);
+                          toast.success('Industry updated — modules have been reset to defaults');
+                        }}
+                        className={[
+                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors',
+                          industry === key
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background text-muted-foreground hover:border-primary/60 hover:text-foreground',
+                        ].join(' ')}
+                      >
+                        <span>{preset.icon}</span>
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Changing industry resets modules to the recommended defaults</p>
+                </div>
+
+                {/* Module toggles */}
+                <div className="space-y-2">
+                  <Label>Active Modules</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    {(ALL_MODULES as ModuleKey[]).map(key => {
+                      const descriptions: Record<ModuleKey, string> = {
+                        finance: 'Invoices, bills, budgets, journal entries',
+                        sales: 'Leads, customers, quotes, orders',
+                        procurement: 'Vendors, POs, goods receipt',
+                        inventory: 'Products, stock, warehouses',
+                        hr: 'Employees, payroll, attendance, leave',
+                        manufacturing: 'BOMs, production orders, quality',
+                        projects: 'Projects, tasks, timesheets',
+                        assets: 'Register and depreciation',
+                        expenses: 'Expense claims and approvals',
+                        helpdesk: 'Support tickets',
+                        fleet: 'Vehicles, services, fuel logs',
+                        maintenance: 'Equipment and requests',
+                        marketing: 'Mailing lists and campaigns',
+                        subscriptions: 'Recurring billing',
+                        pos: 'Point of sale orders',
+                      };
+                      return (
+                        <div key={key} className="flex items-center justify-between gap-2 py-1">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground leading-tight">{MODULE_LABELS[key]}</p>
+                            <p className="text-xs text-muted-foreground leading-tight">{descriptions[key]}</p>
+                          </div>
+                          <Switch
+                            checked={activeModules.includes(key)}
+                            onCheckedChange={() => toggleModule(key)}
+                            className="shrink-0"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* 3. User Profile */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -442,7 +524,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* 3. AI Assistant */}
+            {/* 4. AI Assistant */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -490,7 +572,7 @@ export default function Settings() {
           {/* ═══════════════════════ RIGHT COLUMN ══════════════════════ */}
           <div className="space-y-6">
 
-            {/* 4. Appearance */}
+            {/* 5. Appearance */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -530,7 +612,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* 5. Notifications */}
+            {/* 6. Notifications */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -568,7 +650,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* 6. Danger Zone */}
+            {/* 7. Danger Zone */}
             <Card className="border-destructive/40">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base text-destructive">

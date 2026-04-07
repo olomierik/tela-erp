@@ -7,15 +7,16 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Brain, Receipt, Store,
-  MoreHorizontal, BookOpen, Wallet, Landmark, ScanLine,
-  UsersRound, PiggyBank, Boxes, UserPlus, Grid3X3,
+  MoreHorizontal, BookOpen, Landmark, ScanLine,
+  UsersRound, PiggyBank, UserPlus, Grid3X3,
+  Car, Wrench, ShoppingBag, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useModules, type ModuleKey } from '@/contexts/ModulesContext';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { useTenantApps } from '@/hooks/use-tenant-apps';
 
 interface NavItem {
   label: string;
@@ -23,6 +24,7 @@ interface NavItem {
   path: string;
   badge?: number;
   badgeColor?: string;
+  module?: ModuleKey;
 }
 
 interface NavSection {
@@ -35,47 +37,56 @@ const navSections: NavSection[] = [
     title: 'Main',
     items: [
       { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { label: 'AI Assistant', icon: Brain, path: '/ai-cfo' },
+      { label: 'AI Assistant', icon: Brain, path: '/ai-cfo', module: 'ai' },
     ],
   },
   {
     title: 'Sales & CRM',
     items: [
-      { label: 'Sales Orders', icon: ShoppingCart, path: '/sales' },
-      { label: 'Invoices', icon: FileText, path: '/invoices' },
-      { label: 'Customers', icon: Users, path: '/customers' },
-      { label: 'CRM Pipeline', icon: UserCircle, path: '/crm' },
-      { label: 'Marketing', icon: Megaphone, path: '/marketing' },
+      { label: 'Sales Orders', icon: ShoppingCart, path: '/sales', module: 'sales' },
+      { label: 'Invoices', icon: FileText, path: '/invoices', module: 'accounting' },
+      { label: 'Customers', icon: Users, path: '/customers', module: 'crm' },
+      { label: 'CRM Pipeline', icon: UserCircle, path: '/crm', module: 'crm' },
+      { label: 'Marketing', icon: Megaphone, path: '/marketing', module: 'marketing' },
+      { label: 'Subscriptions', icon: RefreshCw, path: '/subscriptions', module: 'subscriptions' },
+      { label: 'Point of Sale', icon: ShoppingBag, path: '/pos', module: 'pos' },
     ],
   },
   {
     title: 'Supply Chain',
     items: [
-      { label: 'Inventory', icon: Package, path: '/inventory' },
-      { label: 'Procurement', icon: Truck, path: '/procurement' },
-      { label: 'Suppliers', icon: UserPlus, path: '/suppliers' },
-      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers' },
-      { label: 'Production', icon: Factory, path: '/production' },
+      { label: 'Inventory', icon: Package, path: '/inventory', module: 'inventory' },
+      { label: 'Procurement', icon: Truck, path: '/procurement', module: 'procurement' },
+      { label: 'Suppliers', icon: UserPlus, path: '/suppliers', module: 'procurement' },
+      { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers', module: 'inventory' },
+      { label: 'Production', icon: Factory, path: '/production', module: 'production' },
     ],
   },
   {
     title: 'Finance',
     items: [
-      { label: 'Accounting', icon: Calculator, path: '/accounting' },
-      { label: 'Vouchers', icon: FileText, path: '/accounting/vouchers' },
-      { label: 'Ledger', icon: BookOpen, path: '/accounting/ledger' },
-      { label: 'Financials', icon: BarChart3, path: '/accounting/reports' },
-      { label: 'Expenses', icon: Receipt, path: '/expenses' },
-      { label: 'Budgets', icon: PiggyBank, path: '/budgets' },
-      { label: 'Fixed Assets', icon: Landmark, path: '/assets' },
+      { label: 'Accounting', icon: Calculator, path: '/accounting', module: 'accounting' },
+      { label: 'Vouchers', icon: FileText, path: '/accounting/vouchers', module: 'accounting' },
+      { label: 'Ledger', icon: BookOpen, path: '/accounting/ledger', module: 'accounting' },
+      { label: 'Financials', icon: BarChart3, path: '/accounting/reports', module: 'accounting' },
+      { label: 'Expenses', icon: Receipt, path: '/expenses', module: 'expenses' },
+      { label: 'Budgets', icon: PiggyBank, path: '/budgets', module: 'budgets' },
+      { label: 'Fixed Assets', icon: Landmark, path: '/assets', module: 'assets' },
     ],
   },
   {
     title: 'People & Projects',
     items: [
-      { label: 'HR & Payroll', icon: Briefcase, path: '/hr' },
+      { label: 'HR & Payroll', icon: Briefcase, path: '/hr', module: 'hr' },
       { label: 'Team', icon: UsersRound, path: '/settings/team' },
-      { label: 'Projects', icon: FolderKanban, path: '/projects' },
+      { label: 'Projects', icon: FolderKanban, path: '/projects', module: 'projects' },
+    ],
+  },
+  {
+    title: 'Fleet & Maintenance',
+    items: [
+      { label: 'Fleet', icon: Car, path: '/fleet', module: 'fleet' },
+      { label: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
     ],
   },
   {
@@ -89,7 +100,6 @@ const navSections: NavSection[] = [
   },
 ];
 
-/* ─── Mobile bottom nav: 5 most-used items ────────────────────── */
 const mobileBottomNav: NavItem[] = [
   { label: 'Home', icon: LayoutDashboard, path: '/dashboard' },
   { label: 'Sales', icon: ShoppingCart, path: '/sales' },
@@ -104,26 +114,20 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
-  const { getActiveRoutes, isLoading: appsLoading } = useTenantApps();
-
-  // Filter nav sections to only show items whose routes are active
-  const activeRoutes = useMemo(() => {
-    const routes = new Set(getActiveRoutes());
-    // Always include these paths
-    routes.add('/dashboard');
-    routes.add('/settings');
-    routes.add('/apps');
-    return routes;
-  }, [getActiveRoutes]);
+  const { isModuleActive } = useModules();
 
   const filteredNavSections = useMemo(() => {
     return navSections
       .map(section => ({
         ...section,
-        items: section.items.filter(item => activeRoutes.has(item.path)),
+        items: section.items.filter(item => {
+          if (item.path === '/reseller' && role !== 'reseller') return false;
+          if (item.module && !isModuleActive(item.module)) return false;
+          return true;
+        }),
       }))
       .filter(section => section.items.length > 0);
-  }, [activeRoutes]);
+  }, [isModuleActive, role]);
 
   /* ─── Swipe-to-close for mobile drawer ─────────────────────── */
   const touchStartX = useRef(0);
@@ -310,7 +314,7 @@ export default function AppSidebar() {
 
   return (
     <>
-      {/* Mobile hamburger — larger touch target */}
+      {/* Mobile hamburger */}
       <button
         onClick={() => setMobileOpen(true)}
         className="md:hidden fixed top-3 left-3 z-50 w-11 h-11 rounded-xl bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors touch-manipulation"
@@ -370,8 +374,9 @@ export default function AppSidebar() {
         </button>
       </motion.aside>
 
-      {/* Mobile bottom nav — 5 items with larger touch targets */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-background border-t border-sidebar-border flex items-center justify-around px-1 safe-area-pb shadow-lg shadow-black/20"
+      {/* Mobile bottom nav */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-background border-t border-sidebar-border flex items-center justify-around px-1 safe-area-pb shadow-lg shadow-black/20"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)' }}
       >
         {mobileBottomNav.map(item => {
@@ -402,10 +407,9 @@ export default function AppSidebar() {
         </button>
       </nav>
 
-      {/* More sheet — grid of all modules */}
+      {/* More sheet */}
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl bg-background border-border p-0">
-          {/* Drag handle indicator */}
           <div className="flex justify-center pt-3 pb-1">
             <div className="w-10 h-1 rounded-full bg-muted-foreground/20" />
           </div>
