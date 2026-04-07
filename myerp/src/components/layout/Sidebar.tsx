@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, Handshake, Truck, Box, Users, Factory,
   ClipboardList, Building2, BarChart3, Settings, ChevronDown, ChevronRight,
-  Boxes, TrendingUp, Layers,
+  Boxes, Layers, Receipt, HeadphonesIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -28,6 +28,9 @@ const NAV: NavItem[] = [
       { label: 'Invoices',        path: '/finance/invoices' },
       { label: 'Bills',           path: '/finance/bills' },
       { label: 'Payments',        path: '/finance/payments' },
+      { label: 'Budgets',         path: '/finance/budgets' },
+      { label: 'Tax Rates',       path: '/finance/tax-rates' },
+      { label: 'Aging Report',    path: '/finance/reports/aging' },
       { label: 'Reports',         path: '/finance/reports' },
     ],
   },
@@ -41,25 +44,29 @@ const NAV: NavItem[] = [
   },
   {
     label: 'Procurement', icon: Truck, children: [
-      { label: 'Vendors',          path: '/procurement/vendors' },
-      { label: 'Purchase Orders',  path: '/procurement/purchase-orders' },
-      { label: 'Goods Receipt',    path: '/procurement/goods-receipt' },
+      { label: 'Vendors',         path: '/procurement/vendors' },
+      { label: 'Purchase Orders', path: '/procurement/purchase-orders' },
+      { label: 'Goods Receipt',   path: '/procurement/goods-receipt' },
     ],
   },
   {
     label: 'Inventory', icon: Box, children: [
-      { label: 'Products',     path: '/inventory/products' },
-      { label: 'Warehouses',   path: '/inventory/warehouses' },
-      { label: 'Stock',        path: '/inventory/stock' },
-      { label: 'Adjustments',  path: '/inventory/adjustments' },
+      { label: 'Products',       path: '/inventory/products' },
+      { label: 'Warehouses',     path: '/inventory/warehouses' },
+      { label: 'Stock',          path: '/inventory/stock' },
+      { label: 'Transfers',      path: '/inventory/transfers' },
+      { label: 'Adjustments',    path: '/inventory/adjustments' },
+      { label: 'Reorder Rules',  path: '/inventory/reorder-rules' },
     ],
   },
   {
     label: 'HR & Payroll', icon: Users, children: [
-      { label: 'Employees',    path: '/hr/employees' },
-      { label: 'Payroll',      path: '/hr/payroll' },
-      { label: 'Leave',        path: '/hr/leave' },
-      { label: 'Recruitment',  path: '/hr/recruitment' },
+      { label: 'Employees',   path: '/hr/employees' },
+      { label: 'Contracts',   path: '/hr/contracts' },
+      { label: 'Attendance',  path: '/hr/attendance' },
+      { label: 'Payroll',     path: '/hr/payroll' },
+      { label: 'Leave',       path: '/hr/leave' },
+      { label: 'Recruitment', path: '/hr/recruitment' },
     ],
   },
   {
@@ -67,24 +74,28 @@ const NAV: NavItem[] = [
       { label: 'Products',          path: '/manufacturing/products' },
       { label: 'BOMs',              path: '/manufacturing/boms' },
       { label: 'Production Orders', path: '/manufacturing/production-orders' },
+      { label: 'Work Centers',      path: '/manufacturing/work-centers' },
+      { label: 'Quality Checks',    path: '/manufacturing/quality' },
     ],
   },
   {
     label: 'Projects', icon: ClipboardList, children: [
-      { label: 'Projects',    path: '/projects/projects' },
-      { label: 'Tasks',       path: '/projects/tasks' },
-      { label: 'Timesheets',  path: '/projects/timesheets' },
+      { label: 'Projects',   path: '/projects/projects' },
+      { label: 'Tasks',      path: '/projects/tasks' },
+      { label: 'Timesheets', path: '/projects/timesheets' },
     ],
   },
   {
     label: 'Assets', icon: Building2, children: [
-      { label: 'Asset Register',  path: '/assets/register' },
-      { label: 'Depreciation',    path: '/assets/depreciation' },
+      { label: 'Asset Register', path: '/assets/register' },
+      { label: 'Depreciation',   path: '/assets/depreciation' },
     ],
   },
-  { label: 'Reports',    icon: BarChart3, path: '/reports' },
-  { label: 'Settings',   icon: Settings,  path: '/settings' },
-  { label: 'Components', icon: Layers,    path: '/components/demo' },
+  { label: 'Expenses',   icon: Receipt,         path: '/expenses' },
+  { label: 'Helpdesk',   icon: HeadphonesIcon,  path: '/helpdesk' },
+  { label: 'Reports',    icon: BarChart3,        path: '/reports' },
+  { label: 'Settings',   icon: Settings,         path: '/settings' },
+  { label: 'Components', icon: Layers,           path: '/components/demo' },
 ];
 
 // ─── SectionItem (collapsible group) ────────────────────────────────────────
