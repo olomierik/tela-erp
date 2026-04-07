@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { ModulesProvider } from "@/contexts/ModulesContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
@@ -54,6 +55,11 @@ import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import Profile from "./pages/Profile";
+import Onboarding from "./pages/Onboarding";
+import Fleet from "./pages/Fleet";
+import Maintenance from "./pages/Maintenance";
+import PointOfSale from "./pages/PointOfSale";
+import Subscriptions from "./pages/Subscriptions";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
 
@@ -69,6 +75,7 @@ const App = () => (
         <ThemeProvider>
           <CurrencyProvider>
           <StoreProvider>
+          <ModulesProvider>
           <SidebarProvider>
           <Toaster />
           <Sonner />
@@ -118,6 +125,11 @@ const App = () => (
               <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
               <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/fleet" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />
+              <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
+              <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<Onboarding />} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
@@ -138,6 +150,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
           </SidebarProvider>
+          </ModulesProvider>
           </StoreProvider>
           </CurrencyProvider>
         </ThemeProvider>

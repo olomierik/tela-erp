@@ -7,10 +7,12 @@ import {
   UserCircle, FolderKanban, Calculator, BarChart3, CreditCard,
   Settings, Palette, Building2, LogOut, ChevronLeft, ChevronRight,
   Menu, X, Briefcase, Star, Brain, ScanLine, Receipt,
-  PieChart, Building, Zap, MoreHorizontal,
+  PieChart, Building, Zap, MoreHorizontal, Car, Wrench,
+  ShoppingBag, RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useModules, type ModuleKey } from '@/contexts/ModulesContext';
 import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
@@ -20,12 +22,14 @@ interface NavItem {
   path: string;
   badge?: number;
   badgeColor?: string;
+  module?: ModuleKey;
 }
 
 interface NavSection {
   title: string;
   items: NavItem[];
   collapsible?: boolean;
+  module?: ModuleKey;
 }
 
 const navSections: NavSection[] = [
@@ -37,49 +41,59 @@ const navSections: NavSection[] = [
   },
   {
     title: 'AI Intelligence',
+    module: 'ai',
     items: [
-      { label: 'AI CFO Assistant', icon: Brain, path: '/ai-cfo' },
-      { label: 'Document Scanner', icon: ScanLine, path: '/documents' },
+      { label: 'AI CFO Assistant', icon: Brain, path: '/ai-cfo', module: 'ai' },
+      { label: 'Document Scanner', icon: ScanLine, path: '/documents', module: 'ai' },
     ],
     collapsible: true,
   },
   {
     title: 'Operations',
     items: [
-      { label: 'Sales', icon: ShoppingCart, path: '/sales' },
-      { label: 'Invoices', icon: FileText, path: '/invoices' },
-      { label: 'Procurement', icon: Truck, path: '/procurement' },
-      { label: 'Inventory', icon: Package, path: '/inventory' },
-      { label: 'Stock Transfers', icon: ArrowRightLeft, path: '/transfers' },
-      { label: 'Production', icon: Factory, path: '/production' },
+      { label: 'Sales', icon: ShoppingCart, path: '/sales', module: 'sales' },
+      { label: 'Invoices', icon: FileText, path: '/invoices', module: 'accounting' },
+      { label: 'Procurement', icon: Truck, path: '/procurement', module: 'procurement' },
+      { label: 'Inventory', icon: Package, path: '/inventory', module: 'inventory' },
+      { label: 'Stock Transfers', icon: ArrowRightLeft, path: '/transfers', module: 'inventory' },
+      { label: 'Production', icon: Factory, path: '/production', module: 'production' },
+      { label: 'Point of Sale', icon: ShoppingBag, path: '/pos', module: 'pos' },
+      { label: 'Subscriptions', icon: RefreshCw, path: '/subscriptions', module: 'subscriptions' },
       { label: 'Automations', icon: Zap, path: '/automations' },
     ],
   },
   {
     title: 'Customers',
     items: [
-      { label: 'CRM', icon: UserCircle, path: '/crm' },
+      { label: 'CRM', icon: UserCircle, path: '/crm', module: 'crm' },
       { label: 'Online Store', icon: Globe, path: '/online-store' },
-      { label: 'Marketing', icon: Megaphone, path: '/marketing' },
+      { label: 'Marketing', icon: Megaphone, path: '/marketing', module: 'marketing' },
     ],
   },
   {
     title: 'Workforce',
     items: [
-      { label: 'HR & Payroll', icon: Briefcase, path: '/hr' },
-      { label: 'Projects', icon: FolderKanban, path: '/projects' },
+      { label: 'HR & Payroll', icon: Briefcase, path: '/hr', module: 'hr' },
+      { label: 'Projects', icon: FolderKanban, path: '/projects', module: 'projects' },
       { label: 'Team', icon: Users, path: '/settings/team' },
     ],
   },
   {
     title: 'Finance',
     items: [
-      { label: 'Accounting', icon: Calculator, path: '/accounting' },
-      { label: 'Fixed Assets', icon: Building, path: '/assets' },
-      { label: 'Expenses', icon: Receipt, path: '/expenses' },
-      { label: 'Budgets', icon: PieChart, path: '/budgets' },
+      { label: 'Accounting', icon: Calculator, path: '/accounting', module: 'accounting' },
+      { label: 'Fixed Assets', icon: Building, path: '/assets', module: 'assets' },
+      { label: 'Expenses', icon: Receipt, path: '/expenses', module: 'expenses' },
+      { label: 'Budgets', icon: PieChart, path: '/budgets', module: 'budgets' },
       { label: 'Reports', icon: BarChart3, path: '/reports' },
       { label: 'Billing', icon: CreditCard, path: '/billing' },
+    ],
+  },
+  {
+    title: 'Fleet & Maintenance',
+    items: [
+      { label: 'Fleet', icon: Car, path: '/fleet', module: 'fleet' },
+      { label: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
     ],
   },
   {
@@ -108,6 +122,7 @@ export default function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, tenant, role, signOut } = useAuth();
+  const { isModuleActive } = useModules();
 
   const handleSignOut = async () => { await signOut(); navigate('/login'); };
 
@@ -197,6 +212,15 @@ export default function AppSidebar() {
       <nav className="flex-1 py-3 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         {navSections.map(section => {
           if (section.title === 'Admin' && role !== 'admin' && role !== 'reseller') return null;
+          if (section.module && !isModuleActive(section.module)) return null;
+
+          const visibleItems = section.items.filter(item => {
+            if (item.path === '/reseller' && role !== 'reseller') return false;
+            if (item.module && !isModuleActive(item.module)) return false;
+            return true;
+          });
+          if (visibleItems.length === 0) return null;
+
           const isSectionCollapsed = collapsedSections.has(section.title);
 
           return (
@@ -236,10 +260,9 @@ export default function AppSidebar() {
                     transition={{ duration: 0.18, ease: 'easeInOut' }}
                     className="space-y-0.5 overflow-hidden"
                   >
-                    {section.items.map(item => {
-                      if (item.path === '/reseller' && role !== 'reseller') return null;
-                      return <NavItemComponent key={item.path} item={item} />;
-                    })}
+                    {visibleItems.map(item => (
+                      <NavItemComponent key={item.path} item={item} />
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -394,9 +417,12 @@ export default function AppSidebar() {
           <div className="overflow-y-auto h-full pb-20 px-4 pt-3">
             {navSections.map(section => {
               if (section.title === 'Admin' && role !== 'admin' && role !== 'reseller') return null;
-              const visibleItems = section.items.filter(
-                item => !(item.path === '/reseller' && role !== 'reseller')
-              );
+              if (section.module && !isModuleActive(section.module)) return null;
+              const visibleItems = section.items.filter(item => {
+                if (item.path === '/reseller' && role !== 'reseller') return false;
+                if (item.module && !isModuleActive(item.module)) return false;
+                return true;
+              });
               if (visibleItems.length === 0) return null;
               return (
                 <div key={section.title} className="mb-5">
