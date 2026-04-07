@@ -81,6 +81,12 @@ export function useTenantApps() {
 
   const uninstallApp = useMutation({
     mutationFn: async (appKey: string) => {
+      if (isDemo) {
+        queryClient.setQueryData(['tenant-apps', tenant?.id], (old: TenantApp[] = []) =>
+          old.map(a => a.app_key === appKey ? { ...a, is_active: false } : a)
+        );
+        return;
+      }
       if (!tenant?.id) throw new Error('Not authenticated');
       const { error } = await (supabase as any)
         .from('tenant_apps')
