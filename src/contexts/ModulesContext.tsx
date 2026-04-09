@@ -183,7 +183,7 @@ const storageKey = (tenantId: string) => `tela_modules_${tenantId}`;
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function ModulesProvider({ children }: { children: ReactNode }) {
-  const { tenant, loading: authLoading, isDemo } = useAuth();
+  const { tenant, loading: authLoading, isDemo, profile } = useAuth();
   const [activeModules, setActiveModules] = useState<ModuleKey[]>(ALL_MODULES);
   const [industry, setIndustryState] = useState<string>('general');
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
@@ -227,26 +227,26 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(saved);
         setActiveModules(parsed.activeModules ?? ALL_MODULES);
         setIndustryState(parsed.industry ?? 'general');
-        setOnboardingCompleted(parsed.onboardingCompleted ?? false);
+        setOnboardingCompleted(parsed.onboardingCompleted ?? true);
       } catch {
-        setOnboardingCompleted(isDemo ? true : false);
-      }
-    } else {
-      // For returning users switching to existing companies, skip onboarding
-      const isCompanySwitch = !!localStorage.getItem('tela_active_tenant');
-      const shouldSkip = isDemo || isCompanySwitch || !!tenant?.id;
-      if (shouldSkip) {
+        // Parse error — use defaults, mark completed so we don't loop
         setActiveModules(ALL_MODULES);
         setIndustryState('general');
         setOnboardingCompleted(true);
-        const k = storageKey(tenant?.id ?? 'demo');
-        localStorage.setItem(k, JSON.stringify({ activeModules: ALL_MODULES, industry: 'general', onboardingCompleted: true }));
-      } else {
-        setOnboardingCompleted(false);
       }
+    } else {
+      // No saved data for this tenant.
+      // Only show onboarding when the user is viewing their OWN company for the
+      // first time (new sign-up). When switching to another company (reseller /
+      // multi-company), skip onboarding and use defaults.
+      const isOwnTenant =
+        !profile?.tenant_id || profile.tenant_id === (tenant?.id ?? 'demo');
+      setActiveModules(ALL_MODULES);
+      setIndustryState('general');
+      setOnboardingCompleted(isDemo ? true : !isOwnTenant);
     }
     setLoading(false);
-  }, [authLoading, tenant?.id, isDemo]);
+  }, [authLoading, tenant?.id, isDemo, profile?.tenant_id]);
 
   const save = (modules: ModuleKey[], ind: string, completed: boolean) => {
     const key = storageKey(tenant?.id ?? 'demo');
