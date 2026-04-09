@@ -65,6 +65,7 @@ import Maintenance from "./pages/Maintenance";
 import PointOfSale from "./pages/PointOfSale";
 import Subscriptions from "./pages/Subscriptions";
 import IndustryInsights from "./pages/IndustryInsights";
+import SolanaMemeScanner from "./pages/solana/SolanaMemeScanner";
 import Vouchers from "./pages/accounting/Vouchers";
 import VoucherForm from "./pages/accounting/VoucherForm";
 import LedgerView from "./pages/accounting/LedgerView";
@@ -148,6 +149,7 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
               <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
               <Route path="/industry-insights" element={<ProtectedRoute><IndustryInsights /></ProtectedRoute>} />
+              <Route path="/solana-scanner" element={<ProtectedRoute><SolanaMemeScanner /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />

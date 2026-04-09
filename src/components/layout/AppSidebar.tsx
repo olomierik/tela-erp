@@ -9,7 +9,7 @@ import {
   Menu, X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal, BookOpen, Landmark, ScanLine,
   UsersRound, PiggyBank, UserPlus, Grid3X3,
-  Car, Wrench, ShoppingBag, RefreshCw, Lightbulb,
+  Car, Wrench, ShoppingBag, RefreshCw, Lightbulb, Zap,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -94,6 +94,7 @@ const navSections: NavSection[] = [
     title: 'Tools',
     items: [
       { label: 'Industry Insights', icon: Lightbulb, path: '/industry-insights' },
+      { label: 'Solana Scanner', icon: Zap, path: '/solana-scanner' },
       { label: 'Stores', icon: Store, path: '/stores' },
       { label: 'Online Store', icon: Globe, path: '/online-store' },
       { label: 'Doc Scanner', icon: ScanLine, path: '/documents' },
