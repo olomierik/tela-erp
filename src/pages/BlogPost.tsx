@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { blogPosts } from '@/data/blog-posts';
 import telaLogo from '@/assets/tela-erp-logo.png';
+import DOMPurify from 'dompurify';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -136,7 +137,7 @@ export default function BlogPost() {
             prose-table:text-sm
             prose-th:bg-muted prose-th:p-3
             prose-td:p-3 prose-td:border prose-td:border-border"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, { USE_PROFILES: { html: true } }) }}
         />
       </article>
 

@@ -73,11 +73,19 @@ import Unsubscribe from "./pages/Unsubscribe";
 import { initErrorMonitoring } from "@/lib/error-monitoring";
 import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import ScrollButtons from "@/components/ui/ScrollButtons";
+import TelemetryDashboard from "./pages/admin/TelemetryDashboard";
+import { useTelemetry } from "@/lib/telemetry";
 
 // Initialize error monitoring
 initErrorMonitoring();
 
 const queryClient = new QueryClient();
+
+/** Placed inside BrowserRouter so useLocation is available. */
+function TelemetryTracker() {
+  useTelemetry();
+  return null;
+}
 
 const App = () => (
   <HelmetProvider>
@@ -92,6 +100,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <TelemetryTracker />
             <WhatsAppButton />
             <ScrollButtons />
             <Routes>
@@ -157,6 +166,7 @@ const App = () => (
               <Route path="/settings/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
               <Route path="/settings/readiness" element={<ProtectedRoute><ProductionReadiness /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/admin/telemetry" element={<TelemetryDashboard />} />
 
               {/* Public storefront routes */}
               <Route path="/store/:slug" element={<StorefrontLayout />}>

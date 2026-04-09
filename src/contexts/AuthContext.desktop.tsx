@@ -86,8 +86,10 @@ function DesktopSetup({ onComplete }: DesktopSetupProps) {
         email: email.trim().toLowerCase(),
         full_name: 'Admin',
         role: 'admin',
-        // Note: in desktop mode passwords are stored plaintext for simplicity.
-        // Production hardening: use bcrypt or similar.
+        // SECURITY TODO: passwords are stored plaintext in the local SQLite DB.
+        // Before shipping desktop builds, hash passwords with bcrypt or argon2
+        // via an Electron IPC call so the plaintext never reaches the renderer process.
+        // Reference: https://www.npmjs.com/package/bcryptjs
         password_hash: password,
       });
 

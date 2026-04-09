@@ -55,7 +55,7 @@ export default function Signup() {
     e.preventDefault();
     if (!form.fullName.trim()) { toast.error('Full name is required'); return; }
     if (!form.email.trim()) { toast.error('Email is required'); return; }
-    if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    if (form.password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
       await signUp(form.email, form.password, form.fullName, form.companyName, form.accountType, form.phone);
@@ -70,10 +70,11 @@ export default function Signup() {
 
   /* ---------- OAuth (Google / Apple) ---------- */
   const handleOAuth = async (provider: 'google' | 'apple') => {
-    // Store business info in localStorage so we can attach it after OAuth redirect
-    localStorage.setItem('tela_signup_company', form.companyName);
-    localStorage.setItem('tela_signup_phone', form.phone);
-    localStorage.setItem('tela_signup_role', form.accountType);
+    // Store business info in sessionStorage (cleared on tab close; not persisted to disk)
+    // Phone number especially should not be in persistent localStorage
+    sessionStorage.setItem('tela_signup_company', form.companyName);
+    sessionStorage.setItem('tela_signup_phone', form.phone);
+    sessionStorage.setItem('tela_signup_role', form.accountType);
 
     setOauthLoading(provider);
     try {
@@ -429,8 +430,8 @@ export default function Signup() {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {form.password.length > 0 && form.password.length < 6 && (
-                        <p className="text-[11px] text-destructive mt-1">Password must be at least 6 characters</p>
+                      {form.password.length > 0 && form.password.length < 8 && (
+                        <p className="text-[11px] text-destructive mt-1">Password must be at least 8 characters</p>
                       )}
                     </div>
 
