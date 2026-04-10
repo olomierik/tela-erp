@@ -7,9 +7,47 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+const LOVABLE_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions'
+const LOVABLE_MODEL = 'google/gemini-3-flash-preview'
+
 // ─── Template variable interpolation ─────────────────────────────────────────
 function interpolate(template: string, data: Record<string, any>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(data[key] ?? `{{${key}}}`))
+}
+
+// ─── AI-powered message generation (used when no template is configured) ─────
+async function generateAIMessage(rule: any, payload: Record<string, any>): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+  if (!LOVABLE_API_KEY) return `Automation rule "${rule.name}" was triggered.`
+
+  try {
+    const resp = await fetch(LOVABLE_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: LOVABLE_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a business notification writer for a Tanzanian ERP. Write clear, concise (1-2 sentence) business notifications in English. Be specific and actionable.',
+          },
+          {
+            role: 'user',
+            content: `Write a notification message for this automation rule:\nRule: "${rule.name}"\nTrigger: ${rule.trigger_event}\nData: ${JSON.stringify(payload)}\n\nReturn only the notification message text — no quotes, no formatting.`,
+          },
+        ],
+        max_tokens: 100,
+      }),
+    })
+    if (!resp.ok) return `Automation rule "${rule.name}" was triggered.`
+    const data = await resp.json()
+    return data.choices?.[0]?.message?.content?.trim() ?? `Automation rule "${rule.name}" was triggered.`
+  } catch {
+    return `Automation rule "${rule.name}" was triggered.`
+  }
 }
 
 // ─── Action executors ─────────────────────────────────────────────────────────
@@ -21,10 +59,11 @@ async function execSendNotification(
   tenantId: string,
   payload: Record<string, any>,
 ) {
-  const message = interpolate(
-    action.config?.message ?? `Automation rule "${rule.name}" was triggered.`,
-    payload,
-  )
+  // Use configured template, or fall back to AI-generated message
+  const rawTemplate = action.config?.message ?? ''
+  const message = rawTemplate.trim()
+    ? interpolate(rawTemplate, payload)
+    : await generateAIMessage(rule, payload)
 
   // Broadcast to all tenant users
   const { data: profiles } = await supabase
