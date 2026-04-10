@@ -20,14 +20,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── Mock Supabase before any imports that pull it in ─────────────────────────
+// vi.mock() is hoisted above all imports/declarations, so spy variables must
+// be created with vi.hoisted() to be available inside the factory.
 
-const mockSignInWithPassword = vi.fn();
-const mockSignUp = vi.fn();
-const mockSignInWithOtp = vi.fn();
-const mockResetPasswordForEmail = vi.fn();
-const mockSignOut = vi.fn();
-const mockGetSession = vi.fn();
-const mockOnAuthStateChange = vi.fn();
+const {
+  mockSignInWithPassword,
+  mockSignUp,
+  mockSignInWithOtp,
+  mockResetPasswordForEmail,
+  mockSignOut,
+  mockGetSession,
+  mockOnAuthStateChange,
+} = vi.hoisted(() => ({
+  mockSignInWithPassword: vi.fn(),
+  mockSignUp: vi.fn(),
+  mockSignInWithOtp: vi.fn(),
+  mockResetPasswordForEmail: vi.fn(),
+  mockSignOut: vi.fn(),
+  mockGetSession: vi.fn(),
+  mockOnAuthStateChange: vi.fn(),
+}));
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {

@@ -85,22 +85,26 @@ export default function PointOfSale() {
 
   const handleCreate = async () => {
     if (isDemo) { toast.success('POS session opened (demo)'); setCreateOpen(false); return; }
-    if (!form.cashier_name) {
+    if (!form.cashier_name.trim()) {
       toast.error('Cashier name is required');
       return;
     }
-    await insertSession.mutateAsync({
-      cashier: form.cashier_name,
-      opening_cash: Number(form.opening_cash) || 0,
-      status: form.status,
-      opened_at: form.opened_at,
-      session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
-      total_sales: 0,
-      total_orders: 0,
-    });
-    toast.success('POS session opened');
-    setCreateOpen(false);
-    setForm({ cashier_name: '', opening_cash: '', status: 'open', opened_at: new Date().toISOString().slice(0, 16) });
+    try {
+      await insertSession.mutateAsync({
+        cashier: form.cashier_name.trim(),
+        opening_cash: Number(form.opening_cash) || 0,
+        status: form.status,
+        opened_at: form.opened_at,
+        session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
+        total_sales: 0,
+        total_orders: 0,
+      });
+      toast.success('POS session opened');
+      setCreateOpen(false);
+      setForm({ cashier_name: '', opening_cash: '', status: 'open', opened_at: new Date().toISOString().slice(0, 16) });
+    } catch {
+      toast.error('Failed to open session. Please try again.');
+    }
   };
 
   const columns: Column[] = [
