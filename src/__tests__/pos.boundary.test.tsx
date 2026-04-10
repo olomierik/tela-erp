@@ -25,7 +25,7 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ─── Mocks registered BEFORE the component import ─────────────────────────────
@@ -191,9 +191,9 @@ function openSessionSheet() {
   fireEvent.click(button);
 }
 
-/** Finds the submit button by its accessible name. */
+/** Finds the submit button scoped to the sheet footer (avoids ambiguity with header/empty-state buttons). */
 function getSubmitButton() {
-  return screen.getByRole('button', { name: /open session/i });
+  return within(screen.getByTestId('sheet-footer')).getByRole('button', { name: /open session/i });
 }
 
 /** Finds the cashier name input by its placeholder text. */
@@ -392,7 +392,7 @@ describe('handleCreate — successful real submission', () => {
     expect(callArg.opening_cash).toBe(0);
   });
 
-  it('initialises total_sales and order_count to 0 on creation', async () => {
+  it('initialises total_sales and total_orders to 0 on creation', async () => {
     renderPOS();
     openSessionSheet();
 
@@ -403,10 +403,10 @@ describe('handleCreate — successful real submission', () => {
 
     const callArg = mockMutateAsync.mock.calls[0][0];
     expect(callArg.total_sales).toBe(0);
-    expect(callArg.order_count).toBe(0);
+    expect(callArg.total_orders).toBe(0);
   });
 
-  it('passes cashier_name unchanged to mutateAsync', async () => {
+  it('passes cashier name (trimmed) to mutateAsync as `cashier` field', async () => {
     renderPOS();
     openSessionSheet();
 
@@ -416,7 +416,7 @@ describe('handleCreate — successful real submission', () => {
     await waitFor(() => expect(mockMutateAsync).toHaveBeenCalled());
 
     const callArg = mockMutateAsync.mock.calls[0][0];
-    expect(callArg.cashier_name).toBe('Kwame Mensah Jr.');
+    expect(callArg.cashier).toBe('Kwame Mensah Jr.');
   });
 });
 
@@ -461,26 +461,15 @@ describe('session_number — auto-generation contract', () => {
 
 describe('handleCreate — edge cases', () => {
   it('whitespace-only cashier_name is treated as empty and triggers toast.error', () => {
-    // '   '.trim() would be '', which is falsy — current code uses !form.cashier_name
-    // which is falsy for '   ' only if the check uses .trim(). Document intent:
-    // the system SHOULD reject whitespace-only names.
+    // Validation uses .trim() so '   '.trim() === '' is falsy → rejected.
     renderPOS();
     openSessionSheet();
 
-    // Type only spaces
     fireEvent.change(getCashierInput(), { target: { value: '   ' } });
     fireEvent.click(getSubmitButton());
 
-    // '   ' is truthy in JS — this test documents a KNOWN GAP:
-    // the current implementation (!form.cashier_name) does NOT catch whitespace-only.
-    // If toast.error is NOT called, the test passes — but the expected behaviour
-    // (reject whitespace) means this assertion should be:
-    //   expect(mockToastError).toHaveBeenCalled()
-    // Mark as a documented boundary where the implementation falls short.
-    // For now we assert the ACTUAL current behaviour (no error for whitespace).
-    // When the validation is tightened, change this to toHaveBeenCalled().
-    expect(mockMutateAsync).toHaveBeenCalledTimes(0); // still not called yet (async)
-    // No synchronous error for whitespace (known gap — see comment above)
+    expect(mockToastError).toHaveBeenCalledWith('Cashier name is required');
+    expect(mockMutateAsync).not.toHaveBeenCalled();
   });
 
   it('mutateAsync rejection propagates without crashing the component', async () => {
