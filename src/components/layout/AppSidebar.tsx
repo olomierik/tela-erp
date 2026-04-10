@@ -106,7 +106,7 @@ const navSections: NavSection[] = [
   {
     title: 'Automation',
     items: [
-      { label: 'Automation Rules', icon: Zap, path: '/automation' },
+      { label: 'Automation Rules', icon: Zap, path: '/automations' },
       { label: 'Execution Log', icon: ClipboardList, path: '/automation-log' },
       { label: 'Anomaly Alerts', icon: AlertTriangle, path: '/anomaly-alerts' },
     ],
