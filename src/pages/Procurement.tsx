@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { supabase } from '@/integrations/supabase/client';
 import { onProcurementReceived } from '@/hooks/use-cross-module';
+import { triggerAutomation } from '@/lib/automation';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -307,6 +308,12 @@ export default function Procurement() {
               toast.error('PO saved, but line item links were not saved');
             }
           });
+
+        void triggerAutomation('po_created', {
+          vendor: row.vendor_name ?? row.supplier,
+          total: row.total ?? row.grand_total,
+          reference: row.po_number ?? row.reference,
+        }, tenant?.id ?? '');
       },
     });
   };

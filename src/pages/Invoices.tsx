@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { triggerAutomation } from '@/lib/automation';
 
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
@@ -202,6 +203,13 @@ function InvoiceSheet({
             line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
           });
         }
+        // after successful insert, fire invoice_created automation
+        void triggerAutomation('invoice_created', {
+          invoice_number: created?.invoice_number ?? invoiceData.invoice_number,
+          customer_name: invoiceData.customer_name,
+          total: invoiceData.total_amount,
+          due_date: invoiceData.due_date,
+        }, tenant?.id ?? '');
       }
       onClose();
     } catch (e: any) {

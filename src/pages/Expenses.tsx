@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerAutomation } from '@/lib/automation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -83,6 +84,11 @@ export default function Expenses() {
   const handleSubmit = async (id: string) => {
     if (isDemo) { toast.success('Claim submitted for approval (demo)'); return; }
     await updateClaim.mutateAsync({ id, status: 'submitted', submitted_at: new Date().toISOString() });
+    const claim = claims.find(c => c.id === id);
+    void triggerAutomation('expense_submitted', {
+      amount: claim?.total_amount ?? 0,
+      description: claim?.notes ?? '',
+    }, tenant?.id ?? '');
     toast.success('Claim submitted for approval');
   };
 

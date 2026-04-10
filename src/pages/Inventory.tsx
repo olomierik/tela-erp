@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTenantQuery, useTenantInsert, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerAutomation } from '@/lib/automation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
@@ -343,7 +344,19 @@ export default function Inventory() {
                   </Button>
                   <BulkUpload onUpload={handleBulkUpload} />
                   <InventoryAdjustmentDialog items={items} />
-                  <CreateDialog title="Add Item" buttonLabel="+ Add Item" fields={fields} onSubmit={insert.mutate} isPending={insert.isPending} />
+                  <CreateDialog title="Add Item" buttonLabel="+ Add Item" fields={fields} onSubmit={(row) => {
+                    insert.mutate(row, {
+                      onSuccess: () => {
+                        const qty = Number(row.quantity ?? 0);
+                        const reorder = Number(row.reorder_level ?? 10);
+                        if (qty === 0) {
+                          void triggerAutomation('stock_out', { name: row.name, sku: row.sku, quantity: qty }, tenant?.id ?? '');
+                        } else if (qty <= reorder) {
+                          void triggerAutomation('stock_low', { name: row.name, sku: row.sku, quantity: qty, reorder_level: reorder }, tenant?.id ?? '');
+                        }
+                      },
+                    });
+                  }} isPending={insert.isPending} />
                 </>
               )}
             </div>
