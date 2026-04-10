@@ -23,6 +23,7 @@ import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { triggerAutomation } from '@/lib/automation';
 
 const stages = [
   { id: 'lead', label: 'Lead', color: 'bg-gray-100 dark:bg-gray-800', badge: 'bg-gray-200 text-gray-700' },
@@ -200,7 +201,7 @@ function AddContactSheet({ onClose }: { onClose: () => void }) {
 // ─── Add Deal Sheet ────────────────────────────────────────────────────────
 
 function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => void }) {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const insert = useTenantInsert('crm_deals');
   const [form, setForm] = useState({
     title: '', customer_id: '', contact_name: '', company: '',
@@ -223,6 +224,7 @@ function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => v
         expected_close_date: form.expected_close_date || null,
         notes: selectedContact ? `Contact: ${selectedContact.name} (${selectedContact.company || ''})` : '',
       });
+      void triggerAutomation('deal_stage_changed', { stage: form.stage, name: form.title }, tenant?.id ?? '');
       onClose();
     } finally {
       setSaving(false);
@@ -413,7 +415,7 @@ function ContactDetail({ contact, activities, onClose, onActivityLogged }: {
 
 export default function CRM() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedContact, setSelectedContact] = useState<any>(null);
@@ -444,6 +446,10 @@ export default function CRM() {
   const handleMoveDeal = async (dealId: string, newStage: string) => {
     if (isDemo) return;
     await updateDeal.mutateAsync({ id: dealId, stage: newStage });
+    if (newStage === 'won') {
+      void triggerAutomation('deal_won', { deal_id: dealId, stage: newStage }, tenant?.id ?? '');
+    }
+    void triggerAutomation('deal_stage_changed', { deal_id: dealId, stage: newStage }, tenant?.id ?? '');
   };
 
   // Deal stage progression
