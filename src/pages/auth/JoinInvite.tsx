@@ -68,7 +68,7 @@ export default function JoinInvite() {
     e.preventDefault();
     if (!invite) return;
     if (!fullName.trim()) { toast.error('Please enter your full name'); return; }
-    if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+    if (password.length < 8) { toast.error('Password must be at least 8 characters'); return; }
 
     setSubmitting(true);
     try {

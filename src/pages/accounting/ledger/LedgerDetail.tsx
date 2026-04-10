@@ -1,4 +1,16 @@
 import { useState, useMemo } from 'react';
+import DOMPurify from 'dompurify';
+
+/** Escape a string for safe insertion into an HTML context. */
+function escHtml(str: string | null | undefined): string {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -206,7 +218,8 @@ export function LedgerDetail({ account, balance, entries, onRefresh }: Props) {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     const rows = getExportRows();
-    const html = `<!DOCTYPE html><html><head><title>Ledger: ${account?.name}</title>
+    // All DB-sourced strings are HTML-escaped to prevent stored-XSS via document.write
+    const html = `<!DOCTYPE html><html><head><title>Ledger: ${escHtml(account?.name)}</title>
       <style>
         body { font-family: -apple-system, sans-serif; margin: 20px; font-size: 12px; }
         h1 { font-size: 18px; margin: 0; } h2 { font-size: 14px; color: #666; margin: 4px 0 12px; }
@@ -219,24 +232,24 @@ export function LedgerDetail({ account, balance, entries, onRefresh }: Props) {
         .total-row { font-weight: bold; border-top: 2px solid #333; }
         @media print { body { margin: 0; } }
       </style></head><body>
-      <h1>${tenant?.name || 'Company'}</h1>
-      <h2>Ledger: ${account?.name} (${account?.code})</h2>
-      <div class="meta">${filterLabel || 'All transactions'} · Generated: ${new Date().toLocaleString()}</div>
+      <h1>${escHtml(tenant?.name) || 'Company'}</h1>
+      <h2>Ledger: ${escHtml(account?.name)} (${escHtml(account?.code)})</h2>
+      <div class="meta">${escHtml(filterLabel) || 'All transactions'} · Generated: ${escHtml(new Date().toLocaleString())}</div>
       <table><thead><tr>
         <th>Date</th><th>Type</th><th>Reference</th><th>Narration</th>
         <th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th>
       </tr></thead><tbody>
       ${rows.map(r => `<tr>
-        <td>${r.date}</td><td>${r.type}</td><td>${r.reference}</td><td>${r.narration}</td>
-        <td class="num">${r.debit > 0 ? formatMoney(r.debit) : ''}</td>
-        <td class="num">${r.credit > 0 ? formatMoney(r.credit) : ''}</td>
-        <td class="num ${r.balance >= 0 ? 'dr' : 'cr'}">${formatMoney(Math.abs(r.balance))} ${r.balance >= 0 ? 'Dr' : 'Cr'}</td>
+        <td>${escHtml(r.date)}</td><td>${escHtml(r.type)}</td><td>${escHtml(r.reference)}</td><td>${escHtml(r.narration)}</td>
+        <td class="num">${r.debit > 0 ? escHtml(formatMoney(r.debit)) : ''}</td>
+        <td class="num">${r.credit > 0 ? escHtml(formatMoney(r.credit)) : ''}</td>
+        <td class="num ${r.balance >= 0 ? 'dr' : 'cr'}">${escHtml(formatMoney(Math.abs(r.balance)))} ${r.balance >= 0 ? 'Dr' : 'Cr'}</td>
       </tr>`).join('')}
       <tr class="total-row">
         <td colspan="4">Total</td>
-        <td class="num">${formatMoney(totalDebit)}</td>
-        <td class="num">${formatMoney(totalCredit)}</td>
-        <td class="num ${closingBalance >= 0 ? 'dr' : 'cr'}">${formatMoney(Math.abs(closingBalance))} ${closingBalance >= 0 ? 'Dr' : 'Cr'}</td>
+        <td class="num">${escHtml(formatMoney(totalDebit))}</td>
+        <td class="num">${escHtml(formatMoney(totalCredit))}</td>
+        <td class="num ${closingBalance >= 0 ? 'dr' : 'cr'}">${escHtml(formatMoney(Math.abs(closingBalance)))} ${closingBalance >= 0 ? 'Dr' : 'Cr'}</td>
       </tr></tbody></table></body></html>`;
     printWindow.document.write(html);
     printWindow.document.close();

@@ -61,13 +61,18 @@ export function useTenantInsert(table: TableName) {
 }
 
 export function useTenantUpdate(table: TableName) {
+  const { tenant } = useAuth();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Record<string, any>) => {
+      if (!tenant?.id) throw new Error('No active tenant');
+      // Omit tenant_id from updates to prevent tenant-hopping; enforce via .eq filter
+      const { tenant_id: _omit, ...safeUpdates } = updates;
       const { data, error } = await (supabase.from(table as any) as any)
-        .update(updates)
+        .update(safeUpdates)
         .eq('id', id)
+        .eq('tenant_id', tenant.id) // IDOR guard: only update records in the current tenant
         .select()
         .single();
       if (error) throw error;
@@ -82,11 +87,17 @@ export function useTenantUpdate(table: TableName) {
 }
 
 export function useTenantDelete(table: TableName) {
+  const { tenant } = useAuth();
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase.from(table as any) as any).delete().eq('id', id);
+      if (!tenant?.id) throw new Error('No active tenant');
+      // IDOR guard: only delete records belonging to the current tenant
+      const { error } = await (supabase.from(table as any) as any)
+        .delete()
+        .eq('id', id)
+        .eq('tenant_id', tenant.id);
       if (error) throw error;
     },
     onSuccess: () => {
