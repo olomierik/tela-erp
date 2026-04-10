@@ -12,6 +12,7 @@ import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } fro
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { triggerAutomation } from '@/lib/automation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { toast } from 'sonner';
@@ -195,6 +196,15 @@ export default function Customers() {
   const totalOutstanding = customers.reduce((s: number, c: any) => s + Number(c.outstanding_balance || 0), 0);
   const activeCount = customers.filter((c: any) => c.is_active !== false).length;
 
+  const handleCreate = async (row: Record<string, any>) => {
+    const created = await insert.mutateAsync(row);
+    void triggerAutomation('new_customer', {
+      name: row.name,
+      email: row.email,
+    }, tenant?.id ?? '');
+    return created;
+  };
+
   const handleExportPDF = () => {
     generatePDFReport({
       title: 'Customer Report',
@@ -235,7 +245,7 @@ export default function Customers() {
                     <FileDown className="w-3.5 h-3.5" /> PDF
                   </Button>
                 )}
-                {!isDemo && <CreateCustomerDialog onCreated={insert.mutate} isPending={insert.isPending} />}
+                {!isDemo && <CreateCustomerDialog onCreated={handleCreate} isPending={insert.isPending} />}
               </div>
             </div>
           </CardContent>
