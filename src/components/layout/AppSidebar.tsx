@@ -10,6 +10,8 @@ import {
   MoreHorizontal, BookOpen, Landmark, ScanLine,
   UsersRound, PiggyBank, UserPlus, Grid3X3,
   Car, Wrench, ShoppingBag, RefreshCw, Lightbulb,
+  Scale, CalendarDays, TrendingDown, ClipboardList,
+  Upload, AlertTriangle, Zap, FileSearch,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -88,6 +90,25 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Fleet', icon: Car, path: '/fleet', module: 'fleet' },
       { label: 'Maintenance', icon: Wrench, path: '/maintenance', module: 'maintenance' },
+    ],
+  },
+  {
+    title: 'Tax & Compliance',
+    items: [
+      { label: 'AI Tax Consultant', icon: Scale, path: '/tax-consultant' },
+      { label: 'Tax Calendar', icon: CalendarDays, path: '/tax-calendar' },
+      { label: 'Tax Scenarios', icon: TrendingDown, path: '/tax-scenarios' },
+      { label: 'Deduction Optimizer', icon: TrendingDown, path: '/deduction-optimizer' },
+      { label: 'TRA E-Filing', icon: Upload, path: '/tra-filing' },
+      { label: 'Filing Audit Log', icon: FileSearch, path: '/filing-audit-log' },
+    ],
+  },
+  {
+    title: 'Automation',
+    items: [
+      { label: 'Automation Rules', icon: Zap, path: '/automation' },
+      { label: 'Execution Log', icon: ClipboardList, path: '/automation-log' },
+      { label: 'Anomaly Alerts', icon: AlertTriangle, path: '/anomaly-alerts' },
     ],
   },
   {

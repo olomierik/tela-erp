@@ -75,6 +75,14 @@ import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import ScrollButtons from "@/components/ui/ScrollButtons";
 import TelemetryDashboard from "./pages/admin/TelemetryDashboard";
 import { useTelemetry } from "@/lib/telemetry";
+import TaxConsultant from "./pages/TaxConsultant";
+import TaxCalendar from "./pages/TaxCalendar";
+import TaxScenarios from "./pages/TaxScenarios";
+import DeductionOptimizer from "./pages/DeductionOptimizer";
+import TRAEFiling from "./pages/TRAEFiling";
+import FilingAuditLog from "./pages/FilingAuditLog";
+import AutomationExecutionLog from "./pages/AutomationExecutionLog";
+import AnomalyAlerts from "./pages/AnomalyAlerts";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -157,6 +165,18 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
               <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
               <Route path="/industry-insights" element={<ProtectedRoute><IndustryInsights /></ProtectedRoute>} />
+
+              {/* Tax & Compliance routes */}
+              <Route path="/tax-consultant" element={<ProtectedRoute><TaxConsultant /></ProtectedRoute>} />
+              <Route path="/tax-calendar" element={<ProtectedRoute><TaxCalendar /></ProtectedRoute>} />
+              <Route path="/tax-scenarios" element={<ProtectedRoute><TaxScenarios /></ProtectedRoute>} />
+              <Route path="/deduction-optimizer" element={<ProtectedRoute><DeductionOptimizer /></ProtectedRoute>} />
+              <Route path="/tra-filing" element={<ProtectedRoute><TRAEFiling /></ProtectedRoute>} />
+              <Route path="/filing-audit-log" element={<ProtectedRoute><FilingAuditLog /></ProtectedRoute>} />
+
+              {/* Automation routes */}
+              <Route path="/automation-log" element={<ProtectedRoute><AutomationExecutionLog /></ProtectedRoute>} />
+              <Route path="/anomaly-alerts" element={<ProtectedRoute><AnomalyAlerts /></ProtectedRoute>} />
 
               {/* Reseller-only route */}
               <Route path="/reseller" element={<ProtectedRoute requiredRole="reseller"><ResellerDashboard /></ProtectedRoute>} />
