@@ -235,15 +235,12 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
         setOnboardingCompleted(true);
       }
     } else {
-      // No saved data for this tenant.
-      // Only show onboarding when the user is viewing their OWN company for the
-      // first time (new sign-up). When switching to another company (reseller /
-      // multi-company), skip onboarding and use defaults.
-      const isOwnTenant =
-        !profile?.tenant_id || profile.tenant_id === (tenant?.id ?? 'demo');
+      // No saved data for this tenant — default to completed.
+      // Onboarding is ONLY shown when the tela_new_company flag is explicitly set
+      // during company creation. This prevents refresh from looping back.
       setActiveModules(ALL_MODULES);
       setIndustryState('general');
-      setOnboardingCompleted(isDemo ? true : !isOwnTenant);
+      setOnboardingCompleted(true);
     }
     setLoading(false);
   }, [authLoading, tenant?.id, isDemo, profile?.tenant_id]);
