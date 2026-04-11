@@ -3,13 +3,27 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 // ─── Template variable interpolation ─────────────────────────────────────────
 function interpolate(template: string, data: Record<string, any>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(data[key] ?? `{{${key}}}`))
+}
+
+// ─── Get company registered email ────────────────────────────────────────────
+async function getCompanyEmail(supabase: any, tenantId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase
+      .from('tenants')
+      .select('contact_email')
+      .eq('id', tenantId)
+      .single()
+    return data?.contact_email || null
+  } catch {
+    return null
+  }
 }
 
 // ─── Action executors ─────────────────────────────────────────────────────────
@@ -48,9 +62,23 @@ async function execSendNotification(
   return { sent_to: notifications.length, message }
 }
 
-async function execSendEmail(action: any, rule: any, payload: Record<string, any>) {
-  const recipient = action.config?.to ?? action.config?.email ?? ''
-  if (!recipient) return { skipped: true, reason: 'No recipient configured' }
+async function execSendEmail(
+  supabase: any,
+  action: any,
+  rule: any,
+  tenantId: string,
+  payload: Record<string, any>,
+) {
+  // Use configured recipient, fall back to company's registered email
+  let recipient = action.config?.to ?? action.config?.email ?? ''
+  
+  if (!recipient) {
+    recipient = await getCompanyEmail(supabase, tenantId)
+  }
+
+  if (!recipient) {
+    return { skipped: true, reason: 'No recipient configured and no company email registered' }
+  }
 
   const subject = interpolate(action.config?.subject ?? rule.name, payload)
   const body = interpolate(
@@ -128,7 +156,7 @@ async function executeRule(
           result = await execSendNotification(supabase, action, rule, tenantId, payload)
           break
         case 'send_email':
-          result = await execSendEmail(action, rule, payload)
+          result = await execSendEmail(supabase, action, rule, tenantId, payload)
           break
         case 'webhook':
           result = await execWebhook(action, rule, payload)
