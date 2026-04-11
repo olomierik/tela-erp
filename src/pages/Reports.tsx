@@ -37,18 +37,20 @@ export default function Reports() {
   const { data: salesData } = useTenantQuery('sales_orders');
   const { data: inventoryData } = useTenantQuery('inventory_items');
   const { data: productionData } = useTenantQuery('production_orders');
-  const { data: transactionData } = useTenantQuery('transactions');
   const { data: coaData } = useTenantQuery('chart_of_accounts');
-  const { data: journalData } = useTenantQuery('journal_entries', 'entry_date');
+  const { data: ledgerBalanceData } = useTenantQuery('accounting_ledger_balances');
+  const { data: voucherData } = useTenantQuery('accounting_vouchers');
+  const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries');
   const { data: employeeData } = useTenantQuery('employees');
   const { data: crmDealData } = useTenantQuery('crm_deals');
 
   const sales = salesData ?? [];
   const inventory = inventoryData ?? [];
   const production = productionData ?? [];
-  const transactions = transactionData ?? [];
   const coa = coaData ?? [];
-  const journals = journalData ?? [];
+  const ledgerBalances = ledgerBalanceData ?? [];
+  const vouchers = (voucherData ?? []) as any[];
+  const voucherEntries = (voucherEntryData ?? []) as any[];
   const employees = (employeeData ?? []) as any[];
   const crmDeals = (crmDealData ?? []) as any[];
 
@@ -100,36 +102,86 @@ export default function Reports() {
 
   const filteredSales = filterByDate(sales, 'created_at');
   const filteredProduction = filterByDate(production, 'created_at');
-  const filteredTransactions = filterByDate(transactions, 'date');
-  const filteredJournals = filterByDate(journals, 'entry_date');
+  const filteredVouchers = filterByDate(vouchers, 'voucher_date').filter((v: any) => v.status === 'posted');
 
-  // Accounting computations
+  // Build a map of account_id to COA info
+  const coaMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    coa.forEach((a: any) => { m[a.id] = a; });
+    return m;
+  }, [coa]);
+
+  // Accounting computations from real accounting engine
   const accountingData = useMemo(() => {
-    const incomeTotal = filteredTransactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const expenseTotal = filteredTransactions.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const netProfit = incomeTotal - expenseTotal;
+    // Get voucher IDs in the date range
+    const voucherIds = new Set(filteredVouchers.map((v: any) => v.id));
+    // Filter entries belonging to those vouchers
+    const filteredEntries = voucherEntries.filter((e: any) => voucherIds.has(e.voucher_id));
 
-    // Group transactions by category for P&L
-    const incomeByCategory: Record<string, number> = {};
-    const expenseByCategory: Record<string, number> = {};
-    filteredTransactions.forEach((t: any) => {
-      const cat = t.category || 'Uncategorized';
-      if (t.type === 'income') incomeByCategory[cat] = (incomeByCategory[cat] || 0) + Number(t.amount);
-      else expenseByCategory[cat] = (expenseByCategory[cat] || 0) + Number(t.amount);
+    // Build per-account totals from entries
+    const accountTotals: Record<string, { debit: number; credit: number; account: any }> = {};
+    filteredEntries.forEach((e: any) => {
+      const acc = coaMap[e.account_id];
+      if (!acc) return;
+      if (!accountTotals[e.account_id]) {
+        accountTotals[e.account_id] = { debit: 0, credit: 0, account: acc };
+      }
+      accountTotals[e.account_id].debit += Number(e.debit) || 0;
+      accountTotals[e.account_id].credit += Number(e.credit) || 0;
     });
 
-    // Trial balance from chart of accounts
-    const trialBalance = coa.map((a: any) => {
-      const debits = filteredJournals.filter((j: any) => j.debit_account_id === a.id).reduce((s: number, j: any) => s + Number(j.amount), 0);
-      const credits = filteredJournals.filter((j: any) => j.credit_account_id === a.id).reduce((s: number, j: any) => s + Number(j.amount), 0);
-      return { ...a, debits, credits, net: debits - credits };
-    }).filter((a: any) => a.debits > 0 || a.credits > 0);
+    // Trial balance
+    const trialBalance = Object.values(accountTotals)
+      .filter(t => t.debit > 0 || t.credit > 0)
+      .map(t => ({ ...t.account, debits: t.debit, credits: t.credit, net: t.debit - t.credit }));
 
-    // Balance sheet categories
+    // P&L: revenue accounts have credits > debits, expense accounts have debits > credits
+    const incomeByCategory: Record<string, number> = {};
+    const expenseByCategory: Record<string, number> = {};
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+
+    Object.values(accountTotals).forEach(t => {
+      const type = t.account.account_type;
+      const name = t.account.name;
+      if (type === 'revenue') {
+        const amt = t.credit - t.debit;
+        incomeByCategory[name] = (incomeByCategory[name] || 0) + amt;
+        incomeTotal += amt;
+      } else if (type === 'expense') {
+        const amt = t.debit - t.credit;
+        expenseByCategory[name] = (expenseByCategory[name] || 0) + amt;
+        expenseTotal += amt;
+      }
+    });
+    const netProfit = incomeTotal - expenseTotal;
+
+    // Balance sheet from ledger_balances (cumulative, not date-filtered)
+    const bsAccounts: Record<string, { name: string; type: string; balance: number }> = {};
+    (ledgerBalances as any[]).forEach((lb: any) => {
+      const acc = coaMap[lb.account_id];
+      if (!acc) return;
+      bsAccounts[lb.account_id] = {
+        name: acc.name,
+        type: acc.account_type,
+        balance: Number(lb.running_balance) || 0,
+      };
+    });
+
+    const totalAssets = Object.values(bsAccounts).filter(a => a.type === 'asset').reduce((s, a) => s + a.balance, 0);
+    const totalLiabilities = Object.values(bsAccounts).filter(a => a.type === 'liability').reduce((s, a) => s + Math.abs(a.balance), 0);
+    const totalEquity = Object.values(bsAccounts).filter(a => a.type === 'equity').reduce((s, a) => s + Math.abs(a.balance), 0);
     const inventoryValue = inventory.reduce((s: number, i: any) => s + (i.quantity * Number(i.unit_cost)), 0);
 
-    return { incomeTotal, expenseTotal, netProfit, incomeByCategory, expenseByCategory, trialBalance, inventoryValue };
-  }, [filteredTransactions, filteredJournals, coa, inventory]);
+    return {
+      incomeTotal, expenseTotal, netProfit,
+      incomeByCategory, expenseByCategory,
+      trialBalance,
+      inventoryValue,
+      bsAccounts, totalAssets, totalLiabilities, totalEquity,
+      filteredEntries,
+    };
+  }, [filteredVouchers, voucherEntries, coaMap, ledgerBalances, inventory]);
 
   const getPreviewData = (): { headers: string[]; rows: (string | number)[][]; count: number; stats: { label: string; value: string }[] } => {
     switch (reportType) {
