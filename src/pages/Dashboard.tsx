@@ -41,10 +41,10 @@ function KpiCard({ title, value, change, icon: Icon, alert, loading, subtitle }:
       whileHover={{ y: -2, transition: { duration: 0.15 } }}
     >
       <Card className={cn(
-        'border-border rounded-xl overflow-hidden relative',
+        'border-border rounded-xl overflow-hidden relative touch-manipulation',
         alert && 'border-amber-400/60 bg-amber-50/30 dark:bg-amber-900/10'
       )}>
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           {loading ? (
             <div className="space-y-2">
               <Skeleton className="h-4 w-24" />
@@ -72,7 +72,7 @@ function KpiCard({ title, value, change, icon: Icon, alert, loading, subtitle }:
                   </div>
                 )}
               </div>
-              <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+              <p className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{value}</p>
               <p className="text-xs text-muted-foreground mt-1">{title}</p>
               {subtitle && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{subtitle}</p>}
             </>
@@ -133,11 +133,11 @@ function TelaAIChat({ open, onClose, context }: { open: boolean; onClose: () => 
 
         {messages.length === 1 && (
           <div className="px-4 pt-3 pb-0 grid grid-cols-2 gap-2">
-            {suggestions.map(s => (
+              {suggestions.map(s => (
               <button
                 key={s}
                 onClick={() => sendMessage(s)}
-                className="text-left text-xs p-2.5 rounded-lg border border-border hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                className="text-left text-xs p-3 sm:p-2.5 rounded-lg border border-border hover:bg-accent active:bg-accent/80 transition-colors text-muted-foreground hover:text-foreground touch-manipulation"
               >
                 {s}
               </button>
@@ -186,13 +186,13 @@ function TelaAIChat({ open, onClose, context }: { open: boolean; onClose: () => 
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendMessage()}
             placeholder="Ask about your business..."
-            className="flex-1 text-sm"
+            className="flex-1 text-sm h-11 sm:h-9"
             disabled={loading}
           />
           <Button
             onClick={() => sendMessage()}
             size="icon" disabled={loading || !input.trim()}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0 h-11 w-11 sm:h-9 sm:w-9 touch-manipulation"
           >
             <Send className="w-4 h-4" />
           </Button>
@@ -324,7 +324,7 @@ export default function Dashboard() {
       <div className="space-y-5">
 
         {/* ── KPI Strip ──────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <KpiCard title="Today's Sales" value={formatMoney(todaySalesVal)} change={12} icon={DollarSign} loading={salesLoading} />
           <KpiCard title="Monthly Revenue" value={formatMoney(monthlyRevenue)} change={8} icon={TrendingUp} />
           <KpiCard title="Monthly Expenses" value={formatMoney(monthlyExpenses)} change={-3} icon={TrendingDown} />
@@ -383,13 +383,14 @@ export default function Dashboard() {
                 <motion.button
                   key={action.path}
                   whileHover={{ x: 3 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => navigate(action.path)}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r text-white text-sm font-medium shadow-sm transition-all hover:opacity-95',
+                    'w-full flex items-center gap-3 px-3.5 py-3 sm:py-2.5 rounded-xl bg-gradient-to-r text-white text-sm font-medium shadow-sm transition-all hover:opacity-95 active:opacity-90 touch-manipulation',
                     action.color, action.shadow
                   )}
                 >
-                  <action.icon className="w-4 h-4 shrink-0" />
+                  <action.icon className="w-5 h-5 sm:w-4 sm:h-4 shrink-0" />
                   {action.label}
                   <ArrowRight className="w-3.5 h-3.5 ml-auto opacity-70" />
                 </motion.button>
@@ -457,7 +458,7 @@ export default function Dashboard() {
               ].map(item => (
                 <div key={item.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <button onClick={() => navigate(item.link)} className={cn('font-medium hover:text-primary transition-colors', item.urgent && 'text-red-600 dark:text-red-400')}>
+                    <button onClick={() => navigate(item.link)} className={cn('font-medium hover:text-primary active:text-primary/80 transition-colors touch-manipulation py-1', item.urgent && 'text-red-600 dark:text-red-400')}>
                       {item.label}
                     </button>
                     <span className={cn('font-bold', item.urgent ? 'text-red-600 dark:text-red-400' : 'text-foreground')}>
@@ -554,7 +555,7 @@ export default function Dashboard() {
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.94 }}
         onClick={() => setAiOpen(true)}
-        className="fixed bottom-20 md:bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-500/40 flex items-center justify-center"
+        className="fixed bottom-24 md:bottom-6 right-4 sm:right-6 z-50 w-14 h-14 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-xl shadow-indigo-500/40 flex items-center justify-center touch-manipulation"
       >
         <Brain className="w-6 h-6" />
         <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-background" />

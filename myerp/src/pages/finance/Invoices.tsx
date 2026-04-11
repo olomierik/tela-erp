@@ -139,8 +139,7 @@ export default function Invoices() {
   const totalInvoiced  = invoices.reduce((s, i) => s + (i.amount ?? 0), 0);
   const totalPaid      = invoices.reduce((s, i) => s + (i.paid_amount ?? 0), 0);
   const outstandingAR  = invoices
-    .filter(i => i.status === 'sent' || i.status === 'partially_paid' || i.status === 'overdue' ||
-                 (i.status === 'sent' && i.due_date < today()))
+    .filter(i => i.status === 'sent' || i.status === 'partially_paid' || i.status === 'overdue')
     .reduce((s, i) => s + Math.max(0, (i.amount ?? 0) - (i.paid_amount ?? 0)), 0);
   const overdueCount   = invoices.filter(i => isEffectivelyOverdue(i)).length;
 
@@ -398,8 +397,7 @@ export default function Invoices() {
                   const isOverdue     = displayStatus === 'overdue';
                   const balance       = Math.max(0, (inv.amount ?? 0) - (inv.paid_amount ?? 0));
                   const canDelete     = inv.status === 'draft';
-                  const canPay        = inv.status === 'sent' || inv.status === 'partially_paid' || inv.status === 'overdue' ||
-                                        (inv.status === 'sent' && inv.due_date < today());
+                  const canPay        = inv.status === 'sent' || inv.status === 'partially_paid' || inv.status === 'overdue';
 
                   return (
                     <TableRow

@@ -1,17 +1,20 @@
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Building2, Package, ShoppingCart, Truck, Factory, Calculator,
+  Package, ShoppingCart, Truck, Factory, Calculator,
   FileBarChart, Megaphone, Bot, Shield, Globe, Zap, ChevronRight,
   Check, ArrowRight, Star, Users, BarChart3, Layers, Palette,
-  CreditCard, Menu, X,
+  Menu, X, Car, Wrench, Briefcase, FolderKanban, Building,
+  Receipt, RefreshCw, CreditCard, ScanLine,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import UserCountWidget from '@/components/ui/UserCountWidget';
 import heroImg from '@/assets/hero-dashboard.png';
-import paymentQr from '@/assets/payment-qr.jpeg';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -22,14 +25,23 @@ const fadeUp = {
 };
 
 const modules = [
-  { icon: Package, title: 'Inventory', desc: 'Real-time stock tracking with categories, status management, and automated alerts for low stock and expiring items.' },
-  { icon: ShoppingCart, title: 'Sales & POS', desc: 'Fast checkout with stock validation, automatic invoicing, COGS calculation, and full order lifecycle management.' },
-  { icon: Truck, title: 'Procurement', desc: 'Manage suppliers, purchase orders, and expected deliveries with automated accounting entries on receipt.' },
-  { icon: Factory, title: 'Production', desc: 'Plan production orders, track progress, and auto-add finished goods to inventory on completion.' },
-  { icon: Calculator, title: 'Accounting', desc: 'Double-entry bookkeeping with auto journal entries, cash-flow tracking, income vs expense charts, and profit & loss.' },
-  { icon: Megaphone, title: 'Marketing', desc: 'Run campaigns across channels, track budgets and leads, and measure ROI with integrated analytics.' },
-  { icon: FileBarChart, title: 'Reports & PDF', desc: 'Generate sales, inventory, production, and accounting reports with date filters and one-click PDF export.' },
-  { icon: Bot, title: 'Tela AI', desc: 'AI-powered business insights, trend analysis, and intelligent recommendations to optimize operations.' },
+  { icon: Package, title: 'Inventory', desc: 'Real-time stock tracking, low-stock alerts, and expiry management across unlimited warehouses.' },
+  { icon: ShoppingCart, title: 'Sales & Invoices', desc: 'Fast checkout, automatic invoicing, COGS calculation, and full order lifecycle management.' },
+  { icon: CreditCard, title: 'Point of Sale', desc: 'Table-side or counter POS with session management, multiple payment methods, and receipt printing.' },
+  { icon: Truck, title: 'Procurement', desc: 'Manage suppliers, purchase orders, and deliveries with automated accounting entries on receipt.' },
+  { icon: Factory, title: 'Production', desc: 'Plan production orders, manage BOM, track progress, and auto-add finished goods to inventory.' },
+  { icon: Calculator, title: 'Accounting', desc: 'Double-entry bookkeeping, vouchers, ledger, journal entries, P&L, and cash-flow reports.' },
+  { icon: Briefcase, title: 'HR & Payroll', desc: 'Employee records, attendance, leave management, and automated payroll processing.' },
+  { icon: FolderKanban, title: 'Projects', desc: 'Track projects, tasks, milestones, budgets, and team assignments in one place.' },
+  { icon: Car, title: 'Fleet Management', desc: 'Track vehicles, schedule services, log fuel consumption, and manage driver assignments.' },
+  { icon: Wrench, title: 'Maintenance', desc: 'Equipment maintenance requests, preventive scheduling, technician assignment, and cost tracking.' },
+  { icon: RefreshCw, title: 'Subscriptions', desc: 'Manage recurring billing, subscription plans, MRR tracking, and customer lifecycle.' },
+  { icon: Megaphone, title: 'Marketing', desc: 'Run email campaigns, manage mailing lists, track opens/clicks, and measure campaign ROI.' },
+  { icon: Receipt, title: 'Expenses & Budgets', desc: 'Submit and approve expense claims, set departmental budgets, and track spending in real-time.' },
+  { icon: Building, title: 'Fixed Assets', desc: 'Track business assets, depreciation schedules, and maintenance history.' },
+  { icon: BarChart3, title: 'Reports & PDF', desc: 'Generate reports across all modules with date filters, charts, and one-click PDF export.' },
+  { icon: Bot, title: 'AI CFO Assistant', desc: 'AI-powered business insights, trend analysis, and intelligent recommendations to grow faster.' },
+  { icon: ScanLine, title: 'Document Scanner', desc: 'Scan and digitize invoices, receipts, and business documents with OCR extraction and intelligent filing.' },
 ];
 
 const features = [
@@ -42,11 +54,12 @@ const features = [
 ];
 
 const faqs = [
-  { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform designed for African businesses. It manages production, inventory, sales, marketing, accounting, and procurement in one interconnected system.' },
-  { q: 'Is it suitable for my business size?', a: 'Yes. Whether you run a single shop or manage operations across multiple locations and countries, TELA-ERP scales with you.' },
+  { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform built for businesses of all sizes and industries. It unifies inventory, sales, production, accounting, HR, CRM, fleet, maintenance, projects, and more in one interconnected system.' },
+  { q: 'Which plan is right for me?', a: 'Start with Starter (free) if you only need Sales and Inventory with 1 user. Upgrade to Premium ($6/mo) to unlock all 17 modules for up to 5 users. Choose Enterprise ($13/mo) for unlimited users, white-labeling, reseller tools, and API access.' },
+  { q: 'Can I upgrade or downgrade later?', a: 'Yes. You can upgrade at any time and your new modules become available immediately. Downgrading takes effect at the end of your current billing period.' },
   { q: 'How does multi-tenancy work?', a: 'Each business gets fully isolated data with Row Level Security. Resellers can onboard and manage multiple client businesses from a single dashboard.' },
   { q: 'What currencies are supported?', a: 'TELA-ERP supports 165+ currencies with live exchange rates. Set your default currency and view reports in any currency on-the-fly.' },
-  { q: 'Can I white-label the platform?', a: 'Absolutely. Customize logos, colors, domains, and branding per tenant. Your clients see your brand, not ours.' },
+  { q: 'Can I white-label the platform?', a: 'White-labeling is available on the Enterprise plan. Customize logos, colors, domains, and branding per tenant — your clients see your brand, not ours.' },
   { q: 'How are the modules interconnected?', a: 'Completing production auto-adds inventory. Sales orders validate and deduct stock. Every transaction creates accounting entries. Everything syncs in real-time.' },
 ];
 
@@ -56,22 +69,24 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>TELA-ERP — Complete ERP for Every Business | Free Starter, $6/mo Premium</title>
+        <meta name="description" content="TELA-ERP: Free Starter plan, Premium at $6/month (all 17 modules), Enterprise at $13/month. Manage inventory, sales, production, fleet, accounting & more for any industry." />
+        <link rel="canonical" href="https://tela-erp.com/" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+          <Link to="/" className="flex items-center gap-2">
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <Link to="/modules" className="hover:text-foreground transition-colors">Modules</Link>
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
             <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -90,6 +105,7 @@ export default function Landing() {
               <Link to="/modules" onClick={() => setMobileMenuOpen(false)} className="py-2">Modules</Link>
               <Link to="/features" onClick={() => setMobileMenuOpen(false)} className="py-2">Features</Link>
               <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="py-2">Pricing</Link>
+              <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="py-2">Blog</Link>
               <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="py-2">About</Link>
               <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="py-2">Contact</Link>
               <div className="flex gap-2 pt-2">
@@ -110,20 +126,22 @@ export default function Landing() {
               🌍 Open Source ERP for Africa & the World
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              The Free &{' '}
-              <span className="text-gradient">Open Source ERP</span>{' '}
-              for SMEs Everywhere
+              The Complete ERP for{' '}
+              <span className="text-gradient">Every Business</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              Manage production, inventory, sales, accounting, and more — completely free. TELA-ERP is built to empower small and medium enterprises in Africa and across the world.
+              17 modules, 13 industry presets, and flexible pricing — from <strong>free Starter</strong> to full Enterprise. TELA-ERP grows with your business.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
-                <Link to="/signup">Get a Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
               </Button>
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
                 <Link to="/login">Sign In</Link>
               </Button>
+            </div>
+            <div className="mt-6 flex justify-center lg:justify-start">
+              <UserCountWidget />
             </div>
           </motion.div>
 
@@ -141,10 +159,10 @@ export default function Landing() {
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-3">Modules</Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">All Business Operations, Simplified</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">Six fully interconnected modules powered by real-time sync and enterprise-grade accounting.</p>
+            <p className="text-muted-foreground max-w-2xl mx-auto">17 fully interconnected modules powered by real-time sync and enterprise-grade accounting.</p>
           </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {modules.map((m, i) => (
               <motion.div key={m.title} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i}>
                 <Card className="h-full hover:shadow-md transition-shadow border-border group">
@@ -217,37 +235,97 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* SUPPORT / OPEN SOURCE */}
-      <section id="pricing" className="py-20 md:py-28">
+      {/* INDUSTRIES */}
+      <section className="py-20 md:py-28 bg-muted/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-            <Badge variant="secondary" className="mb-3">🌍 Open Source</Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Free & Open Source ERP for Everyone</h2>
+            <Badge variant="secondary" className="mb-3">13 Industries</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Built for Your Industry</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">Select your industry during onboarding and get a pre-configured module set tailored to your business type.</p>
+          </motion.div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {[
+              { icon: '🛍️', label: 'Retail', modules: 'POS, Inventory, Sales' },
+              { icon: '🏭', label: 'Manufacturing', modules: 'Production, Maintenance, Assets' },
+              { icon: '💼', label: 'Services', modules: 'Projects, CRM, HR' },
+              { icon: '🍽️', label: 'Hospitality', modules: 'POS, Inventory, HR' },
+              { icon: '🏥', label: 'Healthcare', modules: 'Assets, CRM, HR' },
+              { icon: '🏗️', label: 'Construction', modules: 'Projects, Maintenance, Assets' },
+              { icon: '🚚', label: 'Logistics', modules: 'Fleet, Procurement, HR' },
+              { icon: '🌐', label: 'E-Commerce', modules: 'Subscriptions, Marketing, CRM' },
+              { icon: '❤️', label: 'Non-Profit', modules: 'Projects, Budgets, HR' },
+              { icon: '🌱', label: 'Agriculture', modules: 'Inventory, Production, Assets' },
+              { icon: '🏢', label: 'Real Estate', modules: 'Assets, Maintenance, CRM' },
+              { icon: '💻', label: 'Technology', modules: 'Subscriptions, Projects, AI' },
+              { icon: '🏬', label: 'General Business', modules: 'Sales & POS, Accounting, HR' },
+            ].map((ind, i) => (
+              <motion.div key={ind.label} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i * 0.3}>
+                <Card className="h-full hover:border-primary/40 transition-colors">
+                  <CardContent className="p-4">
+                    <span className="text-2xl">{ind.icon}</span>
+                    <p className="font-semibold text-sm mt-2">{ind.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{ind.modules}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING */}
+      <section id="pricing" className="py-20 md:py-28">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+            <Badge variant="secondary" className="mb-3">Simple Pricing</Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Plans for Every Stage of Growth</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              TELA-ERP is proudly open source — built to empower SMEs in Africa and across the world.
-              No subscriptions, no hidden fees. Just a powerful ERP system, completely free to use.
+              Start free, upgrade when you're ready. No per-module fees, no surprises.
             </p>
           </motion.div>
-
-          <div className="max-w-lg mx-auto">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={1}>
-              <Card className="border-2 border-primary/20">
-                <CardContent className="p-8 text-center">
-                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto mb-5">
-                    <CreditCard className="w-7 h-7 text-primary-foreground" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+            {[
+              { name: 'Starter', price: 'Free', period: 'forever', users: '1 user', desc: 'Perfect for solo entrepreneurs getting started.', features: ['Sales module', 'Inventory module', 'Dashboard & Reports', '14-day Premium trial'], cta: 'Start Free', link: '/signup', highlight: false },
+              { name: 'Premium', price: '$6', period: '/month', users: 'Up to 5 users', desc: 'All 17 modules for growing businesses.', features: ['All 17 modules', 'AI CFO Assistant', 'Multi-currency (165+)', 'Industry presets', 'Fleet & Maintenance', 'Email support'], cta: 'Get Premium', link: '/signup?plan=premium', highlight: true },
+              { name: 'Enterprise', price: '$13', period: '/month', users: 'Unlimited users', desc: 'White-label and full platform control.', features: ['Everything in Premium', 'Unlimited users', 'White-label branding', 'Reseller portal', 'API access', 'Priority support'], cta: 'Contact Sales', link: '/contact', highlight: false },
+            ].map((tier, i) => (
+              <motion.div key={tier.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1} className="relative">
+                {tier.highlight && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <Badge className="gradient-primary text-white px-4 py-1 shadow-lg"><Star className="w-3 h-3 mr-1" />Most Popular</Badge>
                   </div>
-                  <h3 className="font-bold text-xl mb-2">Support the Project</h3>
-                  <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                    TELA-ERP is maintained by a small team passionate about making enterprise software accessible to all.
-                    You can support the continued development of this project by contributing via the QR code below.
-                    Every contribution helps us build new features, fix bugs, and keep the platform running.
-                  </p>
-                  <img src={paymentQr} alt="CRDB Bank Lipa Hapa QR code for TELA-ERP support" className="w-64 mx-auto rounded-lg border border-border mb-4" />
-                  <p className="text-xs text-muted-foreground">Lipa Namba: 10689981 — ERICK ELIBARIKI OLOMI</p>
-                </CardContent>
-              </Card>
-            </motion.div>
+                )}
+                <Card className={`h-full flex flex-col ${tier.highlight ? 'border-primary ring-2 ring-primary/20' : ''}`}>
+                  <CardContent className="p-6 flex flex-col h-full">
+                    <div className="mb-4">
+                      <h3 className="font-bold text-lg">{tier.name}</h3>
+                      <p className="text-xs text-muted-foreground mt-1">{tier.desc}</p>
+                      <div className="flex items-end gap-1 mt-3">
+                        <span className="text-4xl font-extrabold">{tier.price}</span>
+                        {tier.period !== 'forever' && <span className="text-muted-foreground text-sm mb-1">{tier.period}</span>}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{tier.users}</p>
+                    </div>
+                    <Button className={`w-full mb-5 ${tier.highlight ? 'gradient-primary' : ''}`} variant={tier.highlight ? 'default' : 'outline'} asChild>
+                      <Link to={tier.link}>{tier.cta} <ArrowRight className="w-4 h-4 ml-1" /></Link>
+                    </Button>
+                    <ul className="space-y-2 flex-1">
+                      {tier.features.map(f => (
+                        <li key={f} className="flex items-center gap-2 text-sm">
+                          <Check className="w-4 h-4 text-emerald-500 shrink-0" />{f}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            <Zap className="inline w-4 h-4 mr-1 text-amber-500" />
+            All new accounts get a <strong>14-day Premium trial</strong> — no credit card required.
+            <Link to="/pricing" className="ml-2 text-primary underline underline-offset-2">See full comparison →</Link>
+          </p>
         </div>
       </section>
 
@@ -293,12 +371,12 @@ export default function Landing() {
               </div>
               <div className="relative z-10">
                 <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Ready to Transform Your Business?</h2>
-              <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-                  Join SMEs across Africa and the world using this free, open source ERP to streamline operations and drive growth.
+                <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
+                  Join businesses across Africa and the world using TELA-ERP. Start free, scale when you grow.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <Button size="lg" variant="secondary" className="text-base px-8" asChild>
-                    <Link to="/signup">Start Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                    <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
                   </Button>
                   <Button size="lg" variant="ghost" className="text-primary-foreground border border-primary-foreground/30 text-base px-8 hover:bg-primary-foreground/10" asChild>
                     <Link to="/login">Sign In</Link>
@@ -316,25 +394,32 @@ export default function Landing() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                  <Building2 className="w-4 h-4 text-primary-foreground" />
-                </div>
-                <span className="font-bold text-lg">TELA-ERP</span>
+                <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Free & open source ERP platform built for SMEs in Africa and the world.
+                Free Starter plan. Premium at $6/month. Enterprise at $13/month. 17 modules for every business.
               </p>
             </div>
             <div>
               <h4 className="font-semibold mb-3">Modules</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Production</li><li>Inventory</li><li>Sales & POS</li><li>Accounting</li><li>Marketing</li><li>Procurement</li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Production Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Inventory Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Sales & POS Software</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Accounting Software</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">Procurement Management</Link></li>
+                <li><Link to="/modules" className="hover:text-foreground transition-colors">HR & Payroll</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-3">Platform</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Multi-Tenant</li><li>White-Label</li><li>Reseller Portal</li><li>Multi-Currency</li><li>Reports & PDF</li><li>Tela AI</li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Multi-Tenant ERP</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">White-Label ERP</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Reseller Portal</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Multi-Currency (165+)</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">Reports & PDF Export</Link></li>
+                <li><Link to="/features" className="hover:text-foreground transition-colors">AI Business Insights</Link></li>
               </ul>
             </div>
             <div>
@@ -349,8 +434,14 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
-            <span>Built with ❤️ for SMEs in Africa &amp; the world</span>
+            <span>© {new Date().getFullYear()} TELA-ERP by Erick Elibariki Olomi — Tanga, Tanzania</span>
+            <div className="flex gap-4">
+              <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
+              <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+              <a href="https://github.com/olomierik/tela-erp" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
+            </div>
           </div>
         </div>
       </footer>

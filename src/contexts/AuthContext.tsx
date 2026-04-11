@@ -9,6 +9,7 @@ interface Profile {
   tenant_id: string;
   email: string;
   full_name: string;
+  phone: string;
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
@@ -39,6 +40,7 @@ const DEMO_PROFILE: Profile = {
   tenant_id: 'demo-tenant',
   email: 'admin@tela-erp.com',
   full_name: 'Alex Morgan',
+  phone: '+254 700 000 000',
   is_active: true,
   created_at: new Date().toISOString(),
 };
@@ -48,7 +50,7 @@ const DEMO_TENANT: Tenant = {
   name: 'TELA Industries',
   slug: 'tela-industries',
   primary_color: '#3B82F6',
-  subscription_tier: 'pro',
+  subscription_tier: 'premium',
   is_active: true,
   created_at: new Date().toISOString(),
 };
@@ -64,21 +66,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     try {
-      const { data: profileData } = await supabase
+      const preferredTenantId = localStorage.getItem('tela_active_tenant');
+
+      // Always load the profile by user_id only (profiles has UNIQUE(user_id))
+      let { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
+        .limit(1)
         .single();
 
-      if (profileData) {
-        setProfile(profileData);
-        const { data: tenantData } = await supabase
-          .from('tenants')
-          .select('*')
-          .eq('id', profileData.tenant_id)
+      if (!profileData) return;
+
+      // Determine which tenant to activate:
+      // 1. If a preferred tenant is stored and the user is a member → use it
+      // 2. Otherwise fall back to the profile's own tenant
+      let activeTenantId = profileData.tenant_id;
+
+      if (preferredTenantId && preferredTenantId !== profileData.tenant_id) {
+        // Verify the user actually belongs to the preferred tenant via user_companies
+        const { data: membership } = await (supabase as any)
+          .from('user_companies')
+          .select('tenant_id')
+          .eq('user_id', userId)
+          .eq('tenant_id', preferredTenantId)
+          .eq('is_active', true)
+          .limit(1)
           .single();
-        if (tenantData) setTenant(tenantData as Tenant);
+
+        if (membership) {
+          activeTenantId = preferredTenantId;
+        } else {
+          // Not a valid member — clear stale preference
+          localStorage.removeItem('tela_active_tenant');
+        }
       }
+
+      // Keep the profile tenant in sync with the actively selected company so
+      // tenant-scoped backend policies resolve against the correct tenant.
+      if (activeTenantId !== profileData.tenant_id) {
+        const { data: syncedProfile, error: syncError } = await (supabase as any)
+          .from('profiles')
+          .update({ tenant_id: activeTenantId })
+          .eq('user_id', userId)
+          .select('*')
+          .single();
+
+        if (syncError) {
+          console.error('Error syncing active tenant to profile:', syncError);
+        } else if (syncedProfile) {
+          profileData = syncedProfile;
+        }
+      }
+
+      setProfile(profileData);
+
+      // Load the active tenant
+      const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', activeTenantId)
+        .single();
+
+      if (tenantData) setTenant(tenantData as Tenant);
 
       const { data: roleData } = await supabase
         .from('user_roles')

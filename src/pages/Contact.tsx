@@ -1,3 +1,4 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const P = 'hsl(230,65%,52%)';
 const A = 'hsl(32,95%,52%)';
@@ -76,29 +78,43 @@ export default function Contact() {
       return;
     }
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 600));
-
-    const subject = encodeURIComponent(`TELA-ERP Enquiry from ${form.name}${form.company ? ` (${form.company})` : ''}`);
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}${form.company ? `\nCompany: ${form.company}` : ''}\n\nMessage:\n${form.message}`
-    );
-    window.open(`mailto:olomierik@gmail.com?subject=${subject}&body=${body}`, '_blank');
-
-    setLoading(false);
-    setForm({ name: '', email: '', company: '', message: '' });
-    toast.success("Your email client has opened — please send the pre-filled message!");
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const id = crypto.randomUUID();
+      const { error } = await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'contact-form-notification',
+          recipientEmail: 'olomierik@gmail.com',
+          idempotencyKey: `contact-notify-${id}`,
+          templateData: { name: form.name, email: form.email, company: form.company, message: form.message },
+        },
+      });
+      if (error) throw error;
+      setForm({ name: '', email: '', company: '', message: '' });
+      toast.success("Your message has been sent! We'll get back to you soon.");
+    } catch (err: any) {
+      console.error('Failed to send message', err);
+      toast.error('Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Helmet>
+        <title>Contact — TELA-ERP | Get in Touch</title>
+        <meta name="description" content="Contact TELA-ERP founder Erick Elibariki Olomi. Reach us by email at olomierik@gmail.com or WhatsApp +255 752 401 012. Based in Tanga, Tanzania." />
+        <link rel="canonical" href="https://tela-erp.com/contact" />
+        <meta property="og:title" content="Contact TELA-ERP | We'd Love to Hear from You" />
+        <meta property="og:description" content="Have a question about TELA-ERP? Reach out to our team. We reply within 24 hours." />
+        <meta property="og:url" content="https://tela-erp.com/contact" />
+      </Helmet>
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: P }}>
-              <Cpu className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium">
             <Link to="/features" className="text-muted-foreground hover:text-foreground transition-colors">Features</Link>

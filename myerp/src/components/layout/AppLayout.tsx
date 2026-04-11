@@ -1,8 +1,12 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useModules } from '@/contexts/ModulesContext';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import AiAssistant from './AiAssistant';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -11,6 +15,14 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children, title }: AppLayoutProps) {
   const { collapsed } = useSidebar();
+  const { onboardingCompleted, loading } = useModules();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !onboardingCompleted) {
+      navigate('/onboarding', { replace: true });
+    }
+  }, [loading, onboardingCompleted, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,6 +46,7 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
           © {new Date().getFullYear()} myERP — All rights reserved
         </footer>
       </div>
+      <AiAssistant />
     </div>
   );
 }

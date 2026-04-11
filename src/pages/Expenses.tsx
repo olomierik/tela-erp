@@ -15,8 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { useTenantQuery, useTenantInsert, useTenantUpdate } from '@/hooks/use-tenant-query';
+import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { triggerAutomation } from '@/lib/automation';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -48,6 +49,7 @@ export default function Expenses() {
   const { data: rawData, isLoading } = useTenantQuery('expense_claims' as any);
   const insertClaim = useTenantInsert('expense_claims' as any);
   const updateClaim = useTenantUpdate('expense_claims' as any);
+  const deleteClaim = useTenantDelete('expense_claims' as any);
 
   const demoData = [
     { id: '1', claim_number: 'EXP-001', employee_name: 'Alice Johnson', total_amount: 1250, status: 'approved', submitted_at: new Date().toISOString(), created_at: new Date().toISOString() },
@@ -82,7 +84,29 @@ export default function Expenses() {
   const handleSubmit = async (id: string) => {
     if (isDemo) { toast.success('Claim submitted for approval (demo)'); return; }
     await updateClaim.mutateAsync({ id, status: 'submitted', submitted_at: new Date().toISOString() });
+    const claim = claims.find(c => c.id === id);
+    void triggerAutomation('expense_submitted', {
+      amount: claim?.total_amount ?? 0,
+      description: claim?.notes ?? '',
+    }, tenant?.id ?? '');
     toast.success('Claim submitted for approval');
+  };
+
+  const handleReject = async (id: string) => {
+    if (isDemo) { toast.info('Claim rejected (demo)'); return; }
+    await updateClaim.mutateAsync({ id, status: 'rejected' });
+    toast.info('Claim rejected');
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    if (isDemo) { toast.success('Claim marked as paid (demo)'); return; }
+    await updateClaim.mutateAsync({ id, status: 'paid' });
+    toast.success('Claim marked as paid — reimbursement processed');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (isDemo) { toast.success('Claim deleted (demo)'); return; }
+    deleteClaim.mutate(id);
   };
 
   const addItem = () => setForm(f => ({
@@ -157,10 +181,22 @@ export default function Expenses() {
           rowActions={row => (
             <div className="flex gap-1.5">
               {row.status === 'draft' && (
-                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSubmit(row.id)}>Submit</Button>
+                <>
+                  <Button size="sm" variant="outline" className="h-7 text-xs text-blue-600" onClick={() => handleSubmit(row.id)}>Submit</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => handleDelete(row.id)}>Delete</Button>
+                </>
               )}
               {row.status === 'submitted' && (
-                <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700" onClick={() => handleApprove(row.id)}>Approve</Button>
+                <>
+                  <Button size="sm" className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleApprove(row.id)}>Approve</Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs text-red-600" onClick={() => handleReject(row.id)}>Reject</Button>
+                </>
+              )}
+              {row.status === 'approved' && (
+                <Button size="sm" className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white" onClick={() => handleMarkPaid(row.id)}>Mark Paid</Button>
+              )}
+              {row.status === 'rejected' && (
+                <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleSubmit(row.id)}>Resubmit</Button>
               )}
             </div>
           )}

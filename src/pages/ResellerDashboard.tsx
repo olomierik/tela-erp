@@ -120,7 +120,7 @@ export default function ResellerDashboard() {
     client.slug,
     <StatusBadge
       status={client.subscription_tier || 'starter'}
-      variant={client.subscription_tier === 'enterprise' ? 'info' : client.subscription_tier === 'pro' ? 'success' : 'default'}
+      variant={client.subscription_tier === 'enterprise' ? 'info' : client.subscription_tier === 'premium' ? 'success' : 'default'}
     />,
     <StatusBadge status={client.is_active ? 'Active' : 'Inactive'} variant={client.is_active ? 'success' : 'destructive'} />,
     new Date(client.created_at).toLocaleDateString(),

@@ -1,13 +1,18 @@
+import { Helmet } from 'react-helmet-async';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Check, Package, DollarSign, ShoppingCart, Users, Bot, Shield,
   ChevronRight, Zap, BarChart3, Globe, Lock, Cpu, FileText,
+  Truck, Factory, Wrench, ClipboardList, Store, CreditCard,
+  Receipt, Building2, FolderKanban, Megaphone, Car, HardHat,
+  Layers, ScanLine, BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import telaLogo from '@/assets/tela-erp-logo.png';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -32,23 +37,7 @@ const featureSections = [
       'Batch and expiry date tracking for perishable goods',
       'Category, SKU, and barcode management',
       'Inter-warehouse stock transfers with audit trail',
-      'Supplier-linked purchase order automation',
-    ],
-  },
-  {
-    id: 'finance',
-    icon: DollarSign,
-    label: 'Financial Suite',
-    headline: 'Full double-entry accounting built into every transaction.',
-    description:
-      'Every sale, purchase, and production run automatically generates the correct journal entries. No manual bookkeeping — just accurate, real-time financials.',
-    bullets: [
-      'Double-entry bookkeeping with auto journal entries',
-      'Multi-currency support with live exchange rates',
-      'Income statement, balance sheet, and cash flow reports',
-      'Bank reconciliation and payment matching',
-      'Tax configuration and VAT reporting',
-      'Budget vs actuals tracking and variance analysis',
+      'Inventory adjustments with reason tracking',
     ],
   },
   {
@@ -59,12 +48,92 @@ const featureSections = [
     description:
       'From lead capture to invoice delivery, TELA\'s sales suite connects your pipeline, your stock, and your accounting in one seamless flow.',
     bullets: [
-      'Sales pipeline with stage tracking and forecasting',
-      'Point-of-sale (POS) with instant stock deduction',
-      'Customer segmentation and purchase history',
-      'Automatic invoice generation on order completion',
-      'Discount, tax, and promotion rule engine',
-      'Sales performance dashboards per rep and region',
+      'Sales orders with automatic inventory deduction',
+      'Customer management with segmentation and tiers',
+      'CRM deals pipeline with stage tracking',
+      'CRM activities logging (calls, meetings, emails)',
+      'Automatic invoice generation on order fulfillment',
+      'Sales performance dashboards and reports',
+    ],
+  },
+  {
+    id: 'pos',
+    icon: CreditCard,
+    label: 'Point of Sale',
+    headline: 'Fast, reliable POS that syncs with your entire operation.',
+    description:
+      'Ring up sales in-store or on the go. Every POS transaction instantly updates your inventory, accounting, and customer records.',
+    bullets: [
+      'Quick checkout with product search',
+      'Real-time inventory sync on every sale',
+      'Session-based cash management',
+      'Customer-linked transactions for loyalty tracking',
+      'Works across multiple store locations',
+      'Integrated with accounting for automatic journal entries',
+    ],
+  },
+  {
+    id: 'procurement',
+    icon: ClipboardList,
+    label: 'Procurement',
+    headline: 'Streamline purchasing from request to receipt.',
+    description:
+      'Manage vendors, create purchase orders, and receive goods — all with automatic stock updates and accounting entries.',
+    bullets: [
+      'Vendor/supplier management with contact details',
+      'Purchase order creation and approval workflows',
+      'Goods receipt with automatic stock-in',
+      'Purchase order line items linked to inventory',
+      'Supplier performance tracking',
+      'Auto accounting voucher on goods receipt',
+    ],
+  },
+  {
+    id: 'production',
+    icon: Factory,
+    label: 'Production & Manufacturing',
+    headline: 'From raw materials to finished goods, fully tracked.',
+    description:
+      'Plan production runs using Bills of Materials, track work-in-progress, and automatically update inventory when production completes.',
+    bullets: [
+      'Bill of Materials (BOM) with component tracking',
+      'Production orders with status workflows',
+      'Automatic finished goods stock-in on completion',
+      'Raw material consumption tracking',
+      'Quality checks integration',
+      'Work center management',
+    ],
+  },
+  {
+    id: 'finance',
+    icon: DollarSign,
+    label: 'Accounting & Finance',
+    headline: 'Full double-entry accounting built into every transaction.',
+    description:
+      'Every sale, purchase, and production run automatically generates the correct journal entries. No manual bookkeeping — just accurate, real-time financials.',
+    bullets: [
+      'Double-entry bookkeeping with auto journal entries',
+      'Chart of Accounts seeded per business type',
+      'Accounting vouchers (payment, receipt, journal, sale, purchase)',
+      'Ledger balances updated in real-time',
+      'Invoices with line items and PDF generation',
+      'Multi-currency support with live exchange rates',
+    ],
+  },
+  {
+    id: 'budgets',
+    icon: BarChart3,
+    label: 'Budgets & Expenses',
+    headline: 'Plan, track, and control spending across your business.',
+    description:
+      'Set department and store-level budgets, track actuals against plans, and manage employee expense claims with approval workflows.',
+    bullets: [
+      'Budget creation by department and fiscal year',
+      'Budget lines with monthly/yearly tracking',
+      'Budget vs actuals variance analysis',
+      'Expense claims with approval workflows',
+      'Expense items with receipt uploads',
+      'Integrated with accounting for auto entries',
     ],
   },
   {
@@ -73,14 +142,110 @@ const featureSections = [
     label: 'HR & Payroll',
     headline: 'Manage your people with the same precision as your inventory.',
     description:
-      'A complete human resources suite that handles recruitment, attendance, leave, and payroll — all in one place and integrated with your accounting.',
+      'A complete human resources suite that handles employee records, attendance, leave, departments, and payroll.',
     bullets: [
-      'Employee profiles, departments, and org chart',
-      'Attendance tracking and leave management',
-      'Automated payroll calculation with deductions',
-      'Payslip generation and employee self-service',
-      'Performance review cycles and goal tracking',
-      'Payroll accounting entries synced automatically',
+      'Employee profiles with department assignment',
+      'Attendance tracking and daily logs',
+      'Leave request management with approval',
+      'Payroll runs with salary and allowances',
+      'Department and position management',
+      'Employee contracts and employment types',
+    ],
+  },
+  {
+    id: 'projects',
+    icon: FolderKanban,
+    label: 'Projects & Tasks',
+    headline: 'Plan projects, assign tasks, and track time — all in one place.',
+    description:
+      'Manage client projects with task breakdowns, time tracking, and progress dashboards integrated with your financial data.',
+    bullets: [
+      'Project creation with budgets and deadlines',
+      'Task assignment with status tracking',
+      'Timesheet logging per employee',
+      'Project cost tracking and profitability',
+      'Kanban and list views for tasks',
+      'Linked to customers for billing',
+    ],
+  },
+  {
+    id: 'marketing',
+    icon: Megaphone,
+    label: 'Marketing & Campaigns',
+    headline: 'Run campaigns, track leads, and measure ROI.',
+    description:
+      'Plan multi-channel marketing campaigns, track spending vs budget, and measure lead generation — all tied to your sales pipeline.',
+    bullets: [
+      'Campaign management with budget tracking',
+      'Multi-channel support (email, social, ads)',
+      'Lead generation tracking per campaign',
+      'Spend vs budget monitoring',
+      'Campaign performance dashboards',
+      'Integrated with CRM deals pipeline',
+    ],
+  },
+  {
+    id: 'fleet',
+    icon: Car,
+    label: 'Fleet Management',
+    headline: 'Track vehicles, fuel, and maintenance in one dashboard.',
+    description:
+      'Manage your fleet of vehicles with fuel logging, service scheduling, and cost tracking for logistics-driven businesses.',
+    bullets: [
+      'Vehicle registry with details and status',
+      'Fuel log tracking with cost per unit',
+      'Vehicle service and maintenance scheduling',
+      'Mileage tracking per vehicle',
+      'Fleet cost analysis and reports',
+      'Driver assignment and history',
+    ],
+  },
+  {
+    id: 'maintenance',
+    icon: Wrench,
+    label: 'Maintenance & Equipment',
+    headline: 'Keep your equipment running and your downtime minimal.',
+    description:
+      'Track equipment, schedule preventive maintenance, and manage work requests to maximize asset uptime.',
+    bullets: [
+      'Equipment registry with serial numbers',
+      'Maintenance request management',
+      'Preventive maintenance scheduling',
+      'Warranty and acquisition tracking',
+      'Technician assignment per equipment',
+      'Equipment category and location tracking',
+    ],
+  },
+  {
+    id: 'assets',
+    icon: Building2,
+    label: 'Fixed Assets',
+    headline: 'Track, depreciate, and manage every asset your business owns.',
+    description:
+      'Maintain a full register of fixed assets with automated depreciation calculations and GL account linking.',
+    bullets: [
+      'Asset register with purchase cost and dates',
+      'Multiple depreciation methods (straight-line, reducing balance)',
+      'Accumulated depreciation tracking',
+      'Asset condition and location management',
+      'GL account linking for accounting',
+      'Asset disposal and write-off workflows',
+    ],
+  },
+  {
+    id: 'storefront',
+    icon: Store,
+    label: 'Online Store',
+    headline: 'Sell online with a storefront connected to your ERP.',
+    description:
+      'Build a storefront that automatically creates sales orders, updates inventory, and manages customers — no third-party e-commerce needed.',
+    bullets: [
+      'Product catalog from your inventory',
+      'Customer checkout with order creation',
+      'Auto sales order generation from storefront orders',
+      'Customer auto-creation from checkout details',
+      'Inventory sync on every storefront sale',
+      'Shipping address and contact management',
     ],
   },
   {
@@ -93,41 +258,64 @@ const featureSections = [
     bullets: [
       'AI CFO assistant for natural-language financial queries',
       'Demand forecasting and inventory optimization',
-      'Anomaly detection on transactions and stock movements',
-      'Automated document scanning and data extraction',
+      'Automated document scanning and data extraction (OCR)',
       'Smart reorder recommendations based on sales velocity',
       'AI-generated business health summaries',
+      'Configurable AI model per tenant',
     ],
   },
   {
     id: 'platform',
     icon: Shield,
     label: 'Platform & Security',
-    headline: 'Enterprise-grade security with the flexibility of open source.',
+    headline: 'Enterprise-grade security with multi-tenant architecture.',
     description:
-      'Built on Supabase with Row Level Security at its core, TELA ensures each business sees only their own data — with full white-labeling and reseller capabilities on top.',
+      'Built with Row Level Security at its core, TELA ensures each business sees only their own data — with multi-store, white-labeling, and reseller capabilities.',
     bullets: [
       'Row Level Security — total data isolation per tenant',
-      'Role-based access control with granular permissions',
+      'Role-based access control (admin, store_admin, user, viewer)',
+      'Multi-store support with store-scoped data',
       'White-label: custom logo, colors, and domain per tenant',
       'Reseller portal to manage and onboard client businesses',
       'Audit logs for every critical action across all modules',
-      'Real-time sync powered by Supabase Realtime',
+    ],
+  },
+  {
+    id: 'automation',
+    icon: Zap,
+    label: 'Automation & Integrations',
+    headline: 'Automate workflows and connect to external services.',
+    description:
+      'Set up trigger-based automation rules, API access, and real-time data sync across all modules.',
+    bullets: [
+      'Automation rules with trigger conditions and actions',
+      'Real-time data sync via Realtime subscriptions',
+      'API keys management for external integrations',
+      'Auto accounting entries on sales, purchases, production',
+      'Auto invoice generation on sales order fulfillment',
+      'Webhook-style event-driven workflows',
     ],
   },
 ];
 
-const comparisonRows = [
-  { feature: 'Users', free: '3', growth: '25', enterprise: 'Unlimited' },
-  { feature: 'Modules', free: '5 core', growth: 'All 15', enterprise: 'All 15' },
-  { feature: 'Warehouses', free: '1', growth: '5', enterprise: 'Unlimited' },
-  { feature: 'AI CFO Assistant', free: false, growth: true, enterprise: true },
-  { feature: 'Multi-currency', free: false, growth: true, enterprise: true },
-  { feature: 'White-label', free: false, growth: false, enterprise: true },
-  { feature: 'Reseller Portal', free: false, growth: false, enterprise: true },
-  { feature: 'API Access', free: false, growth: true, enterprise: true },
-  { feature: 'Priority Support', free: false, growth: false, enterprise: true },
-  { feature: 'Custom Domain', free: false, growth: false, enterprise: true },
+const allModules = [
+  { name: 'Inventory', icon: Package },
+  { name: 'Sales & CRM', icon: ShoppingCart },
+  { name: 'Point of Sale', icon: CreditCard },
+  { name: 'Procurement', icon: ClipboardList },
+  { name: 'Production', icon: Factory },
+  { name: 'Accounting', icon: DollarSign },
+  { name: 'Budgets & Expenses', icon: BarChart3 },
+  { name: 'HR & Payroll', icon: Users },
+  { name: 'Projects & Tasks', icon: FolderKanban },
+  { name: 'Marketing', icon: Megaphone },
+  { name: 'Fleet Management', icon: Car },
+  { name: 'Maintenance', icon: Wrench },
+  { name: 'Fixed Assets', icon: Building2 },
+  { name: 'Online Store', icon: Store },
+  { name: 'AI Intelligence', icon: Bot },
+  { name: 'Reports & Analytics', icon: BarChart3 },
+  { name: 'Automation', icon: Zap },
 ];
 
 export default function Features() {
@@ -136,18 +324,24 @@ export default function Features() {
   const ActiveIcon = active.icon;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-[\'Plus_Jakarta_Sans\',sans-serif]">
+    <div className="min-h-screen bg-background text-foreground font-['Plus_Jakarta_Sans',sans-serif]">
+      <Helmet>
+        <title>Features — TELA-ERP | Inventory, Sales, Production, Accounting & More</title>
+        <meta name="description" content="Explore TELA-ERP's full feature set: inventory management, sales & POS, production, double-entry accounting, procurement, HR & payroll, AI insights, and more." />
+        <link rel="canonical" href="https://tela-erp.com/features" />
+        <meta property="og:title" content="Features — TELA-ERP | All-in-One ERP for SMEs" />
+        <meta property="og:description" content="17+ integrated ERP modules — inventory, sales, production, accounting, HR, AI & more. $100/year for unlimited access." />
+        <meta property="og:url" content="https://tela-erp.com/features" />
+      </Helmet>
+
       {/* NAV */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[hsl(230,65%,52%)] flex items-center justify-center">
-              <Cpu className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">TELA-ERP</span>
+            <img src={telaLogo} alt="TELA ERP" className="h-8 w-auto" />
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link to="/features" className="text-[hsl(230,65%,52%)]">Features</Link>
+            <Link to="/features" className="text-primary">Features</Link>
             <Link to="/modules" className="text-muted-foreground hover:text-foreground transition-colors">Modules</Link>
             <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
             <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About</Link>
@@ -155,7 +349,7 @@ export default function Features() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild><Link to="/login">Sign in</Link></Button>
-            <Button size="sm" className="bg-[hsl(230,65%,52%)] hover:bg-[hsl(230,65%,45%)] text-white" asChild>
+            <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground" asChild>
               <Link to="/signup">Get started</Link>
             </Button>
           </div>
@@ -163,7 +357,7 @@ export default function Features() {
       </nav>
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[hsl(230,65%,52%)]/10 via-background to-[hsl(32,95%,52%)]/5 py-24 text-center">
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-accent/5 py-24 text-center">
         <motion.div
           initial="hidden"
           animate="visible"
@@ -171,18 +365,18 @@ export default function Features() {
           custom={0}
           className="max-w-4xl mx-auto px-4"
         >
-          <Badge className="mb-4 bg-[hsl(230,65%,52%)]/10 text-[hsl(230,65%,52%)] border-[hsl(230,65%,52%)]/20 hover:bg-[hsl(230,65%,52%)]/20">
+          <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
             Full Feature Overview
           </Badge>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight mb-6">
             Everything You Need to Run{' '}
-            <span className="text-[hsl(230,65%,52%)]">a Modern Business</span>
+            <span className="text-primary">a Modern Business</span>
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            TELA-ERP unifies 15 interconnected modules — from inventory to AI — so every part of your business talks to every other part, automatically.
+            TELA-ERP unifies 17+ interconnected modules — from inventory to AI — so every part of your business talks to every other part, automatically.
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button size="lg" className="bg-[hsl(230,65%,52%)] hover:bg-[hsl(230,65%,45%)] text-white gap-2" asChild>
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" asChild>
               <Link to="/signup">Start for free <ChevronRight className="w-4 h-4" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
@@ -192,13 +386,61 @@ export default function Features() {
         </motion.div>
       </section>
 
+      {/* ALL MODULES GRID */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          custom={0}
+          className="text-center mb-10"
+        >
+          <h2 className="text-3xl sm:text-4xl font-extrabold mb-3">All Modules at a Glance</h2>
+          <p className="text-muted-foreground">Every module included in one simple plan — $100/year.</p>
+        </motion.div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          {allModules.map((mod, i) => {
+            const Icon = mod.icon;
+            return (
+              <motion.div
+                key={mod.name}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={i}
+                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border/60 bg-card hover:shadow-md transition-shadow text-center"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-primary" />
+                </div>
+                <span className="text-xs font-semibold">{mod.name}</span>
+              </motion.div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* FEATURE SECTIONS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          custom={0}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl sm:text-4xl font-extrabold mb-3">Deep Dive into Features</h2>
+          <p className="text-muted-foreground">Click a module to explore what it offers.</p>
+        </motion.div>
+
         <div className="flex flex-col lg:flex-row gap-10">
           {/* Tab list */}
           <div className="lg:w-64 flex-shrink-0">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">Feature Areas</p>
-            <div className="flex flex-row lg:flex-col gap-2 flex-wrap">
+            <div className="flex flex-row lg:flex-col gap-2 flex-wrap max-h-[60vh] lg:max-h-none overflow-y-auto">
               {featureSections.map((s) => {
                 const Icon = s.icon;
                 return (
@@ -207,12 +449,13 @@ export default function Features() {
                     onClick={() => setActiveSection(s.id)}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all text-left w-full ${
                       activeSection === s.id
-                        ? 'bg-[hsl(230,65%,52%)] text-white shadow-md'
+                        ? 'bg-primary text-primary-foreground shadow-md'
                         : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
                     <Icon className="w-4 h-4 flex-shrink-0" />
-                    {s.label}
+                    <span className="hidden lg:inline">{s.label}</span>
+                    <span className="lg:hidden text-xs">{s.label}</span>
                   </button>
                 );
               })}
@@ -230,8 +473,8 @@ export default function Features() {
             <Card className="border-border/60 shadow-lg">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-xl bg-[hsl(230,65%,52%)]/10 flex items-center justify-center">
-                    <ActiveIcon className="w-6 h-6 text-[hsl(230,65%,52%)]" />
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <ActiveIcon className="w-6 h-6 text-primary" />
                   </div>
                   <Badge variant="secondary">{active.label}</Badge>
                 </div>
@@ -248,8 +491,8 @@ export default function Features() {
                       transition={{ delay: i * 0.05, duration: 0.3 }}
                       className="flex items-start gap-3"
                     >
-                      <div className="w-5 h-5 rounded-full bg-[hsl(32,95%,52%)]/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check className="w-3 h-3 text-[hsl(32,95%,52%)]" />
+                      <div className="w-5 h-5 rounded-full bg-accent/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="w-3 h-3 text-accent" />
                       </div>
                       <span className="text-sm leading-relaxed">{b}</span>
                     </motion.li>
@@ -261,82 +504,8 @@ export default function Features() {
         </div>
       </section>
 
-      {/* COMPARISON TABLE */}
-      <section className="bg-muted/30 py-24">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">Feature Comparison</h2>
-            <p className="text-muted-foreground">See exactly what each plan includes.</p>
-          </motion.div>
-
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={1}
-            className="overflow-x-auto rounded-2xl border border-border/60 bg-background shadow-sm"
-          >
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/60">
-                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Feature</th>
-                  <th className="px-6 py-4 font-bold text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <span>Starter</span>
-                      <Badge variant="secondary" className="text-xs">Free</Badge>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4 font-bold text-center bg-[hsl(230,65%,52%)]/5">
-                    <div className="flex flex-col items-center gap-1">
-                      <span>Growth</span>
-                      <Badge className="text-xs bg-[hsl(230,65%,52%)] text-white">$29/mo</Badge>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4 font-bold text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <span>Enterprise</span>
-                      <Badge variant="secondary" className="text-xs bg-[hsl(32,95%,52%)]/15 text-[hsl(32,95%,52%)]">$99/mo</Badge>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisonRows.map((row, i) => (
-                  <tr key={row.feature} className={`border-b border-border/40 ${i % 2 === 0 ? '' : 'bg-muted/20'}`}>
-                    <td className="px-6 py-3 font-medium">{row.feature}</td>
-                    <td className="px-6 py-3 text-center text-muted-foreground">
-                      {typeof row.free === 'boolean' ? (
-                        row.free ? <Check className="w-4 h-4 text-[hsl(32,95%,52%)] mx-auto" /> : <span className="text-muted-foreground/40">—</span>
-                      ) : row.free}
-                    </td>
-                    <td className="px-6 py-3 text-center bg-[hsl(230,65%,52%)]/5">
-                      {typeof row.growth === 'boolean' ? (
-                        row.growth ? <Check className="w-4 h-4 text-[hsl(32,95%,52%)] mx-auto" /> : <span className="text-muted-foreground/40">—</span>
-                      ) : row.growth}
-                    </td>
-                    <td className="px-6 py-3 text-center">
-                      {typeof row.enterprise === 'boolean' ? (
-                        row.enterprise ? <Check className="w-4 h-4 text-[hsl(32,95%,52%)] mx-auto" /> : <span className="text-muted-foreground/40">—</span>
-                      ) : row.enterprise}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </motion.div>
-        </div>
-      </section>
-
       {/* CTA */}
-      <section className="py-24 text-center">
+      <section className="py-24 text-center bg-muted/30">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -348,11 +517,12 @@ export default function Features() {
           <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
             Ready to see it in action?
           </h2>
-          <p className="text-muted-foreground mb-8">
-            Start free with 3 users and 5 core modules. Upgrade as you grow.
+          <p className="text-muted-foreground mb-2">
+            All 17+ modules included. One simple plan.
           </p>
+          <p className="text-2xl font-bold text-primary mb-8">$100/year</p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button size="lg" className="bg-[hsl(230,65%,52%)] hover:bg-[hsl(230,65%,45%)] text-white gap-2" asChild>
+            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" asChild>
               <Link to="/signup">Create free account <ChevronRight className="w-4 h-4" /></Link>
             </Button>
             <Button size="lg" variant="outline" asChild>

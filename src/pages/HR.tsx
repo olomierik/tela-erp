@@ -228,6 +228,103 @@ function EmployeeForm({ employee, onClose }: { employee?: any; onClose: () => vo
   );
 }
 
+// ─── Leave Request Form ────────────────────────────────────────────────────
+function LeaveRequestForm({ employees, onClose, onSubmit, isPending }: {
+  employees: any[];
+  onClose: () => void;
+  onSubmit: (data: Record<string, any>) => void;
+  isPending: boolean;
+}) {
+  const [form, setForm] = useState({
+    employee_id: '',
+    employee_name: '',
+    leave_type: 'annual',
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: new Date().toISOString().slice(0, 10),
+    days: 1,
+    reason: '',
+  });
+  const set = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleEmployeeSelect = (empId: string) => {
+    const emp = employees.find(e => e.id === empId);
+    setForm(f => ({ ...f, employee_id: empId, employee_name: emp?.full_name || '' }));
+  };
+
+  const handleSubmit = () => {
+    if (!form.employee_id) { toast.error('Select an employee'); return; }
+    onSubmit({
+      employee_id: form.employee_id,
+      employee_name: form.employee_name,
+      leave_type: form.leave_type,
+      start_date: form.start_date,
+      end_date: form.end_date,
+      days: form.days,
+      reason: form.reason,
+      status: 'pending',
+    });
+  };
+
+  return (
+    <>
+      <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
+        <SheetTitle>New Leave Request</SheetTitle>
+      </SheetHeader>
+      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="space-y-1.5">
+          <Label>Employee *</Label>
+          <Select value={form.employee_id} onValueChange={handleEmployeeSelect}>
+            <SelectTrigger><SelectValue placeholder="Select employee" /></SelectTrigger>
+            <SelectContent>
+              {employees.filter(e => e.status === 'active').map((e: any) => (
+                <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Leave Type</Label>
+          <Select value={form.leave_type} onValueChange={v => set('leave_type', v)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="annual">Annual</SelectItem>
+              <SelectItem value="sick">Sick</SelectItem>
+              <SelectItem value="maternity">Maternity</SelectItem>
+              <SelectItem value="paternity">Paternity</SelectItem>
+              <SelectItem value="unpaid">Unpaid</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label>Start Date</Label>
+            <Input type="date" value={form.start_date} onChange={e => set('start_date', e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>End Date</Label>
+            <Input type="date" value={form.end_date} onChange={e => set('end_date', e.target.value)} />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Days</Label>
+          <Input type="number" min={1} value={form.days} onChange={e => set('days', Number(e.target.value))} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Reason</Label>
+          <Input value={form.reason} onChange={e => set('reason', e.target.value)} placeholder="Reason for leave..." />
+        </div>
+      </div>
+      <SheetFooter className="px-6 py-4 border-t border-border gap-2">
+        <Button variant="outline" onClick={onClose}>Cancel</Button>
+        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleSubmit} disabled={isPending}>
+          {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+          Submit Request
+        </Button>
+      </SheetFooter>
+    </>
+  );
+}
+
 // ─── Main HR Page ──────────────────────────────────────────────────────────
 
 export default function HR() {
@@ -237,11 +334,13 @@ export default function HR() {
   const [employeeSheet, setEmployeeSheet] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('employees');
+  const [leaveSheet, setLeaveSheet] = useState(false);
 
   const { data: employees = [], isLoading } = useTenantQuery('employees');
   const { data: leaveRequests = [], isLoading: leaveLoading } = useTenantQuery('leave_requests');
   const deleteEmployee = useTenantDelete('employees');
   const updateLeave = useTenantUpdate('leave_requests');
+  const insertLeave = useTenantInsert('leave_requests');
 
   // Per-run allowance overrides (employee id → monthly allowance)
   const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
@@ -447,6 +546,11 @@ export default function HR() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold">Leave Requests</CardTitle>
+                {!isDemo && (
+                  <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-8 text-xs" onClick={() => setLeaveSheet(true)}>
+                    <Plus className="w-3.5 h-3.5" /> New Leave Request
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -720,6 +824,23 @@ export default function HR() {
       <Sheet open={employeeSheet} onOpenChange={setEmployeeSheet}>
         <SheetContent className="w-full sm:max-w-[480px] flex flex-col p-0" side="right">
           <EmployeeForm employee={selectedEmployee} onClose={() => setEmployeeSheet(false)} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Leave Request Sheet */}
+      <Sheet open={leaveSheet} onOpenChange={setLeaveSheet}>
+        <SheetContent className="w-full sm:max-w-[480px] flex flex-col p-0" side="right">
+          <LeaveRequestForm
+            employees={employees as any[]}
+            onClose={() => setLeaveSheet(false)}
+            onSubmit={(data) => {
+              insertLeave.mutate(data, {
+                onSuccess: () => { toast.success('Leave request submitted'); setLeaveSheet(false); },
+                onError: (err: any) => toast.error(err?.message || 'Failed to submit'),
+              });
+            }}
+            isPending={insertLeave.isPending}
+          />
         </SheetContent>
       </Sheet>
     </AppLayout>

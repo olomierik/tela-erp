@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Search, Plus, Phone, Mail, Calendar, Tag, ArrowRight,
   Star, Activity, DollarSign, Video, FileText as FileTextIcon,
-  CheckSquare, Trash2, Loader2,
+  CheckSquare, Trash2, Loader2, Clock, Send,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,11 +15,15 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { triggerAutomation } from '@/lib/automation';
 
 const stages = [
   { id: 'lead', label: 'Lead', color: 'bg-gray-100 dark:bg-gray-800', badge: 'bg-gray-200 text-gray-700' },
@@ -51,6 +55,77 @@ function TierBadge({ tier }: { tier: string }) {
   );
 }
 
+// ─── Log Activity Dialog ──────────────────────────────────────────────────
+
+function LogActivityDialog({ contactId, activityType, onClose, onSaved }: {
+  contactId: string; activityType: string; onClose: () => void; onSaved: () => void;
+}) {
+  const insertActivity = useTenantInsert('crm_activities');
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    scheduled_at: '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const typeInfo = activityTypes.find(a => a.type === activityType);
+
+  const handleSave = async () => {
+    if (!form.title.trim()) { toast.error('Activity title is required'); return; }
+    setSaving(true);
+    try {
+      await insertActivity.mutateAsync({
+        customer_id: contactId,
+        type: activityType,
+        title: form.title,
+        description: form.description || null,
+        scheduled_at: form.scheduled_at || null,
+      });
+      toast.success(`${typeInfo?.label || 'Activity'} logged`);
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to log activity');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <DialogContent className="max-w-md">
+      <DialogHeader>
+        <DialogTitle className="flex items-center gap-2">
+          {typeInfo && <typeInfo.icon className={cn('w-5 h-5', typeInfo.color)} />}
+          Log {typeInfo?.label || 'Activity'}
+        </DialogTitle>
+      </DialogHeader>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Title *</Label>
+          <Input className="h-8 text-xs" placeholder={`e.g. ${activityType === 'call' ? 'Follow-up call about proposal' : activityType === 'email' ? 'Sent pricing details' : activityType === 'meeting' ? 'Demo presentation' : activityType === 'task' ? 'Prepare quote' : 'General note'}`} value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Description</Label>
+          <Textarea className="text-xs" rows={3} placeholder="Details about this activity..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+        </div>
+        {(activityType === 'meeting' || activityType === 'call' || activityType === 'task') && (
+          <div className="space-y-1">
+            <Label className="text-xs">Scheduled Date/Time</Label>
+            <Input type="datetime-local" className="h-8 text-xs" value={form.scheduled_at} onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))} />
+          </div>
+        )}
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" className="flex-1 h-8 text-xs" onClick={onClose}>Cancel</Button>
+          <Button className="flex-1 h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white" onClick={handleSave} disabled={saving || !form.title.trim()}>
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+            Log Activity
+          </Button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+}
+
 // ─── Add Contact Sheet ─────────────────────────────────────────────────────
 
 function AddContactSheet({ onClose }: { onClose: () => void }) {
@@ -62,7 +137,7 @@ function AddContactSheet({ onClose }: { onClose: () => void }) {
 
   const handleSave = async () => {
     if (isDemo) { return; }
-    if (!form.name.trim()) { return; }
+    if (!form.name.trim()) { toast.error('Name is required'); return; }
     setSaving(true);
     try {
       await insert.mutateAsync({ ...form });
@@ -126,11 +201,11 @@ function AddContactSheet({ onClose }: { onClose: () => void }) {
 // ─── Add Deal Sheet ────────────────────────────────────────────────────────
 
 function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => void }) {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const insert = useTenantInsert('crm_deals');
   const [form, setForm] = useState({
-    title: '', contact_id: '', contact_name: '', company: '',
-    value: '', stage: 'lead', probability: '20', close_date: '',
+    title: '', customer_id: '', contact_name: '', company: '',
+    value: '', stage: 'lead', probability: '20', expected_close_date: '',
   });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
@@ -139,17 +214,17 @@ function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => v
     if (isDemo || !form.title.trim()) return;
     setSaving(true);
     try {
-      const selectedContact = contacts.find(c => c.id === form.contact_id);
+      const selectedContact = contacts.find(c => c.id === form.customer_id);
       await insert.mutateAsync({
         title: form.title,
-        contact_id: form.contact_id || null,
-        contact_name: selectedContact?.name || form.contact_name,
-        company: selectedContact?.company || form.company,
+        customer_id: form.customer_id || null,
         value: parseFloat(form.value) || 0,
         stage: form.stage,
         probability: parseInt(form.probability) || 20,
-        close_date: form.close_date || null,
+        expected_close_date: form.expected_close_date || null,
+        notes: selectedContact ? `Contact: ${selectedContact.name} (${selectedContact.company || ''})` : '',
       });
+      void triggerAutomation('deal_stage_changed', { stage: form.stage, name: form.title }, tenant?.id ?? '');
       onClose();
     } finally {
       setSaving(false);
@@ -169,10 +244,10 @@ function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => v
           </div>
           <div className="col-span-2 space-y-1.5">
             <Label>Contact</Label>
-            <Select value={form.contact_id} onValueChange={v => set('contact_id', v)}>
+            <Select value={form.customer_id} onValueChange={v => set('customer_id', v)}>
               <SelectTrigger><SelectValue placeholder="Select contact (optional)" /></SelectTrigger>
               <SelectContent>
-                {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name} — {c.company}</SelectItem>)}
+                {contacts.map(c => <SelectItem key={c.id} value={c.id}>{c.name} — {c.company || 'No company'}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -195,7 +270,7 @@ function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => v
           </div>
           <div className="space-y-1.5">
             <Label>Expected Close Date</Label>
-            <Input value={form.close_date} onChange={e => set('close_date', e.target.value)} type="date" />
+            <Input value={form.expected_close_date} onChange={e => set('expected_close_date', e.target.value)} type="date" />
           </div>
         </div>
       </div>
@@ -212,8 +287,13 @@ function AddDealSheet({ contacts, onClose }: { contacts: any[]; onClose: () => v
 
 // ─── Contact Detail Sheet ──────────────────────────────────────────────────
 
-function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void }) {
+function ContactDetail({ contact, activities, onClose, onActivityLogged }: {
+  contact: any; activities: any[]; onClose: () => void; onActivityLogged: () => void;
+}) {
   const { formatMoney } = useCurrency();
+  const [activityDialogType, setActivityDialogType] = useState<string | null>(null);
+
+  const contactActivities = activities.filter((a: any) => a.customer_id === contact.id);
 
   return (
     <>
@@ -254,15 +334,57 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
             </div>
           </div>
 
+          {/* FUNCTIONAL Activity Buttons */}
           <div className="space-y-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Log Activity</h3>
             <div className="flex gap-2 flex-wrap">
               {activityTypes.map(({ type, icon: Icon, label, color }) => (
-                <Button key={type} size="sm" variant="outline" className={cn('h-8 text-xs gap-1.5', color)}>
+                <Button
+                  key={type}
+                  size="sm"
+                  variant="outline"
+                  className={cn('h-8 text-xs gap-1.5', color)}
+                  onClick={() => setActivityDialogType(type)}
+                >
                   <Icon className="w-3.5 h-3.5" />{label}
                 </Button>
               ))}
             </div>
+          </div>
+
+          {/* Activity History */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Activity History ({contactActivities.length})
+            </h3>
+            {contactActivities.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">No activities logged yet. Use the buttons above to log your first activity.</p>
+            ) : (
+              <div className="space-y-2">
+                {contactActivities.slice(0, 10).map((act: any) => {
+                  const typeInfo = activityTypes.find(a => a.type === act.type);
+                  const Icon = typeInfo?.icon || Activity;
+                  return (
+                    <div key={act.id} className="flex items-start gap-2 p-2 rounded-lg border border-border bg-muted/20">
+                      <Icon className={cn('w-4 h-4 mt-0.5 shrink-0', typeInfo?.color || 'text-muted-foreground')} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground">{act.title}</p>
+                        {act.description && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{act.description}</p>}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-muted-foreground">{new Date(act.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                          {act.scheduled_at && (
+                            <span className="text-[10px] text-indigo-500 flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              Scheduled: {new Date(act.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {contact.notes && (
@@ -273,6 +395,18 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
           )}
         </div>
       </div>
+
+      {/* Activity Dialog */}
+      <Dialog open={!!activityDialogType} onOpenChange={(v) => !v && setActivityDialogType(null)}>
+        {activityDialogType && (
+          <LogActivityDialog
+            contactId={contact.id}
+            activityType={activityDialogType}
+            onClose={() => setActivityDialogType(null)}
+            onSaved={onActivityLogged}
+          />
+        )}
+      </Dialog>
     </>
   );
 }
@@ -281,7 +415,7 @@ function ContactDetail({ contact, onClose }: { contact: any; onClose: () => void
 
 export default function CRM() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState('all');
   const [selectedContact, setSelectedContact] = useState<any>(null);
@@ -289,11 +423,15 @@ export default function CRM() {
   const [addContactOpen, setAddContactOpen] = useState(false);
   const [addDealOpen, setAddDealOpen] = useState(false);
 
-  const { data: contacts = [], isLoading: contactsLoading } = useTenantQuery('customers');
+  const { data: contacts = [], isLoading: contactsLoading, refetch: refetchContacts } = useTenantQuery('customers');
   const { data: deals = [], isLoading: dealsLoading } = useTenantQuery('crm_deals');
+  const { data: activities = [], refetch: refetchActivities } = useTenantQuery('crm_activities');
   const deleteContact = useTenantDelete('customers');
   const deleteDeal = useTenantDelete('crm_deals');
   const updateDeal = useTenantUpdate('crm_deals');
+  useRealtimeSync('customers');
+  useRealtimeSync('crm_deals');
+  useRealtimeSync('crm_activities');
 
   const filteredContacts = (contacts as any[]).filter(c => {
     const matchSearch = (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -308,6 +446,17 @@ export default function CRM() {
   const handleMoveDeal = async (dealId: string, newStage: string) => {
     if (isDemo) return;
     await updateDeal.mutateAsync({ id: dealId, stage: newStage });
+    if (newStage === 'won') {
+      void triggerAutomation('deal_won', { deal_id: dealId, stage: newStage }, tenant?.id ?? '');
+    }
+    void triggerAutomation('deal_stage_changed', { deal_id: dealId, stage: newStage }, tenant?.id ?? '');
+  };
+
+  // Deal stage progression
+  const getNextStage = (current: string): string | null => {
+    const order = ['lead', 'qualified', 'proposal', 'negotiation', 'won'];
+    const idx = order.indexOf(current);
+    return idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
   };
 
   return (
@@ -316,6 +465,7 @@ export default function CRM() {
         <TabsList className="mb-6">
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="activities">Activities</TabsTrigger>
         </TabsList>
 
         {/* ── Contacts ── */}
@@ -356,7 +506,7 @@ export default function CRM() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" size="sm" onClick={() => setAddContactOpen(true)}>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-10 sm:h-8 touch-manipulation" size="sm" onClick={() => setAddContactOpen(true)}>
                 <Plus className="w-4 h-4" /> Add Contact
               </Button>
             </div>
@@ -368,6 +518,7 @@ export default function CRM() {
                     <th className="text-left px-4 py-3 font-medium">Contact</th>
                     <th className="text-left px-4 py-3 font-medium">Company</th>
                     <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Tier</th>
+                    <th className="text-left px-4 py-3 font-medium hidden lg:table-cell">Activities</th>
                     <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">Revenue</th>
                     <th className="text-right px-4 py-3 font-medium">Actions</th>
                   </tr>
@@ -375,39 +526,45 @@ export default function CRM() {
                 <tbody className="divide-y divide-border">
                   {contactsLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
-                      <tr key={i}><td colSpan={5} className="px-4 py-3"><Skeleton className="h-5 w-full" /></td></tr>
+                      <tr key={i}><td colSpan={6} className="px-4 py-3"><Skeleton className="h-5 w-full" /></td></tr>
                     ))
-                  ) : filteredContacts.map((contact: any) => (
-                    <tr key={contact.id} className="hover:bg-accent/40 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                            {(contact.name || '?').charAt(0)}
+                  ) : filteredContacts.map((contact: any) => {
+                    const contactActCount = (activities as any[]).filter(a => a.customer_id === contact.id).length;
+                    return (
+                      <tr key={contact.id} className="hover:bg-accent/40 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                              {(contact.name || '?').charAt(0)}
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">{contact.name}</p>
+                              <p className="text-xs text-muted-foreground">{contact.email}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">{contact.name}</p>
-                            <p className="text-xs text-muted-foreground">{contact.email}</p>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{contact.company || '—'}</td>
+                        <td className="px-4 py-3 hidden md:table-cell"><TierBadge tier={contact.tier || 'New'} /></td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <Badge variant="outline" className="text-[10px]">{contactActCount} logged</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right font-semibold text-foreground hidden sm:table-cell">
+                          {contact.total_spent > 0 ? formatMoney(contact.total_spent) : '—'}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" className="h-9 sm:h-7 text-xs gap-1 text-indigo-600 touch-manipulation" onClick={() => setSelectedContact(contact)}>
+                              View <ArrowRight className="w-3 h-3" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-9 w-9 sm:h-7 sm:w-7 text-muted-foreground hover:text-red-500 touch-manipulation"
+                              onClick={() => !isDemo && deleteContact.mutate(contact.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{contact.company || '—'}</td>
-                      <td className="px-4 py-3 hidden md:table-cell"><TierBadge tier={contact.tier || 'New'} /></td>
-                      <td className="px-4 py-3 text-right font-semibold text-foreground hidden sm:table-cell">
-                        {contact.total_spent > 0 ? formatMoney(contact.total_spent) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-indigo-600" onClick={() => setSelectedContact(contact)}>
-                            View <ArrowRight className="w-3 h-3" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-500"
-                            onClick={() => !isDemo && deleteContact.mutate(contact.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
               {!contactsLoading && filteredContacts.length === 0 && (
@@ -434,12 +591,12 @@ export default function CRM() {
                 <Plus className="w-3.5 h-3.5" /> Add Deal
               </Button>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-3 px-3 sm:mx-0 sm:px-0 snap-x snap-mandatory">
               {stages.map(stage => {
                 const stageDeals = (deals as any[]).filter(d => d.stage === stage.id);
                 const stageValue = stageDeals.reduce((s, d) => s + Number(d.value || 0), 0);
                 return (
-                  <div key={stage.id} className="flex-shrink-0 w-[240px]">
+                  <div key={stage.id} className="flex-shrink-0 w-[280px] sm:w-[260px] snap-start">
                     <div className={cn('rounded-xl p-3 min-h-[200px]', stage.color)}>
                       <div className="flex items-center justify-between mb-3">
                         <span className={cn('text-xs font-semibold rounded-full px-2 py-0.5', stage.badge)}>
@@ -450,46 +607,64 @@ export default function CRM() {
                       <div className="space-y-2">
                         {dealsLoading ? (
                           <Skeleton className="h-20 w-full rounded-lg" />
-                        ) : stageDeals.map((deal: any) => (
-                          <motion.div
-                            key={deal.id}
-                            whileHover={{ scale: 1.02 }}
-                            className="bg-card rounded-lg p-3 border border-border shadow-sm cursor-grab group"
-                          >
-                            <p className="text-sm font-semibold text-foreground leading-snug">{deal.title}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{deal.contact_name} · {deal.company}</p>
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-sm font-bold text-indigo-600">{formatMoney(deal.value)}</span>
-                              <span className="text-xs text-muted-foreground bg-accent rounded-full px-1.5 py-0.5">{deal.probability}%</span>
-                            </div>
-                            {deal.close_date && (
-                              <p className="text-[11px] text-muted-foreground/60 mt-1.5 flex items-center gap-1">
-                                <Calendar className="w-2.5 h-2.5" />{deal.close_date}
-                              </p>
-                            )}
-                            <div className="mt-2 pt-2 border-t border-border flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {deal.stage !== 'won' && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-6 text-[10px] text-green-600 hover:bg-green-50 px-1.5"
-                                  onClick={() => handleMoveDeal(deal.id, 'won')}
-                                >Won</Button>
+                        ) : stageDeals.map((deal: any) => {
+                          const nextStage = getNextStage(deal.stage);
+                          const contactName = (contacts as any[]).find(c => c.id === deal.customer_id)?.name || deal.contact_name || '';
+                          return (
+                            <motion.div
+                              key={deal.id}
+                              whileHover={{ scale: 1.02 }}
+                              className="bg-card rounded-lg p-3 border border-border shadow-sm group"
+                            >
+                              <p className="text-sm font-semibold text-foreground leading-snug">{deal.title}</p>
+                              {contactName && <p className="text-xs text-muted-foreground mt-1">{contactName}</p>}
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-sm font-bold text-indigo-600">{formatMoney(deal.value)}</span>
+                                <span className="text-xs text-muted-foreground bg-accent rounded-full px-1.5 py-0.5">{deal.probability}%</span>
+                              </div>
+                              {deal.expected_close_date && (
+                                <p className="text-[11px] text-muted-foreground/60 mt-1.5 flex items-center gap-1">
+                                  <Calendar className="w-2.5 h-2.5" />{deal.expected_close_date}
+                                </p>
                               )}
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-6 w-6 text-red-400 hover:text-red-600 ml-auto"
-                                onClick={() => !isDemo && deleteDeal.mutate(deal.id)}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                          </motion.div>
-                        ))}
+                              <div className="mt-2 pt-2 border-t border-border flex flex-wrap gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                {nextStage && (
+                                  <Button
+                                    size="sm" variant="ghost"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-blue-600 hover:bg-blue-50 active:bg-blue-100 px-2 sm:px-1.5 touch-manipulation"
+                                    onClick={() => handleMoveDeal(deal.id, nextStage)}
+                                  >
+                                    → {stages.find(s => s.id === nextStage)?.label}
+                                  </Button>
+                                )}
+                                {deal.stage !== 'won' && (
+                                  <Button
+                                    size="sm" variant="ghost"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-green-600 hover:bg-green-50 active:bg-green-100 px-2 sm:px-1.5 touch-manipulation"
+                                    onClick={() => handleMoveDeal(deal.id, 'won')}
+                                  >Won</Button>
+                                )}
+                                {deal.stage !== 'lost' && (
+                                  <Button
+                                    size="sm" variant="ghost"
+                                    className="h-8 sm:h-6 text-xs sm:text-[10px] text-red-500 hover:bg-red-50 active:bg-red-100 px-2 sm:px-1.5 touch-manipulation"
+                                    onClick={() => handleMoveDeal(deal.id, 'lost')}
+                                  >Lost</Button>
+                                )}
+                                <Button
+                                  size="icon" variant="ghost"
+                                  className="h-8 w-8 sm:h-6 sm:w-6 text-red-400 hover:text-red-600 ml-auto touch-manipulation"
+                                  onClick={() => !isDemo && deleteDeal.mutate(deal.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
                         {!dealsLoading && stageDeals.length === 0 && (
                           <div className="text-center py-6 text-xs text-muted-foreground/60 border-2 border-dashed border-border rounded-lg">
-                            Drop deals here
+                            No deals in this stage
                           </div>
                         )}
                       </div>
@@ -500,13 +675,74 @@ export default function CRM() {
             </div>
           </div>
         </TabsContent>
+
+        {/* ── Activities Tab ── */}
+        <TabsContent value="activities">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{(activities as any[]).length} total activities logged</p>
+            </div>
+            {(activities as any[]).length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Activity className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <p className="font-medium">No activities logged yet</p>
+                <p className="text-xs mt-1">Open a contact and use the activity buttons to start logging</p>
+              </div>
+            ) : (
+              <Card>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-border bg-muted/40">
+                      {['Type', 'Title', 'Contact', 'Scheduled', 'Logged'].map((h, i) => (
+                        <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {(activities as any[]).map((act: any) => {
+                        const typeInfo = activityTypes.find(a => a.type === act.type);
+                        const Icon = typeInfo?.icon || Activity;
+                        const contact = (contacts as any[]).find(c => c.id === act.customer_id);
+                        return (
+                          <tr key={act.id} className="border-b border-border last:border-0 hover:bg-muted/20">
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-1.5">
+                                <Icon className={cn('w-3.5 h-3.5', typeInfo?.color)} />
+                                <span className="text-xs capitalize">{act.type}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <p className="font-medium text-foreground text-xs">{act.title}</p>
+                              {act.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{act.description}</p>}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground">{contact?.name || '—'}</td>
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                              {act.scheduled_at ? new Date(act.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                              {new Date(act.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Contact Detail Sheet */}
       <Sheet open={!!selectedContact} onOpenChange={(v) => !v && setSelectedContact(null)}>
         <SheetContent className="w-full sm:max-w-[440px] flex flex-col p-0" side="right">
           {selectedContact && (
-            <ContactDetail contact={selectedContact} onClose={() => setSelectedContact(null)} />
+            <ContactDetail
+              contact={selectedContact}
+              activities={activities as any[]}
+              onClose={() => setSelectedContact(null)}
+              onActivityLogged={() => refetchActivities()}
+            />
           )}
         </SheetContent>
       </Sheet>

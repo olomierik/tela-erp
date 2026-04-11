@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +18,7 @@ import { Copy } from 'lucide-react';
 import {
   Building2, Users, Bot, Bell, Plug, Shield, RefreshCw,
   Upload, Save, Plus, Mail, ExternalLink, Lock, Key,
-  CheckCircle2, XCircle, Loader2, Zap,
+  CheckCircle2, XCircle, Loader2, Zap, Eye, EyeOff,
 } from 'lucide-react';
 
 const integrations = [
@@ -27,10 +29,25 @@ const integrations = [
 ];
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const { popularCurrencies, currencySymbol, defaultCurrency, saveDefaultCurrency } = useCurrency();
-  const { tenant, isDemo } = useAuth();
+  const { tenant, profile, isDemo, refreshProfile } = useAuth();
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
   const [syncing, setSyncing] = useState(false);
+
+  // Company info state
+  const [companyName, setCompanyName] = useState('');
+  const [companyAddress, setCompanyAddress] = useState('');
+  const [companyCity, setCompanyCity] = useState('');
+  const [companyCountry, setCompanyCountry] = useState('');
+  const [companyPhone, setCompanyPhone] = useState('');
+  const [companyEmail, setCompanyEmail] = useState('');
+  const [timezone, setTimezone] = useState('utc');
+  const [savingCompany, setSavingCompany] = useState(false);
+
+  // Team members
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loadingTeam, setLoadingTeam] = useState(true);
 
   // AI settings state
   const [aiKey, setAiKey] = useState('');
@@ -41,29 +58,113 @@ export default function SettingsPage() {
   const [needsMigration, setNeedsMigration] = useState(false);
   const [needsFunctionDeploy, setNeedsFunctionDeploy] = useState(false);
 
-  const MIGRATION_SQL = `ALTER TABLE public.tenants
-  ADD COLUMN IF NOT EXISTS anthropic_api_key TEXT,
-  ADD COLUMN IF NOT EXISTS ai_model TEXT DEFAULT 'claude-sonnet-4-6';`;
+  // Notification prefs
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tela_notification_prefs');
+      return saved ? JSON.parse(saved) : {
+        low_stock: true, new_orders: true, invoice_overdue: true,
+        payroll_finalized: false, leave_requests: false,
+      };
+    } catch { return { low_stock: true, new_orders: true, invoice_overdue: true, payroll_finalized: false, leave_requests: false }; }
+  });
+  const [savingNotifs, setSavingNotifs] = useState(false);
 
-  // Load existing AI config on mount
+  // Security - password change
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
+  // AI config is now stored in tenant_secrets (not tenants)
+
+  // Load company info
+  useEffect(() => {
+    if (!tenant?.id) return;
+    setCompanyName(tenant.name || '');
+    (async () => {
+      const { data } = await (supabase.from('tenants') as any)
+        .select('address, city, country, phone, contact_email, timezone')
+        .eq('id', tenant.id)
+        .single();
+      if (data) {
+        setCompanyAddress(data.address || '');
+        setCompanyCity(data.city || '');
+        setCompanyCountry(data.country || '');
+        setCompanyPhone(data.phone || '');
+        setCompanyEmail(data.contact_email || '');
+        setTimezone(data.timezone || 'utc');
+      }
+    })();
+  }, [tenant?.id]);
+
+  // Load team members
+  useEffect(() => {
+    if (!tenant?.id) { setLoadingTeam(false); return; }
+    (async () => {
+      setLoadingTeam(true);
+      try {
+        const { data: profiles } = await (supabase.from('profiles') as any)
+          .select('user_id, full_name, email, is_active, created_at')
+          .eq('tenant_id', tenant.id)
+          .limit(10);
+        const { data: roles } = await (supabase.from('user_roles') as any)
+          .select('user_id, role');
+        const roleMap: Record<string, string> = {};
+        (roles ?? []).forEach((r: any) => { roleMap[r.user_id] = r.role; });
+        setTeamMembers((profiles ?? []).map((p: any) => ({
+          ...p,
+          role: roleMap[p.user_id] || 'user',
+        })));
+      } catch { /* silent */ }
+      finally { setLoadingTeam(false); }
+    })();
+  }, [tenant?.id]);
+
+  // Load AI config
   useEffect(() => {
     if (!tenant?.id || isDemo) return;
     (async () => {
-      const { data, error } = await (supabase.from('tenants') as any)
+      const { data, error } = await (supabase.from('tenant_secrets') as any)
         .select('anthropic_api_key, ai_model')
-        .eq('id', tenant.id)
+        .eq('tenant_id', tenant.id)
         .single();
-      if (error?.message?.includes('column') || error?.message?.includes('schema')) {
-        setNeedsMigration(true);
+      if (error && !error.message?.includes('0 rows')) {
         return;
       }
       if (data?.anthropic_api_key) {
         setAiConfigured(true);
         setAiModel(data.ai_model || 'claude-sonnet-4-6');
-        setAiKey('');
       }
     })();
   }, [tenant?.id, isDemo]);
+
+  // ── Handlers ──
+
+  const handleSaveCompany = async () => {
+    if (isDemo) { toast.info('Settings save disabled in demo'); return; }
+    setSavingCompany(true);
+    try {
+      const { error } = await (supabase.from('tenants') as any)
+        .update({
+          name: companyName.trim(),
+          address: companyAddress.trim(),
+          city: companyCity.trim(),
+          country: companyCountry.trim(),
+          phone: companyPhone.trim(),
+          contact_email: companyEmail.trim(),
+          timezone,
+        })
+        .eq('id', tenant?.id);
+      if (error) throw error;
+      toast.success('Company information saved');
+      refreshProfile?.();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to save');
+    } finally {
+      setSavingCompany(false);
+    }
+  };
 
   const handleSaveCurrency = async () => {
     if (isDemo) { toast.info('Settings save disabled in demo'); return; }
@@ -88,26 +189,43 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSaveNotifications = () => {
+    setSavingNotifs(true);
+    localStorage.setItem('tela_notification_prefs', JSON.stringify(notifications));
+    setTimeout(() => {
+      setSavingNotifs(false);
+      toast.success('Notification preferences saved');
+    }, 400);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword.trim()) { toast.error('Enter a new password'); return; }
+    if (newPassword.length < 8) { toast.error('Password must be at least 8 characters'); return; }
+    if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return; }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Password changed successfully');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to change password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleSaveAI = async () => {
     if (isDemo) { toast.info('AI settings save disabled in demo'); return; }
     if (!aiKey.trim() && !aiConfigured) { toast.error('Please enter an Anthropic API key'); return; }
     setSaveAiLoading(true);
     try {
-      const updates: Record<string, any> = { ai_model: aiModel };
+      const updates: Record<string, any> = { tenant_id: tenant?.id, ai_model: aiModel };
       if (aiKey.trim()) updates.anthropic_api_key = aiKey.trim();
-      const { error } = await (supabase.from('tenants') as any)
-        .update(updates)
-        .eq('id', tenant?.id);
-      if (error) {
-        // Columns don't exist yet — migration not applied
-        if (error.message?.includes('column') || error.message?.includes('schema cache') || error.message?.includes('ai_model')) {
-          setNeedsMigration(true);
-          toast.error('Database migration required — see the setup instructions below.');
-          return;
-        }
-        throw error;
-      }
-      setNeedsMigration(false);
+      const { error } = await (supabase.from('tenant_secrets') as any)
+        .upsert(updates, { onConflict: 'tenant_id' });
+      if (error) throw error;
       setAiConfigured(true);
       if (aiKey.trim()) setAiKey('');
       toast.success('AI settings saved successfully');
@@ -125,15 +243,12 @@ export default function SettingsPage() {
       const { data, error } = await supabase.functions.invoke('tela-ai', {
         body: { message: 'Say "Tela AI is working!" in exactly those words.', context: {}, mode: 'default' },
       });
-
-      // Edge function not deployed
       if (error?.message?.includes('Failed to send') || error?.message?.includes('404') || error?.message?.includes('not found')) {
         setNeedsFunctionDeploy(true);
         toast.error('Edge function not deployed yet — see deployment instructions below.');
         return;
       }
       if (error) throw error;
-
       if (data?.reply && !data.reply.toLowerCase().includes('not configured')) {
         setNeedsFunctionDeploy(false);
         toast.success('✓ Connected — Tela AI is working!');
@@ -144,7 +259,7 @@ export default function SettingsPage() {
       const msg = err.message || '';
       if (msg.includes('Failed to send') || msg.includes('fetch') || msg.includes('network')) {
         setNeedsFunctionDeploy(true);
-        toast.error('Edge function not reachable — deploy it first (see instructions below).');
+        toast.error('Edge function not reachable — deploy it first.');
       } else {
         toast.error('Connection failed: ' + msg);
       }
@@ -155,13 +270,42 @@ export default function SettingsPage() {
 
   const handleClearKey = async () => {
     if (isDemo) return;
-    const { error } = await (supabase.from('tenants') as any)
+    const { error } = await (supabase.from('tenant_secrets') as any)
       .update({ anthropic_api_key: null })
-      .eq('id', tenant?.id);
+      .eq('tenant_id', tenant?.id);
     if (!error) {
       setAiConfigured(false);
       setAiKey('');
       toast.success('API key removed');
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !tenant?.id) return;
+    if (isDemo) { toast.info('Upload disabled in demo'); return; }
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `logos/${tenant.id}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from('tenant-assets')
+        .upload(path, file, { upsert: true });
+      if (uploadError) {
+        // If bucket doesn't exist, show a friendly message
+        if (uploadError.message?.includes('not found') || uploadError.message?.includes('Bucket')) {
+          toast.error('Storage not configured. Logo upload will be available soon.');
+          return;
+        }
+        throw uploadError;
+      }
+      const { data: urlData } = supabase.storage.from('tenant-assets').getPublicUrl(path);
+      await (supabase.from('tenants') as any)
+        .update({ logo_url: urlData.publicUrl })
+        .eq('id', tenant.id);
+      toast.success('Logo uploaded successfully');
+      refreshProfile?.();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload logo');
     }
   };
 
@@ -184,45 +328,77 @@ export default function SettingsPage() {
               <CardHeader><CardTitle className="text-sm">Company Information</CardTitle></CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                    <Building2 className="w-8 h-8 text-indigo-600" />
+                  <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {tenant?.logo_url ? (
+                      <img src={tenant.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <Building2 className="w-8 h-8 text-primary" />
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium">Company Logo</p>
                     <p className="text-xs text-muted-foreground mt-0.5">PNG or SVG, recommended 256×256px</p>
-                    <Button size="sm" variant="outline" className="mt-2 h-7 text-xs gap-1.5">
-                      <Upload className="w-3.5 h-3.5" /> Upload Logo
-                    </Button>
+                    <label className="cursor-pointer">
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                      <Button size="sm" variant="outline" className="mt-2 h-7 text-xs gap-1.5" asChild>
+                        <span><Upload className="w-3.5 h-3.5" /> Upload Logo</span>
+                      </Button>
+                    </label>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-1.5">
                     <Label>Company Name</Label>
-                    <Input defaultValue={tenant?.name || 'TELA Industries'} />
+                    <Input value={companyName} onChange={e => setCompanyName(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Business Type</Label>
+                    <Select value={(tenant as any)?.business_type || 'trading'} disabled>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['trading','manufacturing','service','retail','construction','logistics'].map(t => (
+                          <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">Cannot be changed after transactions exist</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Financial Year Start</Label>
+                    <Input type="date" value={(tenant as any)?.financial_year_start || ''} disabled />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>TIN</Label>
+                    <Input value={(tenant as any)?.tin || ''} disabled placeholder="Tax ID Number" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>VRN</Label>
+                    <Input value={(tenant as any)?.vrn || ''} disabled placeholder="VAT Reg Number" />
                   </div>
                   <div className="col-span-2 space-y-1.5">
                     <Label>Address</Label>
-                    <Input placeholder="123 Business Ave, Suite 100" />
+                    <Input value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} placeholder="123 Business Ave, Suite 100" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>City</Label>
-                    <Input placeholder="New York" />
+                    <Input value={companyCity} onChange={e => setCompanyCity(e.target.value)} placeholder="Dar es Salaam" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Country</Label>
-                    <Input placeholder="United States" />
+                    <Input value={companyCountry} onChange={e => setCompanyCountry(e.target.value)} placeholder="Tanzania" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Phone</Label>
-                    <Input placeholder="+1 555 0100" />
+                    <Input value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} placeholder="+255 7XX XXX XXX" />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Contact Email</Label>
-                    <Input defaultValue="admin@tela-erp.com" type="email" />
+                    <Input value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} type="email" placeholder="admin@company.com" />
                   </div>
                 </div>
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2">
-                  <Save className="w-4 h-4" /> Save Company Info
+                <Button onClick={handleSaveCompany} disabled={savingCompany} className="gap-2">
+                  {savingCompany ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {savingCompany ? 'Saving...' : 'Save Company Info'}
                 </Button>
               </CardContent>
             </Card>
@@ -234,9 +410,7 @@ export default function SettingsPage() {
                   <div className="flex-1">
                     <Label>Default Currency</Label>
                     <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                      <SelectTrigger className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {popularCurrencies.map(c => (
                           <SelectItem key={c} value={c}>{currencySymbol(c)} {c}</SelectItem>
@@ -245,18 +419,17 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                   <div className="flex gap-2 mt-6">
-                    <Button onClick={handleSaveCurrency} className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 gap-1.5">
+                    <Button onClick={handleSaveCurrency} className="h-9 gap-1.5">
                       <Save className="w-4 h-4" /> Save
                     </Button>
                     <Button onClick={handleSyncRates} variant="outline" disabled={syncing} className="h-9 gap-1.5">
-                      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                      Sync Rates
+                      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} /> Sync Rates
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Timezone</Label>
-                  <Select defaultValue="utc">
+                  <Select value={timezone} onValueChange={setTimezone}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="utc">UTC</SelectItem>
@@ -278,44 +451,57 @@ export default function SettingsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">Team Members</CardTitle>
-                  <Button size="sm" className="h-8 text-xs bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
-                    <Plus className="w-3.5 h-3.5" /> Invite Member
+                  <Button size="sm" className="h-8 text-xs gap-1.5" onClick={() => navigate('/settings/team')}>
+                    <Users className="w-3.5 h-3.5" /> Manage Team
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { name: 'Alex Morgan', email: 'admin@tela-erp.com', role: 'Admin' },
-                    { name: 'Jordan Smith', email: 'jordan@company.com', role: 'User' },
-                    { name: 'Taylor Reed', email: 'taylor@company.com', role: 'User' },
-                  ].map((member) => (
-                    <div key={member.email} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/40 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                          {member.name.charAt(0)}
+                {loadingTeam ? (
+                  <div className="space-y-3">
+                    {[1,2,3].map(i => <div key={i} className="h-14 rounded-lg bg-muted/50 animate-pulse" />)}
+                  </div>
+                ) : teamMembers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">No team members yet</p>
+                    <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => navigate('/settings/team')}>
+                      <Plus className="w-3.5 h-3.5" /> Invite Members
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {teamMembers.map((member) => (
+                      <div key={member.user_id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/40 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                              {(member.full_name || 'U').charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{member.full_name || 'Unknown'}</p>
+                            <p className="text-xs text-muted-foreground">{member.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={member.role === 'Admin' ? 'default' : 'secondary'} className="text-xs">
+                        <Badge variant={member.role === 'admin' ? 'default' : 'secondary'} className="text-xs capitalize">
                           {member.role}
                         </Badge>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                    {teamMembers.length >= 10 && (
+                      <Button variant="link" size="sm" className="text-xs w-full" onClick={() => navigate('/settings/team')}>
+                        View all members →
+                      </Button>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
           {/* ── AI Settings ── */}
           <TabsContent value="ai" className="space-y-4">
-
-            {/* Platform AI — primary card */}
             <Card className="rounded-xl border-border overflow-hidden">
               <div className="h-1 w-full bg-gradient-to-r from-primary via-blue-500 to-amber-500" />
               <CardHeader>
@@ -338,7 +524,6 @@ export default function SettingsPage() {
                 <p className="text-sm text-muted-foreground">
                   Tela AI is fully managed by the platform — no API key or configuration needed. All AI features are available immediately.
                 </p>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { icon: '🧠', title: 'Tela AI Chat', desc: 'Ask anything about your business data in plain language' },
@@ -355,20 +540,13 @@ export default function SettingsPage() {
                     </div>
                   ))}
                 </div>
-
-                <Button
-                  onClick={handleTestConnection}
-                  disabled={testLoading}
-                  variant="outline"
-                  className="gap-2"
-                >
+                <Button onClick={handleTestConnection} disabled={testLoading} variant="outline" className="gap-2">
                   {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                   {testLoading ? 'Testing...' : 'Test AI Connection'}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Deployment instructions (shown on error) */}
             {needsFunctionDeploy && (
               <div className="rounded-lg border border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-700 p-4 space-y-3">
                 <div className="flex items-start gap-2">
@@ -376,7 +554,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Deploy Edge Functions</p>
                     <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
-                      The AI edge functions need to be deployed to Supabase. Run these commands from the project root, then set <code className="font-mono bg-blue-100 px-1 rounded">ANTHROPIC_API_KEY</code> in Supabase → Edge Functions → Secrets.
+                      The AI edge functions need to be deployed. Run these commands from the project root.
                     </p>
                   </div>
                 </div>
@@ -398,7 +576,6 @@ npx supabase functions deploy ai-demand-forecast`}
               </div>
             )}
 
-            {/* Advanced: Custom API Key (optional override) */}
             <Card className="rounded-xl border-border">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -406,22 +583,10 @@ npx supabase functions deploy ai-demand-forecast`}
                   <CardTitle className="text-sm text-muted-foreground font-medium">Advanced: Custom API Key (Optional)</CardTitle>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  By default, Tela AI is powered by the platform. Optionally provide your own Anthropic key to use your own quota and choose the model.
+                  By default, Tela AI is powered by the platform. Optionally provide your own Anthropic key to use your own quota.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {needsMigration && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-900/20 p-3 space-y-2">
-                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">⚠️ Database migration required first</p>
-                    <div className="relative">
-                      <pre className="text-xs bg-amber-100 dark:bg-amber-950/60 text-amber-900 rounded p-2 font-mono">{MIGRATION_SQL}</pre>
-                      <Button size="sm" variant="outline" className="absolute top-1 right-1 h-5 text-[10px] gap-1 border-amber-300"
-                        onClick={() => { navigator.clipboard.writeText(MIGRATION_SQL); toast.success('SQL copied!'); }}>
-                        <Copy className="w-2.5 h-2.5" /> Copy
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">Anthropic API Key</Label>
@@ -445,9 +610,7 @@ npx supabase functions deploy ai-demand-forecast`}
                 <div className="space-y-1.5">
                   <Label className="text-xs">Preferred Model</Label>
                   <Select value={aiModel} onValueChange={setAiModel}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="claude-haiku-4-5-20251001">
                         <div className="flex items-center gap-2">
@@ -480,33 +643,10 @@ npx supabase functions deploy ai-demand-forecast`}
                     {saveAiLoading ? 'Saving...' : 'Save Custom Key'}
                   </Button>
                   {aiConfigured && (
-                    <Button variant="ghost" className="text-red-500 hover:text-red-600 hover:bg-red-50 gap-1.5 text-sm" onClick={handleClearKey}>
+                    <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5 text-sm" onClick={handleClearKey}>
                       <XCircle className="w-4 h-4" /> Remove Custom Key
                     </Button>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* AI Features Overview */}
-            <Card className="rounded-xl border-border">
-              <CardHeader><CardTitle className="text-sm">AI Features</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { icon: '🧠', title: 'Tela AI Chat', desc: 'Ask anything about your business data', route: '/dashboard' },
-                    { icon: '📊', title: 'CFO Assistant', desc: 'Financial analysis, forecasts & anomaly detection', route: '/ai-cfo' },
-                    { icon: '📄', title: 'Document Scanner', desc: 'AI-powered invoice & receipt extraction', route: '/documents' },
-                    { icon: '📦', title: 'Demand Forecast', desc: 'Predict inventory needs with 30/60/90-day outlook', route: '/inventory' },
-                  ].map(f => (
-                    <div key={f.title} className="flex items-start gap-3 p-3 rounded-lg border border-border hover:bg-accent/30 transition-colors">
-                      <span className="text-xl">{f.icon}</span>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{f.title}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{f.desc}</p>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -515,27 +655,30 @@ npx supabase functions deploy ai-demand-forecast`}
           {/* ── Notifications ── */}
           <TabsContent value="notifications" className="space-y-4">
             <Card className="rounded-xl border-border">
-              <CardHeader><CardTitle className="text-sm">Email Notifications</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Notification Preferences</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-xs">
-                  <Bell className="w-4 h-4 mt-0.5 shrink-0" />
-                  Email notifications require SMTP configuration. Contact support to enable email delivery.
-                </div>
                 {[
-                  { label: 'Low stock alerts', description: 'When items fall below reorder level', default: true },
-                  { label: 'New orders', description: 'When a new sales order is placed', default: true },
-                  { label: 'Invoice overdue', description: 'When an invoice passes its due date', default: true },
-                  { label: 'Payroll finalized', description: 'When a payroll run is finalized', default: false },
-                  { label: 'Leave requests', description: 'When an employee submits a leave request', default: false },
+                  { key: 'low_stock', label: 'Low stock alerts', description: 'When items fall below reorder level' },
+                  { key: 'new_orders', label: 'New orders', description: 'When a new sales order is placed' },
+                  { key: 'invoice_overdue', label: 'Invoice overdue', description: 'When an invoice passes its due date' },
+                  { key: 'payroll_finalized', label: 'Payroll finalized', description: 'When a payroll run is finalized' },
+                  { key: 'leave_requests', label: 'Leave requests', description: 'When an employee submits a leave request' },
                 ].map((notif) => (
-                  <div key={notif.label} className="flex items-center justify-between py-2">
+                  <div key={notif.key} className="flex items-center justify-between py-2">
                     <div>
                       <p className="text-sm font-medium text-foreground">{notif.label}</p>
                       <p className="text-xs text-muted-foreground">{notif.description}</p>
                     </div>
-                    <Switch defaultChecked={notif.default} />
+                    <Switch
+                      checked={notifications[notif.key] ?? false}
+                      onCheckedChange={v => setNotifications((n: any) => ({ ...n, [notif.key]: v }))}
+                    />
                   </div>
                 ))}
+                <Button onClick={handleSaveNotifications} disabled={savingNotifs} className="gap-1.5">
+                  {savingNotifs ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {savingNotifs ? 'Saving...' : 'Save Preferences'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -564,20 +707,51 @@ npx supabase functions deploy ai-demand-forecast`}
           {/* ── Security ── */}
           <TabsContent value="security" className="space-y-4">
             <Card className="rounded-xl border-border">
-              <CardHeader><CardTitle className="text-sm">Account Security</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Change Password</CardTitle></CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                      <Lock className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">Password</p>
-                      <p className="text-xs text-muted-foreground">Last changed 30 days ago</p>
-                    </div>
+                <div className="space-y-1.5">
+                  <Label>New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type={showNewPw ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={e => setNewPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      className="pl-9 pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPw(!showNewPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
-                  <Button size="sm" variant="outline" className="h-8 text-xs">Change Password</Button>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Confirm New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <Button onClick={handleChangePassword} disabled={changingPassword} className="gap-1.5">
+                  {changingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
+                  {changingPassword ? 'Changing...' : 'Change Password'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-xl border-border">
+              <CardHeader><CardTitle className="text-sm">Additional Security</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center">
@@ -592,8 +766,8 @@ npx supabase functions deploy ai-demand-forecast`}
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-                      <Key className="w-4 h-4 text-red-600" />
+                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+                      <Key className="w-4 h-4 text-muted-foreground" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">API Access</p>

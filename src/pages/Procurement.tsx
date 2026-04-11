@@ -18,8 +18,10 @@ import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { Skeleton } from '@/components/ui/skeleton';
-import { onProcurementReceived, type ProcurementLineItem } from '@/hooks/use-cross-module';
+
 import { supabase } from '@/integrations/supabase/client';
+import { onProcurementReceived } from '@/hooks/use-cross-module';
+import { triggerAutomation } from '@/lib/automation';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -92,7 +94,7 @@ function CreatePOSheet({
   const handleSubmit = () => {
     if (!form.supplier_name) { toast.error('Supplier is required'); return; }
     if (lineItems.every(li => !li.description)) { toast.error('Add at least one item'); return; }
-    const poline: ProcurementLineItem[] = lineItems.map(li => ({
+    const poline = lineItems.map(li => ({
       item_id: li.item_id,
       description: li.description,
       quantity: li.quantity,
@@ -294,33 +296,56 @@ export default function Procurement() {
           item_id: li.item_id || null,
           description: li.description || '',
           quantity: li.quantity,
-          unit_cost: li.unit_price,
+          unit_price: li.unit_price,
         }));
-        (supabase.from('purchase_order_lines') as any).insert(lines).then(() => {});
+
+        (supabase as any)
+          .from('purchase_order_lines')
+          .insert(lines)
+          .then(({ error }: any) => {
+            if (error) {
+              console.error('Failed to insert purchase_order_lines:', error);
+              toast.error('PO saved, but line item links were not saved');
+            }
+          });
+
+        void triggerAutomation('po_created', {
+          vendor: row.vendor_name ?? row.supplier,
+          total: row.total ?? row.grand_total,
+          reference: row.po_number ?? row.reference,
+        }, tenant?.id ?? '');
       },
     });
   };
 
-  /** Receives a PO: updates status to 'received' and triggers
-   *  inventory update + AP accounting entry via the cross-module hook. */
-  const handleReceivePO = (po: any) => {
-    updateMutation.mutate({ id: po.id, status: 'received' }, {
-      onSuccess: (updated: any) => {
-        if (!tenant?.id) return;
-        const lineItems: ProcurementLineItem[] =
-          (po.custom_fields?.line_items as ProcurementLineItem[] | undefined) ?? [];
-        onProcurementReceived(
+  /** Receives a PO: updates status to 'received' and triggers inventory + accounting updates. */
+  const handleReceivePO = async (po: any) => {
+    try {
+      // 1. Update PO status
+      await updateMutation.mutateAsync({ id: po.id, status: 'received' });
+
+      // 2. Trigger cross-module inventory + accounting update
+      if (tenant?.id) {
+        const lineItems = po.custom_fields?.line_items ?? [];
+        await onProcurementReceived(
           tenant.id,
           {
             id: po.id,
             po_number: po.po_number,
-            supplier_name: po.supplier_name,
-            total_amount: Number(po.total_amount),
+            supplier_name: po.supplier_name || '',
+            total_amount: Number(po.total_amount) || 0,
           },
-          lineItems
+          lineItems.map((li: any) => ({
+            item_id: li.item_id || null,
+            description: li.description || '',
+            quantity: Number(li.quantity) || 0,
+            unit_price: Number(li.unit_price) || 0,
+          }))
         );
-      },
-    });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to receive PO');
+    }
   };
 
   return (

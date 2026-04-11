@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { generatePDFReport } from '@/lib/pdf-reports';
 import { onSalesOrderCreated, onSalesOrderCancelled, type SaleLineItem } from '@/hooks/use-cross-module';
+import { triggerAutomation } from '@/lib/automation';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -308,7 +309,7 @@ export default function Sales() {
             quantity: li.quantity,
             unit_price: li.unit_price,
           }));
-          (supabase.from('sales_order_lines') as any).insert(lines).then(() => {});
+          (supabase as any).from('sales_order_lines').insert(lines).then(() => {});
         }
 
         // Reserve inventory for each line item
@@ -326,6 +327,12 @@ export default function Sales() {
           customer_name: data.customer_name,
           total_amount: Number(data.total_amount),
         }, lineItems);
+
+        void triggerAutomation('sales_order_created', {
+          customer: row.customer_name ?? row.customer,
+          total: row.total ?? row.grand_total,
+          reference: row.reference ?? row.order_number,
+        }, tenant?.id ?? '');
       },
     });
   };

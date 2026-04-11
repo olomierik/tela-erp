@@ -16,9 +16,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
+import { generateInvoicePDF } from '@/lib/pdf-reports';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { triggerAutomation } from '@/lib/automation';
 
 // ─── Status Badge ──────────────────────────────────────────────────────────
 
@@ -114,7 +117,7 @@ function InvoiceSheet({
   customers: any[];
   onClose: () => void;
 }) {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const insert = useTenantInsert('invoices');
   const update = useTenantUpdate('invoices');
   const insertLine = useTenantInsert('invoice_lines');
@@ -150,9 +153,13 @@ function InvoiceSheet({
 
     setSaving(true);
     try {
-      const invoiceData = {
+      // Auto-generate invoice number for new invoices
+      const invoiceNumber = invoice?.invoice_number || `INV-${Date.now().toString(36).toUpperCase()}`;
+
+      const invoiceData: Record<string, any> = {
         customer_id: customerId,
         customer_name: selectedCustomer?.name || '',
+        invoice_number: invoiceNumber,
         issue_date: issueDate,
         due_date: dueDate || null,
         status,
@@ -167,6 +174,21 @@ function InvoiceSheet({
 
       if (invoice?.id) {
         await update.mutateAsync({ id: invoice.id, ...invoiceData });
+        // Delete old line items and re-insert updated ones
+        await (supabase as any).from('invoice_lines')
+          .delete()
+          .eq('invoice_id', invoice.id)
+          .eq('tenant_id', tenant?.id);
+        for (const line of items.filter(l => l.description.trim())) {
+          await insertLine.mutateAsync({
+            invoice_id: invoice.id,
+            description: line.description,
+            quantity: line.quantity,
+            unit_price: line.unit_price,
+            discount_percent: line.discount_percent,
+            line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
+          });
+        }
       } else {
         const created = await insert.mutateAsync(invoiceData);
         invoiceId = created.id;
@@ -181,6 +203,13 @@ function InvoiceSheet({
             line_total: line.quantity * line.unit_price * (1 - line.discount_percent / 100),
           });
         }
+        // after successful insert, fire invoice_created automation
+        void triggerAutomation('invoice_created', {
+          invoice_number: created?.invoice_number ?? invoiceData.invoice_number,
+          customer_name: invoiceData.customer_name,
+          total: invoiceData.total_amount,
+          due_date: invoiceData.due_date,
+        }, tenant?.id ?? '');
       }
       onClose();
     } catch (e: any) {
@@ -292,7 +321,7 @@ function InvoiceSheet({
 
 export default function Invoices() {
   const { formatMoney } = useCurrency();
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
@@ -326,6 +355,65 @@ export default function Invoices() {
     if (isDemo) { toast.info('Disabled in demo'); return; }
     if (!confirm('Delete this invoice?')) return;
     await deleteInvoice.mutateAsync(id);
+  };
+
+  const handleDownloadPDF = async (inv: any) => {
+    // Fetch line items for this invoice
+    let lineItems: any[] = [];
+    try {
+      const { data } = await (supabase as any).from('invoice_lines')
+        .select('*')
+        .eq('invoice_id', inv.id);
+      lineItems = data || [];
+    } catch { /* fallback to empty */ }
+
+    if (lineItems.length === 0) {
+      lineItems = [{
+        description: `Invoice ${inv.invoice_number}`,
+        quantity: 1,
+        unit_price: Number(inv.total_amount || 0),
+        discount_percent: 0,
+        line_total: Number(inv.total_amount || 0),
+      }];
+    }
+
+    // Fetch customer details if linked
+    let customerDetails: any = {};
+    if (inv.customer_id) {
+      const found = customers.find((c: any) => c.id === inv.customer_id);
+      if (found) customerDetails = found;
+    }
+
+    generateInvoicePDF({
+      invoiceNumber: inv.invoice_number || `INV-${inv.id?.slice(-6)}`,
+      customerName: inv.customer_name || 'Customer',
+      customerEmail: customerDetails.email || '',
+      customerPhone: customerDetails.phone || '',
+      customerAddress: [customerDetails.address, customerDetails.city, customerDetails.country].filter(Boolean).join(', '),
+      issueDate: inv.issue_date || '',
+      dueDate: inv.due_date || '',
+      status: inv.status || 'draft',
+      subtotal: Number(inv.subtotal || inv.total_amount || 0),
+      taxRate: Number(inv.tax_rate || 0),
+      taxAmount: Number(inv.tax_amount || 0),
+      totalAmount: Number(inv.total_amount || 0),
+      notes: inv.notes || '',
+      lineItems: lineItems.map((li: any) => ({
+        description: li.description || '',
+        quantity: Number(li.quantity || 1),
+        unit_price: Number(li.unit_price || 0),
+        discount_percent: Number(li.discount_percent || 0),
+        line_total: Number(li.line_total || 0),
+      })),
+      tenantName: tenant?.name || '',
+      tenantEmail: tenant?.contact_email || '',
+      tenantPhone: tenant?.phone || '',
+      tenantAddress: tenant?.address || '',
+      tenantTin: tenant?.tin || '',
+      tenantVrn: tenant?.vrn || '',
+      formatMoney,
+    });
+    toast.success('Invoice PDF downloaded');
   };
 
   return (
@@ -460,6 +548,10 @@ export default function Invoices() {
                           <CheckCircle className="w-3 h-3" /> Mark Paid
                         </Button>
                       )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-blue-600"
+                        onClick={() => handleDownloadPDF(inv)} title="Download PDF">
+                        <Download className="w-3.5 h-3.5" />
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-indigo-600"
                         onClick={() => setEditInvoice(inv)}>
                         <RefreshCw className="w-3.5 h-3.5" />

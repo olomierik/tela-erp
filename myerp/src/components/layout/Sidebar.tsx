@@ -3,11 +3,12 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, BarChart2, Handshake, Truck, Box, Users, Factory,
   ClipboardList, Building2, BarChart3, Settings, ChevronDown, ChevronRight,
-  Boxes, TrendingUp, Layers,
+  Boxes, Layers, Receipt, HeadphonesIcon, Car, Wrench, Mail, RefreshCw, ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useModules, ModuleKey } from '@/contexts/ModulesContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,23 +17,26 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 type NavChild = { label: string; path: string };
 type NavItem =
-  | { label: string; icon: any; path: string; children?: undefined }
-  | { label: string; icon: any; path?: undefined; children: NavChild[] };
+  | { label: string; icon: any; path: string; module?: ModuleKey; children?: undefined }
+  | { label: string; icon: any; path?: undefined; module: ModuleKey; children: NavChild[] };
 
 const NAV: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   {
-    label: 'Finance', icon: BarChart2, children: [
+    label: 'Finance', icon: BarChart2, module: 'finance', children: [
       { label: 'Accounts',        path: '/finance/accounts' },
       { label: 'Journal Entries', path: '/finance/journal-entries' },
       { label: 'Invoices',        path: '/finance/invoices' },
       { label: 'Bills',           path: '/finance/bills' },
       { label: 'Payments',        path: '/finance/payments' },
+      { label: 'Budgets',         path: '/finance/budgets' },
+      { label: 'Tax Rates',       path: '/finance/tax-rates' },
+      { label: 'Aging Report',    path: '/finance/reports/aging' },
       { label: 'Reports',         path: '/finance/reports' },
     ],
   },
   {
-    label: 'Sales & CRM', icon: Handshake, children: [
+    label: 'Sales & CRM', icon: Handshake, module: 'sales', children: [
       { label: 'Leads',     path: '/sales/leads' },
       { label: 'Customers', path: '/sales/customers' },
       { label: 'Quotes',    path: '/sales/quotes' },
@@ -40,46 +44,85 @@ const NAV: NavItem[] = [
     ],
   },
   {
-    label: 'Procurement', icon: Truck, children: [
-      { label: 'Vendors',          path: '/procurement/vendors' },
-      { label: 'Purchase Orders',  path: '/procurement/purchase-orders' },
-      { label: 'Goods Receipt',    path: '/procurement/goods-receipt' },
+    label: 'Procurement', icon: Truck, module: 'procurement', children: [
+      { label: 'Vendors',         path: '/procurement/vendors' },
+      { label: 'Purchase Orders', path: '/procurement/purchase-orders' },
+      { label: 'Goods Receipt',   path: '/procurement/goods-receipt' },
     ],
   },
   {
-    label: 'Inventory', icon: Box, children: [
-      { label: 'Products',     path: '/inventory/products' },
-      { label: 'Warehouses',   path: '/inventory/warehouses' },
-      { label: 'Stock',        path: '/inventory/stock' },
-      { label: 'Adjustments',  path: '/inventory/adjustments' },
+    label: 'Inventory', icon: Box, module: 'inventory', children: [
+      { label: 'Products',       path: '/inventory/products' },
+      { label: 'Warehouses',     path: '/inventory/warehouses' },
+      { label: 'Stock',          path: '/inventory/stock' },
+      { label: 'Transfers',      path: '/inventory/transfers' },
+      { label: 'Adjustments',    path: '/inventory/adjustments' },
+      { label: 'Reorder Rules',  path: '/inventory/reorder-rules' },
     ],
   },
   {
-    label: 'HR & Payroll', icon: Users, children: [
-      { label: 'Employees',    path: '/hr/employees' },
-      { label: 'Payroll',      path: '/hr/payroll' },
-      { label: 'Leave',        path: '/hr/leave' },
-      { label: 'Recruitment',  path: '/hr/recruitment' },
+    label: 'HR & Payroll', icon: Users, module: 'hr', children: [
+      { label: 'Employees',   path: '/hr/employees' },
+      { label: 'Contracts',   path: '/hr/contracts' },
+      { label: 'Attendance',  path: '/hr/attendance' },
+      { label: 'Payroll',     path: '/hr/payroll' },
+      { label: 'Leave',       path: '/hr/leave' },
+      { label: 'Recruitment', path: '/hr/recruitment' },
     ],
   },
   {
-    label: 'Manufacturing', icon: Factory, children: [
+    label: 'Manufacturing', icon: Factory, module: 'manufacturing', children: [
       { label: 'Products',          path: '/manufacturing/products' },
       { label: 'BOMs',              path: '/manufacturing/boms' },
       { label: 'Production Orders', path: '/manufacturing/production-orders' },
+      { label: 'Work Centers',      path: '/manufacturing/work-centers' },
+      { label: 'Quality Checks',    path: '/manufacturing/quality' },
     ],
   },
   {
-    label: 'Projects', icon: ClipboardList, children: [
-      { label: 'Projects',    path: '/projects/projects' },
-      { label: 'Tasks',       path: '/projects/tasks' },
-      { label: 'Timesheets',  path: '/projects/timesheets' },
+    label: 'Projects', icon: ClipboardList, module: 'projects', children: [
+      { label: 'Projects',   path: '/projects/projects' },
+      { label: 'Tasks',      path: '/projects/tasks' },
+      { label: 'Timesheets', path: '/projects/timesheets' },
     ],
   },
   {
-    label: 'Assets', icon: Building2, children: [
-      { label: 'Asset Register',  path: '/assets/register' },
-      { label: 'Depreciation',    path: '/assets/depreciation' },
+    label: 'Assets', icon: Building2, module: 'assets', children: [
+      { label: 'Asset Register', path: '/assets/register' },
+      { label: 'Depreciation',   path: '/assets/depreciation' },
+    ],
+  },
+  { label: 'Expenses',  icon: Receipt,        module: 'expenses',      path: '/expenses' },
+  { label: 'Helpdesk',  icon: HeadphonesIcon, module: 'helpdesk',      path: '/helpdesk' },
+  {
+    label: 'Fleet', icon: Car, module: 'fleet', children: [
+      { label: 'Vehicles',  path: '/fleet/vehicles' },
+      { label: 'Services',  path: '/fleet/services' },
+      { label: 'Fuel Logs', path: '/fleet/fuel-logs' },
+    ],
+  },
+  {
+    label: 'Maintenance', icon: Wrench, module: 'maintenance', children: [
+      { label: 'Equipment', path: '/maintenance/equipment' },
+      { label: 'Requests',  path: '/maintenance/requests' },
+    ],
+  },
+  {
+    label: 'Marketing', icon: Mail, module: 'marketing', children: [
+      { label: 'Mailing Lists', path: '/marketing/mailing-lists' },
+      { label: 'Campaigns',     path: '/marketing/campaigns' },
+    ],
+  },
+  {
+    label: 'Subscriptions', icon: RefreshCw, module: 'subscriptions', children: [
+      { label: 'Plans',         path: '/subscriptions/plans' },
+      { label: 'Subscriptions', path: '/subscriptions/subscriptions' },
+    ],
+  },
+  {
+    label: 'Point of Sale', icon: ShoppingCart, module: 'pos', children: [
+      { label: 'Sessions', path: '/pos/sessions' },
+      { label: 'Orders',   path: '/pos/orders' },
     ],
   },
   { label: 'Reports',    icon: BarChart3, path: '/reports' },
@@ -187,12 +230,13 @@ function LeafItem({ item }: { item: NavItem & { path: string } }) {
 export function SidebarContent() {
   const { collapsed } = useSidebar();
   const { profile, user } = useAuth();
+  const { isModuleActive } = useModules();
 
   const displayName = profile?.full_name ?? user?.email?.split('@')[0] ?? 'User';
   const companyName = profile?.company_name ?? 'myERP';
   const initials = displayName
     .split(' ')
-    .map(w => w[0])
+    .map((w: string) => w[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
@@ -212,11 +256,13 @@ export function SidebarContent() {
       {/* Nav */}
       <ScrollArea className="flex-1 py-3">
         <nav className={cn('space-y-0.5', collapsed ? 'px-2' : 'px-3')}>
-          {NAV.map(item =>
-            item.children
+          {NAV.map(item => {
+            // Always show items without a module key (Dashboard, Reports, Settings, Components)
+            if (item.module && !isModuleActive(item.module)) return null;
+            return item.children
               ? <SectionItem key={item.label} item={item as any} />
-              : <LeafItem key={item.label} item={item as any} />,
-          )}
+              : <LeafItem key={item.label} item={item as any} />;
+          })}
         </nav>
       </ScrollArea>
 
