@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -136,23 +136,22 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Use Lovable AI to parse the command
-      const apiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (!apiKey) {
-        return new Response(JSON.stringify({ error: "AI not configured" }), {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) {
+        return new Response(JSON.stringify({ error: "AI not configured. LOVABLE_API_KEY is missing." }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const aiResponse = await fetch("https://ai.lovable.dev/api/v1/chat/completions", {
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-3-flash-preview",
           messages: [
             {
               role: "system",
@@ -169,11 +168,20 @@ Deno.serve(async (req) => {
             },
             { role: "user", content: command },
           ],
-          response_format: { type: "json_object" },
         }),
       });
 
       if (!aiResponse.ok) {
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (aiResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds in Settings → Workspace → Usage." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ error: "AI parsing failed" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -181,7 +189,22 @@ Deno.serve(async (req) => {
       }
 
       const aiData = await aiResponse.json();
-      const parsed = JSON.parse(aiData.choices[0].message.content);
+      const rawContent = aiData.choices?.[0]?.message?.content ?? '{}';
+
+      let parsed;
+      try {
+        const jsonMatch = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, rawContent];
+        parsed = JSON.parse(jsonMatch[1] ?? rawContent);
+      } catch {
+        const objMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (objMatch) {
+          parsed = JSON.parse(objMatch[0]);
+        } else {
+          return new Response(JSON.stringify({ error: "Failed to parse AI response" }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
 
       return new Response(JSON.stringify({ success: true, parsed }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

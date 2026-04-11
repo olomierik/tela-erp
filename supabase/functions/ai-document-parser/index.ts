@@ -1,60 +1,32 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-async function getTenantApiConfig(req: Request) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const authHeader = req.headers.get('Authorization')
-
-  if (!authHeader) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
-  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-  if (!user) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile?.tenant_id) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const { data: secret } = await supabase
-    .from('tenant_secrets')
-    .select('anthropic_api_key, ai_model')
-    .eq('tenant_id', profile.tenant_id)
-    .single()
-
-  return {
-    apiKey: secret?.anthropic_api_key || Deno.env.get('ANTHROPIC_API_KEY'),
-    model: secret?.ai_model || 'claude-sonnet-4-6',
-  }
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
     const { imageBase64, imageUrl, documentType } = await req.json()
-    const { apiKey, model } = await getTenantApiConfig(req)
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 
-    if (!apiKey) {
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ extracted: null, error: 'AI not configured. Add your Anthropic API key in Settings → AI Settings.' }),
+        JSON.stringify({ extracted: null, error: 'AI not configured. LOVABLE_API_KEY is missing.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const systemPrompt = `You are a document parsing AI. Extract structured data from invoices, receipts, and purchase orders.
-Always return valid JSON with the extracted fields. If a field is not found, use null.`
+    if (!imageBase64 && !imageUrl) {
+      return new Response(
+        JSON.stringify({ extracted: null, error: 'imageBase64 or imageUrl is required.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
-    const extractionPrompt = `Extract all information from this ${documentType ?? 'document'} and return a JSON object with these fields:
+    const extractionPrompt = `Extract all information from this ${documentType ?? 'document'} image and return a JSON object with these fields:
 {
   "vendor_name": "string",
   "vendor_address": "string",
@@ -63,7 +35,7 @@ Always return valid JSON with the extracted fields. If a field is not found, use
   "document_number": "string (invoice/receipt/PO number)",
   "document_date": "string (ISO date YYYY-MM-DD)",
   "due_date": "string (ISO date if applicable)",
-  "currency": "string (USD, EUR, etc.)",
+  "currency": "string (USD, EUR, TZS, etc.)",
   "subtotal": number,
   "tax_amount": number,
   "tax_rate": number,
@@ -82,51 +54,82 @@ Always return valid JSON with the extracted fields. If a field is not found, use
 
 Return ONLY the JSON, no other text.`
 
-    const imageContent = imageBase64
-      ? { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } }
-      : { type: 'image', source: { type: 'url', url: imageUrl } }
+    // Build content array with image
+    const content: any[] = []
+    if (imageBase64) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+      })
+    } else if (imageUrl) {
+      content.push({
+        type: 'image_url',
+        image_url: { url: imageUrl },
+      })
+    }
+    content.push({ type: 'text', text: extractionPrompt })
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
-        max_tokens: 2000,
-        system: systemPrompt,
-        messages: [{
-          role: 'user',
-          content: [
-            imageContent,
-            { type: 'text', text: extractionPrompt }
-          ]
-        }],
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a document parsing AI. Extract structured data from invoices, receipts, and purchase orders. Always return valid JSON with the extracted fields. If a field is not found, use null.',
+          },
+          {
+            role: 'user',
+            content,
+          },
+        ],
       }),
     })
 
-    const data = await response.json()
-
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ extracted: null, error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ extracted: null, error: 'AI credits exhausted. Please add funds in Settings → Workspace → Usage.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      const errText = await response.text()
+      console.error('AI document parser error:', response.status, errText)
       return new Response(
         JSON.stringify({ extracted: null, error: 'Document parsing failed.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const text = data.content?.[0]?.text ?? '{}'
+    const data = await response.json()
+    const text = data.choices?.[0]?.message?.content ?? '{}'
+
     let extracted = {}
     try {
       const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text]
       extracted = JSON.parse(jsonMatch[1] ?? text)
     } catch {
-      extracted = { raw_text: text }
+      // Try to find raw JSON object
+      const objMatch = text.match(/\{[\s\S]*\}/)
+      if (objMatch) {
+        try { extracted = JSON.parse(objMatch[0]) } catch { extracted = { raw_text: text } }
+      } else {
+        extracted = { raw_text: text }
+      }
     }
 
     return new Response(
-      JSON.stringify({ extracted }),
+      JSON.stringify({ extracted, rawText: text }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (e) {
