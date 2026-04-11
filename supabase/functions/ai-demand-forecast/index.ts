@@ -1,52 +1,20 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-async function getTenantApiConfig(req: Request) {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const authHeader = req.headers.get('Authorization')
-
-  if (!authHeader) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
-  const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
-  if (!user) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('tenant_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!profile?.tenant_id) return { apiKey: Deno.env.get('ANTHROPIC_API_KEY'), model: 'claude-sonnet-4-6' }
-
-  const { data: secret } = await supabase
-    .from('tenant_secrets')
-    .select('anthropic_api_key, ai_model')
-    .eq('tenant_id', profile.tenant_id)
-    .single()
-
-  return {
-    apiKey: secret?.anthropic_api_key || Deno.env.get('ANTHROPIC_API_KEY'),
-    model: secret?.ai_model || 'claude-sonnet-4-6',
-  }
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
     const { inventoryItems, salesHistory } = await req.json()
-    const { apiKey, model } = await getTenantApiConfig(req)
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 
-    if (!apiKey) {
+    if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ forecasts: null, error: 'AI not configured. Add your Anthropic API key in Settings → AI Settings.' }),
+        JSON.stringify({ forecasts: null, error: 'AI not configured. LOVABLE_API_KEY is missing.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -79,34 +47,51 @@ Return a JSON array with forecasts for each product:
 
 Return ONLY the JSON array, no other text.`
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model,
-        max_tokens: 3000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: forecastPrompt }],
+        model: 'google/gemini-3-flash-preview',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: forecastPrompt },
+        ],
       }),
     })
 
-    const data = await response.json()
     if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ forecasts: null, error: 'Rate limit exceeded. Please try again in a moment.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ forecasts: null, error: 'AI credits exhausted. Please add funds in Settings → Workspace → Usage.' }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      const errText = await response.text()
+      console.error('AI demand forecast error:', response.status, errText)
       return new Response(
         JSON.stringify({ forecasts: null, error: 'Forecast failed.' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const text = data.content?.[0]?.text ?? '[]'
+    const data = await response.json()
+    const text = data.choices?.[0]?.message?.content ?? '[]'
+
     let forecasts = []
     try {
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) || [null, text]
-      forecasts = JSON.parse(jsonMatch[1] ?? text)
+      const jsonMatch = text.match(/\[[\s\S]*\]/)
+      if (jsonMatch) {
+        forecasts = JSON.parse(jsonMatch[0])
+      }
     } catch {
       forecasts = []
     }

@@ -37,18 +37,20 @@ export default function Reports() {
   const { data: salesData } = useTenantQuery('sales_orders');
   const { data: inventoryData } = useTenantQuery('inventory_items');
   const { data: productionData } = useTenantQuery('production_orders');
-  const { data: transactionData } = useTenantQuery('transactions');
   const { data: coaData } = useTenantQuery('chart_of_accounts');
-  const { data: journalData } = useTenantQuery('journal_entries', 'entry_date');
+  const { data: ledgerBalanceData } = useTenantQuery('accounting_ledger_balances' as any);
+  const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
+  const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
   const { data: employeeData } = useTenantQuery('employees');
   const { data: crmDealData } = useTenantQuery('crm_deals');
 
   const sales = salesData ?? [];
   const inventory = inventoryData ?? [];
   const production = productionData ?? [];
-  const transactions = transactionData ?? [];
   const coa = coaData ?? [];
-  const journals = journalData ?? [];
+  const ledgerBalances = ledgerBalanceData ?? [];
+  const vouchers = (voucherData ?? []) as any[];
+  const voucherEntries = (voucherEntryData ?? []) as any[];
   const employees = (employeeData ?? []) as any[];
   const crmDeals = (crmDealData ?? []) as any[];
 
@@ -100,36 +102,86 @@ export default function Reports() {
 
   const filteredSales = filterByDate(sales, 'created_at');
   const filteredProduction = filterByDate(production, 'created_at');
-  const filteredTransactions = filterByDate(transactions, 'date');
-  const filteredJournals = filterByDate(journals, 'entry_date');
+  const filteredVouchers = filterByDate(vouchers, 'voucher_date').filter((v: any) => v.status === 'posted');
 
-  // Accounting computations
+  // Build a map of account_id to COA info
+  const coaMap = useMemo(() => {
+    const m: Record<string, any> = {};
+    coa.forEach((a: any) => { m[a.id] = a; });
+    return m;
+  }, [coa]);
+
+  // Accounting computations from real accounting engine
   const accountingData = useMemo(() => {
-    const incomeTotal = filteredTransactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const expenseTotal = filteredTransactions.filter((t: any) => t.type === 'expense').reduce((s: number, t: any) => s + Number(t.amount), 0);
-    const netProfit = incomeTotal - expenseTotal;
+    // Get voucher IDs in the date range
+    const voucherIds = new Set(filteredVouchers.map((v: any) => v.id));
+    // Filter entries belonging to those vouchers
+    const filteredEntries = voucherEntries.filter((e: any) => voucherIds.has(e.voucher_id));
 
-    // Group transactions by category for P&L
-    const incomeByCategory: Record<string, number> = {};
-    const expenseByCategory: Record<string, number> = {};
-    filteredTransactions.forEach((t: any) => {
-      const cat = t.category || 'Uncategorized';
-      if (t.type === 'income') incomeByCategory[cat] = (incomeByCategory[cat] || 0) + Number(t.amount);
-      else expenseByCategory[cat] = (expenseByCategory[cat] || 0) + Number(t.amount);
+    // Build per-account totals from entries
+    const accountTotals: Record<string, { debit: number; credit: number; account: any }> = {};
+    filteredEntries.forEach((e: any) => {
+      const acc = coaMap[e.account_id];
+      if (!acc) return;
+      if (!accountTotals[e.account_id]) {
+        accountTotals[e.account_id] = { debit: 0, credit: 0, account: acc };
+      }
+      accountTotals[e.account_id].debit += Number(e.debit) || 0;
+      accountTotals[e.account_id].credit += Number(e.credit) || 0;
     });
 
-    // Trial balance from chart of accounts
-    const trialBalance = coa.map((a: any) => {
-      const debits = filteredJournals.filter((j: any) => j.debit_account_id === a.id).reduce((s: number, j: any) => s + Number(j.amount), 0);
-      const credits = filteredJournals.filter((j: any) => j.credit_account_id === a.id).reduce((s: number, j: any) => s + Number(j.amount), 0);
-      return { ...a, debits, credits, net: debits - credits };
-    }).filter((a: any) => a.debits > 0 || a.credits > 0);
+    // Trial balance
+    const trialBalance = Object.values(accountTotals)
+      .filter(t => t.debit > 0 || t.credit > 0)
+      .map(t => ({ ...t.account, debits: t.debit, credits: t.credit, net: t.debit - t.credit }));
 
-    // Balance sheet categories
+    // P&L: revenue accounts have credits > debits, expense accounts have debits > credits
+    const incomeByCategory: Record<string, number> = {};
+    const expenseByCategory: Record<string, number> = {};
+    let incomeTotal = 0;
+    let expenseTotal = 0;
+
+    Object.values(accountTotals).forEach(t => {
+      const type = t.account.account_type;
+      const name = t.account.name;
+      if (type === 'revenue') {
+        const amt = t.credit - t.debit;
+        incomeByCategory[name] = (incomeByCategory[name] || 0) + amt;
+        incomeTotal += amt;
+      } else if (type === 'expense') {
+        const amt = t.debit - t.credit;
+        expenseByCategory[name] = (expenseByCategory[name] || 0) + amt;
+        expenseTotal += amt;
+      }
+    });
+    const netProfit = incomeTotal - expenseTotal;
+
+    // Balance sheet from ledger_balances (cumulative, not date-filtered)
+    const bsAccounts: Record<string, { name: string; type: string; balance: number }> = {};
+    (ledgerBalances as any[]).forEach((lb: any) => {
+      const acc = coaMap[lb.account_id];
+      if (!acc) return;
+      bsAccounts[lb.account_id] = {
+        name: acc.name,
+        type: acc.account_type,
+        balance: Number(lb.running_balance) || 0,
+      };
+    });
+
+    const totalAssets = Object.values(bsAccounts).filter(a => a.type === 'asset').reduce((s, a) => s + a.balance, 0);
+    const totalLiabilities = Object.values(bsAccounts).filter(a => a.type === 'liability').reduce((s, a) => s + Math.abs(a.balance), 0);
+    const totalEquity = Object.values(bsAccounts).filter(a => a.type === 'equity').reduce((s, a) => s + Math.abs(a.balance), 0);
     const inventoryValue = inventory.reduce((s: number, i: any) => s + (i.quantity * Number(i.unit_cost)), 0);
 
-    return { incomeTotal, expenseTotal, netProfit, incomeByCategory, expenseByCategory, trialBalance, inventoryValue };
-  }, [filteredTransactions, filteredJournals, coa, inventory]);
+    return {
+      incomeTotal, expenseTotal, netProfit,
+      incomeByCategory, expenseByCategory,
+      trialBalance,
+      inventoryValue,
+      bsAccounts, totalAssets, totalLiabilities, totalEquity,
+      filteredEntries,
+    };
+  }, [filteredVouchers, voucherEntries, coaMap, ledgerBalances, inventory]);
 
   const getPreviewData = (): { headers: string[]; rows: (string | number)[][]; count: number; stats: { label: string; value: string }[] } => {
     switch (reportType) {
@@ -236,47 +288,66 @@ export default function Reports() {
         };
       }
       case 'balance_sheet': {
-        const totalAR = filteredTransactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const totalAP = filteredTransactions.filter((t: any) => t.type === 'expense' && t.category !== 'Cost of Goods Sold').reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const equity = accountingData.inventoryValue + totalAR - totalAP;
+        // Use real ledger balance data
+        const assetAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'asset');
+        const liabilityAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'liability');
+        const equityAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'equity');
+        const retainedEarnings = accountingData.incomeTotal - accountingData.expenseTotal;
+        const totalEquityWithRetained = accountingData.totalEquity + retainedEarnings;
+
         return {
           headers: ['', 'Account', 'Amount', '', ''],
           rows: [
             ['', '── ASSETS ──', '', '', ''],
-            ['', 'Inventory', formatMoney(accountingData.inventoryValue), '', ''],
-            ['', 'Accounts Receivable', formatMoney(totalAR), '', ''],
-            ['', 'Total Assets', formatMoney(accountingData.inventoryValue + totalAR), '', ''],
+            ...assetAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(a.balance), '', '']),
+            ['', 'Inventory (Stock)', formatMoney(accountingData.inventoryValue), '', ''],
+            ['', 'Total Assets', formatMoney(accountingData.totalAssets + accountingData.inventoryValue), '', ''],
             ['', '', '', '', ''],
             ['', '── LIABILITIES ──', '', '', ''],
-            ['', 'Accounts Payable', formatMoney(totalAP), '', ''],
-            ['', 'Total Liabilities', formatMoney(totalAP), '', ''],
+            ...liabilityAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(Math.abs(a.balance)), '', '']),
+            ['', 'Total Liabilities', formatMoney(accountingData.totalLiabilities), '', ''],
             ['', '', '', '', ''],
             ['', '── EQUITY ──', '', '', ''],
-            ['', 'Retained Earnings', formatMoney(equity), '', ''],
-            ['', 'Total Equity', formatMoney(equity), '', ''],
+            ...equityAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(Math.abs(a.balance)), '', '']),
+            ['', 'Retained Earnings (P&L)', formatMoney(retainedEarnings), '', ''],
+            ['', 'Total Equity', formatMoney(totalEquityWithRetained), '', ''],
           ],
-          count: 3,
+          count: assetAccounts.length + liabilityAccounts.length + equityAccounts.length,
           stats: [
-            { label: 'Total Assets', value: formatMoney(accountingData.inventoryValue + totalAR) },
-            { label: 'Total Liabilities', value: formatMoney(totalAP) },
-            { label: 'Total Equity', value: formatMoney(equity) },
+            { label: 'Total Assets', value: formatMoney(accountingData.totalAssets + accountingData.inventoryValue) },
+            { label: 'Total Liabilities', value: formatMoney(accountingData.totalLiabilities) },
+            { label: 'Total Equity', value: formatMoney(totalEquityWithRetained) },
           ],
         };
       }
       case 'general_ledger': {
+        // Use real voucher entries
+        const entries = accountingData.filteredEntries;
+        const totalDebit = entries.reduce((s: number, e: any) => s + (Number(e.debit) || 0), 0);
+        const totalCredit = entries.reduce((s: number, e: any) => s + (Number(e.credit) || 0), 0);
         return {
-          headers: ['Date', 'Description', 'Ref Type', 'Ref #', 'Amount'],
+          headers: ['Date', 'Account', 'Description', 'Debit', 'Credit'],
           rows: [
-            ...filteredJournals.slice(0, 30).map((j: any) => [
-              new Date(j.entry_date).toLocaleDateString(), j.description, j.reference_type || '—', j.reference_id || '—', formatMoney(Number(j.amount)),
-            ]),
+            ...entries.slice(0, 50).map((e: any) => {
+              const acc = coaMap[e.account_id];
+              const voucher = vouchers.find((v: any) => v.id === e.voucher_id);
+              return [
+                voucher ? new Date(voucher.voucher_date).toLocaleDateString() : '—',
+                acc?.name || '—',
+                e.description || voucher?.narration || '—',
+                Number(e.debit) > 0 ? formatMoney(Number(e.debit)) : '—',
+                Number(e.credit) > 0 ? formatMoney(Number(e.credit)) : '—',
+              ];
+            }),
             ['', '', '', '', ''],
-            ['', 'TOTAL', '', '', formatMoney(filteredJournals.reduce((s: number, j: any) => s + Number(j.amount), 0))],
+            ['', 'TOTALS', '', formatMoney(totalDebit), formatMoney(totalCredit)],
           ],
-          count: filteredJournals.length,
+          count: entries.length,
           stats: [
-            { label: 'Total Entries', value: String(filteredJournals.length) },
-            { label: 'Total Amount', value: formatMoney(filteredJournals.reduce((s: number, j: any) => s + Number(j.amount), 0)) },
+            { label: 'Total Entries', value: String(entries.length) },
+            { label: 'Total Debits', value: formatMoney(totalDebit) },
+            { label: 'Total Credits', value: formatMoney(totalCredit) },
+            { label: 'Vouchers', value: String(filteredVouchers.length) },
           ],
         };
       }

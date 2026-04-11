@@ -227,7 +227,7 @@ export function initWebVitals(): void {
       const inp = ev.processingEnd - ev.startTime;
       if (inp > maxINP) maxINP = inp;
     }
-  }, { durationThreshold: 16 });
+  });
 
   const recordINP = () => {
     if (document.visibilityState === "hidden" && maxINP > 0) {
