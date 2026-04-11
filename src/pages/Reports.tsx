@@ -288,47 +288,66 @@ export default function Reports() {
         };
       }
       case 'balance_sheet': {
-        const totalAR = filteredTransactions.filter((t: any) => t.type === 'income').reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const totalAP = filteredTransactions.filter((t: any) => t.type === 'expense' && t.category !== 'Cost of Goods Sold').reduce((s: number, t: any) => s + Number(t.amount), 0);
-        const equity = accountingData.inventoryValue + totalAR - totalAP;
+        // Use real ledger balance data
+        const assetAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'asset');
+        const liabilityAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'liability');
+        const equityAccounts = Object.values(accountingData.bsAccounts).filter((a: any) => a.type === 'equity');
+        const retainedEarnings = accountingData.incomeTotal - accountingData.expenseTotal;
+        const totalEquityWithRetained = accountingData.totalEquity + retainedEarnings;
+
         return {
           headers: ['', 'Account', 'Amount', '', ''],
           rows: [
             ['', '── ASSETS ──', '', '', ''],
-            ['', 'Inventory', formatMoney(accountingData.inventoryValue), '', ''],
-            ['', 'Accounts Receivable', formatMoney(totalAR), '', ''],
-            ['', 'Total Assets', formatMoney(accountingData.inventoryValue + totalAR), '', ''],
+            ...assetAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(a.balance), '', '']),
+            ['', 'Inventory (Stock)', formatMoney(accountingData.inventoryValue), '', ''],
+            ['', 'Total Assets', formatMoney(accountingData.totalAssets + accountingData.inventoryValue), '', ''],
             ['', '', '', '', ''],
             ['', '── LIABILITIES ──', '', '', ''],
-            ['', 'Accounts Payable', formatMoney(totalAP), '', ''],
-            ['', 'Total Liabilities', formatMoney(totalAP), '', ''],
+            ...liabilityAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(Math.abs(a.balance)), '', '']),
+            ['', 'Total Liabilities', formatMoney(accountingData.totalLiabilities), '', ''],
             ['', '', '', '', ''],
             ['', '── EQUITY ──', '', '', ''],
-            ['', 'Retained Earnings', formatMoney(equity), '', ''],
-            ['', 'Total Equity', formatMoney(equity), '', ''],
+            ...equityAccounts.filter((a: any) => a.balance !== 0).map((a: any) => ['', a.name, formatMoney(Math.abs(a.balance)), '', '']),
+            ['', 'Retained Earnings (P&L)', formatMoney(retainedEarnings), '', ''],
+            ['', 'Total Equity', formatMoney(totalEquityWithRetained), '', ''],
           ],
-          count: 3,
+          count: assetAccounts.length + liabilityAccounts.length + equityAccounts.length,
           stats: [
-            { label: 'Total Assets', value: formatMoney(accountingData.inventoryValue + totalAR) },
-            { label: 'Total Liabilities', value: formatMoney(totalAP) },
-            { label: 'Total Equity', value: formatMoney(equity) },
+            { label: 'Total Assets', value: formatMoney(accountingData.totalAssets + accountingData.inventoryValue) },
+            { label: 'Total Liabilities', value: formatMoney(accountingData.totalLiabilities) },
+            { label: 'Total Equity', value: formatMoney(totalEquityWithRetained) },
           ],
         };
       }
       case 'general_ledger': {
+        // Use real voucher entries
+        const entries = accountingData.filteredEntries;
+        const totalDebit = entries.reduce((s: number, e: any) => s + (Number(e.debit) || 0), 0);
+        const totalCredit = entries.reduce((s: number, e: any) => s + (Number(e.credit) || 0), 0);
         return {
-          headers: ['Date', 'Description', 'Ref Type', 'Ref #', 'Amount'],
+          headers: ['Date', 'Account', 'Description', 'Debit', 'Credit'],
           rows: [
-            ...filteredJournals.slice(0, 30).map((j: any) => [
-              new Date(j.entry_date).toLocaleDateString(), j.description, j.reference_type || '—', j.reference_id || '—', formatMoney(Number(j.amount)),
-            ]),
+            ...entries.slice(0, 50).map((e: any) => {
+              const acc = coaMap[e.account_id];
+              const voucher = vouchers.find((v: any) => v.id === e.voucher_id);
+              return [
+                voucher ? new Date(voucher.voucher_date).toLocaleDateString() : '—',
+                acc?.name || '—',
+                e.description || voucher?.narration || '—',
+                Number(e.debit) > 0 ? formatMoney(Number(e.debit)) : '—',
+                Number(e.credit) > 0 ? formatMoney(Number(e.credit)) : '—',
+              ];
+            }),
             ['', '', '', '', ''],
-            ['', 'TOTAL', '', '', formatMoney(filteredJournals.reduce((s: number, j: any) => s + Number(j.amount), 0))],
+            ['', 'TOTALS', '', formatMoney(totalDebit), formatMoney(totalCredit)],
           ],
-          count: filteredJournals.length,
+          count: entries.length,
           stats: [
-            { label: 'Total Entries', value: String(filteredJournals.length) },
-            { label: 'Total Amount', value: formatMoney(filteredJournals.reduce((s: number, j: any) => s + Number(j.amount), 0)) },
+            { label: 'Total Entries', value: String(entries.length) },
+            { label: 'Total Debits', value: formatMoney(totalDebit) },
+            { label: 'Total Credits', value: formatMoney(totalCredit) },
+            { label: 'Vouchers', value: String(filteredVouchers.length) },
           ],
         };
       }
