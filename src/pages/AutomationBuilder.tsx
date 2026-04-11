@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
 import {
   Zap, Plus, Play, Pause, Trash2, ChevronRight, Bell,
-  Mail, CheckSquare, Webhook, Clock, MoreHorizontal,
+  Mail, CheckSquare, Webhook, Clock, MoreHorizontal, Sparkles,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import EmptyState from '@/components/erp/EmptyState';
 
 const TRIGGERS = [
@@ -72,8 +73,10 @@ const TEMPLATES = [
 ];
 
 export default function AutomationBuilder() {
-  const { isDemo } = useAuth();
+  const { isDemo, tenant } = useAuth();
   const [createOpen, setCreateOpen] = useState(false);
+  const [aiSuggesting, setAiSuggesting] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: '', description: '',
     trigger_event: '',
@@ -114,6 +117,43 @@ export default function AutomationBuilder() {
   const getTriggerLabel = (event: string) => TRIGGERS.find(t => t.value === event)?.label ?? event;
   const getTriggerIcon = (event: string) => TRIGGERS.find(t => t.value === event)?.icon ?? '⚡';
 
+  const handleAISuggest = async () => {
+    if (isDemo) {
+      setAiSuggestions([
+        { name: 'Overdue Invoice Chase', description: 'Notify team when an invoice becomes overdue', trigger_event: 'invoice_overdue', actions: [{ type: 'send_notification', config: { message: 'Invoice {{invoice_number}} from {{customer_name}} is overdue (TZS {{total}})' } }] },
+        { name: 'Low Stock Reorder Alert', description: 'Create a procurement task when stock falls below reorder level', trigger_event: 'stock_low', actions: [{ type: 'create_task', config: { title: 'Reorder {{name}} — only {{quantity}} units left (reorder at {{reorder_level}})' } }] },
+        { name: 'New Customer Welcome', description: 'Notify the sales team instantly when a new customer is added', trigger_event: 'new_customer', actions: [{ type: 'send_notification', config: { message: '🎉 New customer added: {{name}} ({{email}})' } }] },
+        { name: 'Deal Won Celebration', description: 'Alert the team when a deal is won', trigger_event: 'deal_won', actions: [{ type: 'send_notification', config: { message: '🏆 Deal won: {{name}} — stage {{stage}}' } }] },
+      ]);
+      return;
+    }
+    setAiSuggesting(true);
+    setAiSuggestions([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('automation-ai', {
+        body: { tenantId: tenant?.id },
+      });
+      if (error) throw error;
+      setAiSuggestions(data?.suggestions ?? []);
+      if (!data?.suggestions?.length) toast.info('No new suggestions — your automation setup looks complete!');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'AI suggestions failed. Please try again.');
+    } finally {
+      setAiSuggesting(false);
+    }
+  };
+
+  const applyAISuggestion = (suggestion: any) => {
+    setForm({
+      name: suggestion.name ?? '',
+      description: suggestion.description ?? '',
+      trigger_event: suggestion.trigger_event ?? '',
+      actions: suggestion.actions ?? [{ type: 'send_notification', config: { message: '' } }],
+    });
+    setAiSuggestions([]);
+    setCreateOpen(true);
+  };
+
   const activeCount = rules.filter(r => r.is_active).length;
   const totalRuns = rules.reduce((s, r) => s + (r.run_count ?? 0), 0);
 
@@ -127,6 +167,7 @@ export default function AutomationBuilder() {
           iconColor="text-amber-600"
           breadcrumb={[{ label: 'Operations' }, { label: 'Automations' }]}
           actions={[
+            { label: aiSuggesting ? 'Thinking...' : 'AI Suggest', icon: Sparkles, onClick: handleAISuggest, variant: 'outline' as const },
             { label: 'New Automation', icon: Plus, onClick: () => setCreateOpen(true) },
           ]}
           stats={[
@@ -135,6 +176,38 @@ export default function AutomationBuilder() {
             { label: 'Total Executions', value: totalRuns },
           ]}
         />
+
+        {/* AI Suggestions */}
+        <AnimatePresence>
+          {aiSuggestions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="mb-6 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 p-4"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">AI-suggested rules for your business</h3>
+                <button onClick={() => setAiSuggestions([])} className="ml-auto text-xs text-muted-foreground hover:text-foreground">✕ Dismiss</button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {aiSuggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => applyAISuggestion(s)}
+                    className="text-left p-3 rounded-lg border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-indigo-950/40 hover:border-indigo-400 hover:shadow-sm transition-all group"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">{getTriggerIcon(s.trigger_event)}</span>
+                      <span className="font-medium text-sm group-hover:text-indigo-600 transition-colors">{s.name}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{s.description}</p>
+                    <Badge variant="secondary" className="text-[10px] mt-1.5">When: {getTriggerLabel(s.trigger_event)}</Badge>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Templates */}
         {rules.length === 0 && (
