@@ -186,28 +186,27 @@ function CreateOrderSheet({
           </div>
         </div>
 
-        {customers.length > 0 ? (
+        {customers.length > 0 && (
           <div className="space-y-1.5">
-            <Label>Customer</Label>
+            <Label>Select Existing Customer</Label>
             <Select value={form.customer_id} onValueChange={handleCustomer}>
-              <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select customer (optional)" /></SelectTrigger>
               <SelectContent>
                 {customers.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Customer Name</Label>
-              <Input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} placeholder="Customer name" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Email</Label>
-              <Input value={form.customer_email} onChange={e => set('customer_email', e.target.value)} placeholder="customer@email.com" type="email" />
-            </div>
-          </div>
         )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label>Customer Name *</Label>
+            <Input value={form.customer_name} onChange={e => set('customer_name', e.target.value)} placeholder="Type customer name" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email</Label>
+            <Input value={form.customer_email} onChange={e => set('customer_email', e.target.value)} placeholder="customer@email.com" type="email" />
+          </div>
+        </div>
 
         {/* Line Items */}
         <div>
