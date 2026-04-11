@@ -347,6 +347,32 @@ export const APP_CATALOG: AppDefinition[] = [
     color: 'bg-emerald-600',
     routes: ['/stores'],
   },
+
+  // ─── Tax & Compliance ────────────────────────────────────────
+  {
+    key: 'tax-compliance',
+    name: 'Tax Compliance',
+    summary: 'TRA filing, tax calendar & scenarios',
+    description: 'Manage tax obligations with automated TRA e-filing, tax calendar reminders, scenario planning, and deduction optimization.',
+    category: 'finance',
+    icon: 'Calculator',
+    color: 'bg-red-600',
+    routes: ['/tax-calendar', '/tra-filing', '/tax-scenarios', '/deduction-optimizer', '/filing-audit-log', '/tax-consultant'],
+    tags: ['tax', 'tra', 'compliance', 'filing'],
+  },
+
+  // ─── Automation ──────────────────────────────────────────────
+  {
+    key: 'automation',
+    name: 'Automation',
+    summary: 'Workflow automation engine',
+    description: 'Create automated workflows triggered by business events — send emails, update records, and notify teams without manual effort.',
+    category: 'productivity',
+    icon: 'Settings',
+    color: 'bg-cyan-600',
+    routes: ['/automation', '/automation/log'],
+    tags: ['workflows', 'rules', 'automation'],
+  },
 ];
 
 /** Get app definition by key */
