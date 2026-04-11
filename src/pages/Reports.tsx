@@ -38,9 +38,9 @@ export default function Reports() {
   const { data: inventoryData } = useTenantQuery('inventory_items');
   const { data: productionData } = useTenantQuery('production_orders');
   const { data: coaData } = useTenantQuery('chart_of_accounts');
-  const { data: ledgerBalanceData } = useTenantQuery('accounting_ledger_balances');
-  const { data: voucherData } = useTenantQuery('accounting_vouchers');
-  const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries');
+  const { data: ledgerBalanceData } = useTenantQuery('accounting_ledger_balances' as any);
+  const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
+  const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
   const { data: employeeData } = useTenantQuery('employees');
   const { data: crmDealData } = useTenantQuery('crm_deals');
 
