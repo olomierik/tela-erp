@@ -94,6 +94,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Tax & Compliance',
+    appKey: 'tax-compliance',
     items: [
       { label: 'AI Tax Consultant', icon: Scale, path: '/tax-consultant' },
       { label: 'Tax Calendar', icon: CalendarDays, path: '/tax-calendar' },
@@ -105,6 +106,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Automation',
+    appKey: 'automation',
     items: [
       { label: 'Automation Rules', icon: Zap, path: '/automations' },
       { label: 'Execution Log', icon: ClipboardList, path: '/automation-log' },
