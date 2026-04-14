@@ -28,6 +28,7 @@ interface NavItem {
   badge?: number;
   badgeColor?: string;
   module?: ModuleKey;
+  appKey?: string; // direct app key check (used when no module mapping exists)
 }
 
 interface NavSection {
