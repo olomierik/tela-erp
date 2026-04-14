@@ -33,6 +33,7 @@ interface NavItem {
 interface NavSection {
   title: string;
   items: NavItem[];
+  appKey?: string; // if set, entire section only shows when this app is installed
 }
 
 const navSections: NavSection[] = [
