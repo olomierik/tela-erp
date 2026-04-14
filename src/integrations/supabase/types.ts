@@ -1603,6 +1603,7 @@ export type Database = {
           name: string
           quantity: number
           reorder_level: number
+          selling_price: number
           sku: string
           status: Database["public"]["Enums"]["inventory_status"]
           store_id: string | null
@@ -1622,6 +1623,7 @@ export type Database = {
           name: string
           quantity?: number
           reorder_level?: number
+          selling_price?: number
           sku: string
           status?: Database["public"]["Enums"]["inventory_status"]
           store_id?: string | null
@@ -1641,6 +1643,7 @@ export type Database = {
           name?: string
           quantity?: number
           reorder_level?: number
+          selling_price?: number
           sku?: string
           status?: Database["public"]["Enums"]["inventory_status"]
           store_id?: string | null

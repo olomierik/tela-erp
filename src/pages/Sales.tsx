@@ -108,8 +108,9 @@ function CreateOrderSheet({
 
   const handleItemChange = (i: number, id: string) => {
     const item = inventoryItems.find((it: any) => it.id === id);
+    const price = item?.selling_price && Number(item.selling_price) > 0 ? Number(item.selling_price) : (item?.unit_cost || 0);
     setLineItems(prev => prev.map((li, idx) => idx === i ? {
-      ...li, item_id: id, item_name: item?.name || '', unit_price: item?.unit_cost || 0,
+      ...li, item_id: id, item_name: item?.name || '', unit_price: price,
     } : li));
   };
 

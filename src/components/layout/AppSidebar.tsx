@@ -33,6 +33,7 @@ interface NavItem {
 interface NavSection {
   title: string;
   items: NavItem[];
+  appKey?: string; // if set, entire section only shows when this app is installed
 }
 
 const navSections: NavSection[] = [
@@ -94,6 +95,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Tax & Compliance',
+    appKey: 'tax-compliance',
     items: [
       { label: 'AI Tax Consultant', icon: Scale, path: '/tax-consultant' },
       { label: 'Tax Calendar', icon: CalendarDays, path: '/tax-calendar' },
@@ -105,6 +107,7 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Automation',
+    appKey: 'automation',
     items: [
       { label: 'Automation Rules', icon: Zap, path: '/automations' },
       { label: 'Execution Log', icon: ClipboardList, path: '/automation-log' },
@@ -163,11 +166,15 @@ export default function AppSidebar() {
     const isVisibleByModule = (module?: ModuleKey) => {
       if (!module) return true;
       const appKey = MODULE_TO_APP_KEY[module] ?? module;
-      // Only show modules that are explicitly installed via Apps store
       return isInstalled(appKey);
     };
 
     return navSections
+      .filter(section => {
+        // If section has an appKey, only show if that app is installed
+        if (section.appKey) return isInstalled(section.appKey);
+        return true;
+      })
       .map(section => ({
         ...section,
         items: section.items.filter(item => {

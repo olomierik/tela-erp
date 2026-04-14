@@ -1,10 +1,10 @@
 import * as XLSX from 'xlsx';
 
-const INVENTORY_TEMPLATE_HEADERS = ['sku', 'name', 'category', 'quantity', 'unit_cost', 'reorder_level', 'warehouse_location'];
+const INVENTORY_TEMPLATE_HEADERS = ['sku', 'name', 'category', 'quantity', 'unit_cost', 'selling_price', 'reorder_level', 'warehouse_location'];
 const SAMPLE_ROWS = [
-  ['SKU-001', 'Steel Sheet 4x8', 'Raw Materials', 100, 12.50, 20, 'A-01'],
-  ['SKU-002', 'Copper Wire 2mm', 'Raw Materials', 250, 8.75, 50, 'B-03'],
-  ['SKU-003', 'Motor Assembly', 'Components', 30, 145.00, 10, 'C-12'],
+  ['SKU-001', 'Steel Sheet 4x8', 'Raw Materials', 100, 12.50, 18.00, 20, 'A-01'],
+  ['SKU-002', 'Copper Wire 2mm', 'Raw Materials', 250, 8.75, 15.00, 50, 'B-03'],
+  ['SKU-003', 'Motor Assembly', 'Components', 30, 145.00, 220.00, 10, 'C-12'],
 ];
 
 export function downloadInventoryTemplate() {
@@ -21,6 +21,7 @@ export interface ParsedInventoryRow {
   category: string;
   quantity: number;
   unit_cost: number;
+  selling_price: number;
   reorder_level: number;
   warehouse_location?: string;
 }
@@ -63,6 +64,7 @@ export function parseInventoryExcel(file: File): Promise<{ rows: ParsedInventory
             category: String(r[headers.indexOf('category')] ?? ''),
             quantity: Number(r[headers.indexOf('quantity')] ?? 0) || 0,
             unit_cost: Number(r[headers.indexOf('unit_cost')] ?? 0) || 0,
+            selling_price: Number(r[headers.indexOf('selling_price')] ?? 0) || 0,
             reorder_level: Number(r[headers.indexOf('reorder_level')] ?? 10) || 10,
             warehouse_location: r[headers.indexOf('warehouse_location')] ? String(r[headers.indexOf('warehouse_location')]) : undefined,
           });
