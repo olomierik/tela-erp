@@ -390,7 +390,7 @@ export default function Inventory() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-muted/40">
-                  {['', 'Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Value', 'Status', ...(!isDemo ? [''] : [])].map((h, i) => (
+                  {['', 'Product', 'SKU', 'Category', 'Warehouse', 'Qty', 'Cost', 'Sell Price', 'Value', 'Status', ...(!isDemo ? [''] : [])].map((h, i) => (
                     <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                   ))}
                 </tr>
@@ -423,6 +423,8 @@ export default function Inventory() {
                         {availableQty.toLocaleString()}
                         {reservedQty > 0 && <span className="ml-1 text-xs text-muted-foreground">({reservedQty} reserved)</span>}
                       </td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{formatMoney(Number(i.unit_cost))}</td>
+                      <td className="px-4 py-2.5 font-medium text-foreground">{Number(i.selling_price) > 0 ? formatMoney(Number(i.selling_price)) : '—'}</td>
                       <td className="px-4 py-2.5">{formatMoney(availableQty * Number(i.unit_cost))}</td>
                       <td className="px-4 py-2.5"><StatusBadge status={displayStatus} variant={displayVariant} /></td>
                       {!isDemo && (
