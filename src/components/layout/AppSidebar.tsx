@@ -119,10 +119,10 @@ const navSections: NavSection[] = [
     title: 'Tools',
     items: [
       { label: 'Industry Insights', icon: Lightbulb, path: '/industry-insights' },
-      { label: 'Stores', icon: Store, path: '/stores' },
-      { label: 'Online Store', icon: Globe, path: '/online-store' },
-      { label: 'Doc Scanner', icon: ScanLine, path: '/documents' },
-      { label: 'Reports', icon: BarChart3, path: '/reports' },
+      { label: 'Stores', icon: Store, path: '/stores', appKey: 'stores' },
+      { label: 'Online Store', icon: Globe, path: '/online-store', appKey: 'online-store' },
+      { label: 'Doc Scanner', icon: ScanLine, path: '/documents', appKey: 'doc-scanner' },
+      { label: 'Reports', icon: BarChart3, path: '/reports', appKey: 'reports' },
     ],
   },
 ];
