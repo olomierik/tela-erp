@@ -164,10 +164,16 @@ export default function AppSidebar() {
   const { isInstalled } = useTenantApps();
 
   const filteredNavSections = useMemo(() => {
-    const isVisibleByModule = (module?: ModuleKey) => {
-      if (!module) return true;
-      const appKey = MODULE_TO_APP_KEY[module] ?? module;
-      return isInstalled(appKey);
+    const isVisibleByModule = (item: NavItem) => {
+      // If item has a direct appKey, check that
+      if (item.appKey) return isInstalled(item.appKey);
+      // If item has a module, map to app key and check
+      if (item.module) {
+        const appKey = MODULE_TO_APP_KEY[item.module] ?? item.module;
+        return isInstalled(appKey);
+      }
+      // No module or appKey — always visible
+      return true;
     };
 
     return navSections
@@ -180,7 +186,7 @@ export default function AppSidebar() {
         ...section,
         items: section.items.filter(item => {
           if (item.path === '/reseller' && role !== 'reseller') return false;
-          return isVisibleByModule(item.module);
+          return isVisibleByModule(item);
         }),
       }))
       .filter(section => section.items.length > 0);
