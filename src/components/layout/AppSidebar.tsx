@@ -166,11 +166,15 @@ export default function AppSidebar() {
     const isVisibleByModule = (module?: ModuleKey) => {
       if (!module) return true;
       const appKey = MODULE_TO_APP_KEY[module] ?? module;
-      // Only show modules that are explicitly installed via Apps store
       return isInstalled(appKey);
     };
 
     return navSections
+      .filter(section => {
+        // If section has an appKey, only show if that app is installed
+        if (section.appKey) return isInstalled(section.appKey);
+        return true;
+      })
       .map(section => ({
         ...section,
         items: section.items.filter(item => {
