@@ -169,6 +169,13 @@ export default function AppSidebar() {
   const { profile, tenant, role, signOut } = useAuth();
   const { isInstalled } = useTenantApps();
 
+  // Listen for TopBar hamburger event
+  useEffect(() => {
+    const handler = () => setMobileOpen(true);
+    window.addEventListener('open-mobile-sidebar', handler);
+    return () => window.removeEventListener('open-mobile-sidebar', handler);
+  }, []);
+
   const filteredNavSections = useMemo(() => {
     const isVisibleByModule = (item: NavItem) => {
       if (item.appKey) return isInstalled(item.appKey);
