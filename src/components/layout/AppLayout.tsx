@@ -14,9 +14,9 @@ interface AppLayoutProps {
 }
 
 const pageVariants = {
-  initial: { opacity: 0, y: 8 },
+  initial: { opacity: 0, y: 4 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  exit: { opacity: 0, y: -4 },
 };
 
 export default function AppLayout({ children, title, subtitle }: AppLayoutProps) {
@@ -35,9 +35,9 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
       <AppSidebar />
       <div className={cn(
         'transition-all duration-200 flex flex-col min-h-screen min-w-0',
-        // Mobile: extra bottom padding for bottom nav bar + safe area
-        'pb-20 md:pb-0',
-        collapsed ? 'md:ml-16' : 'md:ml-[240px]'
+        /* Mobile: bottom nav height (~60px) + safe area */
+        'pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0',
+        collapsed ? 'md:ml-14' : 'md:ml-60'
       )}>
         <TopBar title={title} subtitle={subtitle} />
         <motion.main
@@ -46,7 +46,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={{ duration: 0.18, ease: 'easeOut' }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
         >
           {children}
         </motion.main>
