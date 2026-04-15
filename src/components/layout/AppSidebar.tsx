@@ -6,7 +6,7 @@ import {
   Factory, Users, Globe, Megaphone, ArrowRightLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, LogOut, ChevronLeft, ChevronRight,
-  Menu, X, Briefcase, Brain, Receipt, Store,
+  X, Briefcase, Brain, Receipt, Store,
   MoreHorizontal, BookOpen, Landmark, ScanLine,
   UsersRound, PiggyBank, UserPlus, Grid3X3,
   Car, Wrench, ShoppingBag, RefreshCw, Lightbulb,
@@ -20,6 +20,12 @@ import { useTenantApps } from '@/hooks/use-tenant-apps';
 import { cn } from '@/lib/utils';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface NavItem {
   label: string;
@@ -28,13 +34,13 @@ interface NavItem {
   badge?: number;
   badgeColor?: string;
   module?: ModuleKey;
-  appKey?: string; // direct app key check (used when no module mapping exists)
+  appKey?: string;
 }
 
 interface NavSection {
   title: string;
   items: NavItem[];
-  appKey?: string; // if set, entire section only shows when this app is installed
+  appKey?: string;
 }
 
 const navSections: NavSection[] = [
@@ -165,20 +171,16 @@ export default function AppSidebar() {
 
   const filteredNavSections = useMemo(() => {
     const isVisibleByModule = (item: NavItem) => {
-      // If item has a direct appKey, check that
       if (item.appKey) return isInstalled(item.appKey);
-      // If item has a module, map to app key and check
       if (item.module) {
         const appKey = MODULE_TO_APP_KEY[item.module] ?? item.module;
         return isInstalled(appKey);
       }
-      // No module or appKey — always visible
       return true;
     };
 
     return navSections
       .filter(section => {
-        // If section has an appKey, only show if that app is installed
         if (section.appKey) return isInstalled(section.appKey);
         return true;
       })
@@ -212,7 +214,7 @@ export default function AppSidebar() {
 
   const onTouchEnd = useCallback(() => {
     const diff = touchStartX.current - touchCurrentX.current;
-    if (diff > 80) {
+    if (diff > 60) {
       setMobileOpen(false);
     }
     if (drawerRef.current) {
@@ -225,167 +227,157 @@ export default function AppSidebar() {
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
 
-  const NavItemComponent = ({ item }: { item: NavItem }) => {
+  /* ─── Nav Item (desktop & mobile drawer) ─── */
+  const NavItemComponent = ({ item, isMobileDrawer }: { item: NavItem; isMobileDrawer?: boolean }) => {
     const active = isActive(item.path);
-    return (
+    const height = isMobileDrawer ? 'h-11' : 'h-9';
+    const padding = isMobileDrawer ? 'px-4 gap-3' : 'px-3 gap-3';
+    const iconSize = isMobileDrawer ? 'w-5 h-5' : 'w-4 h-4';
+    const textSize = isMobileDrawer ? 'text-sm' : 'text-[13px]';
+
+    const linkContent = (
       <Link
         to={item.path}
-        onClick={() => setMobileOpen(false)}
+        onClick={() => { setMobileOpen(false); setMoreOpen(false); }}
         className={cn(
-          'relative flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
+          'relative flex items-center rounded-lg transition-colors duration-100 select-none touch-manipulation',
+          height, padding, textSize,
           active
-            ? 'bg-sidebar-accent text-sidebar-foreground font-semibold'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground active:bg-sidebar-accent/80'
+            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
         )}
-        title={collapsed ? item.label : undefined}
       >
-        {active && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-r-full bg-sidebar-primary" />
+        <item.icon className={cn('shrink-0', iconSize)} />
+        {(!collapsed || isMobileDrawer) && (
+          <span className="whitespace-nowrap overflow-hidden flex-1 leading-none">
+            {item.label}
+          </span>
         )}
-        <item.icon className={cn(
-          'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0 transition-colors duration-100',
-          active ? 'text-sidebar-primary' : 'text-sidebar-foreground group-hover:text-sidebar-foreground'
-        )} />
-        <AnimatePresence initial={false}>
-          {!collapsed && (
-            <motion.span
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              transition={{ duration: 0.15 }}
-              className="whitespace-nowrap overflow-hidden flex-1 leading-none"
-            >
-              {item.label}
-            </motion.span>
-          )}
-        </AnimatePresence>
-        {!collapsed && item.badge !== undefined && item.badge > 0 && (
-          <span className={cn(
-            'text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none',
-            item.badgeColor ?? 'bg-red-500 text-white'
-          )}>
+        {(!collapsed || isMobileDrawer) && item.badge !== undefined && item.badge > 0 && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none bg-destructive text-destructive-foreground">
             {item.badge > 99 ? '99+' : item.badge}
           </span>
         )}
       </Link>
     );
+
+    // Show tooltip when collapsed on desktop (not in mobile drawer)
+    if (collapsed && !isMobileDrawer) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+          <TooltipContent side="right" className="text-sm">
+            {item.label}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return linkContent;
   };
 
-  const sidebarContent = (
+  /* ─── Build sidebar inner content ─── */
+  const buildSidebarContent = (isMobileDrawer: boolean) => (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-[56px] md:h-[52px] border-b border-sidebar-border shrink-0">
-        <img src={telaLogo} alt="TELA ERP" className={cn("shrink-0 object-contain transition-all duration-150", collapsed ? "h-7 w-7" : "h-8 w-auto max-w-[140px]")} />
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border shrink-0 bg-sidebar">
+        <img
+          src={telaLogo}
+          alt="TELA ERP"
+          className={cn(
+            'shrink-0 object-contain transition-all duration-150',
+            collapsed && !isMobileDrawer ? 'h-7 w-7' : 'h-8 w-auto max-w-[140px]'
+          )}
+        />
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 overscroll-contain">
-        {filteredNavSections.map(section => (
-          <div key={section.title} className="mb-1">
-            <AnimatePresence initial={false}>
-              {!collapsed && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.1 }}
-                  className="px-3 mb-0.5 py-1 md:py-0.5"
-                >
-                  <span className="text-[10px] font-semibold text-sidebar-muted/60 uppercase tracking-[0.1em]">
+      <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin overscroll-contain">
+        <TooltipProvider delayDuration={200}>
+          {filteredNavSections.map(section => (
+            <div key={section.title} className="mb-1">
+              {(!collapsed || isMobileDrawer) && (
+                <div className="px-3 mb-1 mt-4 first:mt-1">
+                  <span className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-widest">
                     {section.title}
                   </span>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-            <div className="space-y-[2px] md:space-y-[1px]">
-              {section.items.map(item => (
-                <NavItemComponent key={item.path} item={item} />
-              ))}
+              {collapsed && !isMobileDrawer && (
+                <div className="my-2 mx-2 border-t border-sidebar-border" />
+              )}
+              <div className="space-y-[2px]">
+                {section.items.map(item => (
+                  <NavItemComponent key={item.path} item={item} isMobileDrawer={isMobileDrawer} />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </TooltipProvider>
       </nav>
 
-      {/* Settings + User footer */}
-      <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px] md:space-y-[1px]">
-        <Link
-          to="/apps"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
-            isActive('/apps')
-              ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/80'
-          )}
-          title={collapsed ? 'Apps' : undefined}
-        >
-          <Grid3X3 className={cn(
-            'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0',
-            isActive('/apps') ? 'text-sidebar-primary' : 'text-sidebar-muted'
-          )} />
-          {!collapsed && <span>Apps</span>}
-        </Link>
-        <Link
-          to="/settings"
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] transition-colors duration-100 group select-none touch-manipulation',
-            isActive('/settings')
-              ? 'bg-sidebar-accent text-sidebar-primary font-semibold'
-              : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground active:bg-sidebar-accent/80'
-          )}
-          title={collapsed ? 'Settings' : undefined}
-        >
-          <Settings className={cn(
-            'w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0',
-            isActive('/settings') ? 'text-sidebar-primary' : 'text-sidebar-muted'
-          )} />
-          {!collapsed && <span>Settings</span>}
-        </Link>
+      {/* Footer: Apps, Settings, User, Sign out */}
+      <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px]">
+        <TooltipProvider delayDuration={200}>
+          {/* Apps */}
+          <NavItemComponent
+            item={{ label: 'Apps', icon: Grid3X3, path: '/apps' }}
+            isMobileDrawer={isMobileDrawer}
+          />
+          {/* Settings */}
+          <NavItemComponent
+            item={{ label: 'Settings', icon: Settings, path: '/settings' }}
+            isMobileDrawer={isMobileDrawer}
+          />
+        </TooltipProvider>
 
+        {/* User profile */}
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
-          <div className="flex items-center gap-2.5 px-2 py-2 md:py-1.5 rounded-lg hover:bg-sidebar-accent/60 active:bg-sidebar-accent/80 transition-colors cursor-pointer group touch-manipulation">
-            <div className="w-8 h-8 md:w-7 md:h-7 rounded-full bg-gradient-to-br from-[hsl(172,66%,40%)] to-[hsl(172,66%,30%)] flex items-center justify-center shrink-0 text-xs font-bold text-white">
+          <div className={cn(
+            'flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer touch-manipulation',
+            collapsed && !isMobileDrawer ? 'justify-center' : ''
+          )}>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 text-xs font-bold text-primary-foreground">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
-            <AnimatePresence initial={false}>
-              {!collapsed && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex-1 min-w-0"
-                >
-                  <p className="text-[12px] font-medium text-sidebar-accent-foreground truncate leading-tight">{profile?.full_name ?? 'User'}</p>
-                  <p className="text-[10px] text-sidebar-muted capitalize leading-tight">{role ?? 'user'}</p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {(!collapsed || isMobileDrawer) && (
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-sidebar-accent-foreground truncate leading-tight">{profile?.full_name ?? 'User'}</p>
+                <p className="text-[10px] text-sidebar-muted capitalize leading-tight">{role ?? 'user'}</p>
+              </div>
+            )}
           </div>
         </Link>
+
+        {/* Sign out */}
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-3 py-2.5 md:py-[7px] rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive active:bg-destructive/20 touch-manipulation"
-          title={collapsed ? 'Sign out' : undefined}
+          className={cn(
+            'flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive touch-manipulation',
+            collapsed && !isMobileDrawer ? 'justify-center' : ''
+          )}
+          title={collapsed && !isMobileDrawer ? 'Sign out' : undefined}
         >
-          <LogOut className="w-[18px] h-[18px] md:w-[16px] md:h-[16px] shrink-0" />
-          {!collapsed && <span>Sign out</span>}
+          <LogOut className="w-4 h-4 shrink-0" />
+          {(!collapsed || isMobileDrawer) && <span>Sign out</span>}
         </button>
       </div>
+
+      {/* Collapse toggle — desktop only */}
+      {!isMobileDrawer && (
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="hidden md:flex items-center justify-center h-10 border-t border-sidebar-border text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+      )}
     </div>
   );
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-3 left-3 z-[60] w-11 h-11 rounded-xl bg-sidebar-background border border-sidebar-border flex items-center justify-center text-sidebar-foreground shadow-lg hover:bg-sidebar-accent active:bg-sidebar-accent/80 transition-colors touch-manipulation"
-        aria-label="Open menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
       {/* Mobile overlay drawer with swipe-to-close */}
       <AnimatePresence>
         {mobileOpen && (
@@ -403,7 +395,7 @@ export default function AppSidebar() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0, 0.25, 1] }}
-              className="w-[280px] h-full bg-sidebar-background flex flex-col shadow-2xl"
+              className="w-[280px] h-full bg-sidebar flex flex-col shadow-2xl"
               onClick={e => e.stopPropagation()}
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
@@ -411,36 +403,31 @@ export default function AppSidebar() {
             >
               <button
                 onClick={() => setMobileOpen(false)}
-                className="absolute top-4 right-3 w-9 h-9 rounded-lg flex items-center justify-center text-sidebar-muted hover:text-sidebar-accent-foreground active:bg-sidebar-accent/60 transition-colors touch-manipulation"
+                className="absolute top-3 right-3 w-10 h-10 rounded-lg flex items-center justify-center text-sidebar-muted hover:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-colors touch-manipulation z-10"
                 aria-label="Close menu"
               >
                 <X className="w-5 h-5" />
               </button>
-              {sidebarContent}
+              {buildSidebarContent(true)}
             </motion.aside>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Desktop sidebar */}
-      <motion.aside
-        animate={{ width: collapsed ? 64 : 240 }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
-        className="hidden md:flex fixed left-0 top-0 h-screen bg-sidebar-background flex-col border-r border-sidebar-border z-50 overflow-hidden shadow-lg shadow-black/5"
+      <aside
+        className={cn(
+          'hidden md:flex fixed left-0 top-0 h-screen bg-sidebar flex-col border-r border-sidebar-border z-50 overflow-hidden transition-all duration-200 ease-out',
+          collapsed ? 'w-14' : 'w-60'
+        )}
       >
-        {sidebarContent}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-[52px] w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-        >
-          {collapsed ? <ChevronRight className="w-3 h-3" /> : <ChevronLeft className="w-3 h-3" />}
-        </button>
-      </motion.aside>
+        {buildSidebarContent(false)}
+      </aside>
 
       {/* Mobile bottom nav */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-sidebar-background border-t border-sidebar-border flex items-center justify-around px-1 safe-area-pb shadow-lg shadow-black/20"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)' }}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex items-stretch justify-around"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {mobileBottomNav.map(item => {
           const active = isActive(item.path);
@@ -449,24 +436,27 @@ export default function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 py-2 px-2 rounded-xl text-[10px] font-medium transition-colors min-w-[56px] min-h-[48px] touch-manipulation',
-                active ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground active:bg-sidebar-accent/60'
+                'flex flex-col items-center justify-center gap-0.5 flex-1 h-14 touch-manipulation relative',
+                active ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <item.icon className={cn('w-5 h-5', active && 'text-sidebar-primary')} />
-              <span>{item.label}</span>
+              {active && (
+                <span className="absolute top-0 left-1/4 right-1/4 h-0.5 rounded-b-full bg-primary" />
+              )}
+              <item.icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium mt-1">{item.label}</span>
             </Link>
           );
         })}
         <button
-          onClick={() => setMoreOpen(true)}
+          onClick={() => setMobileOpen(true)}
           className={cn(
-            'flex flex-col items-center justify-center gap-0.5 py-2 px-2 rounded-xl text-[10px] font-medium transition-colors min-w-[56px] min-h-[48px] touch-manipulation',
-            moreOpen ? 'text-sidebar-primary bg-sidebar-accent' : 'text-sidebar-muted hover:text-sidebar-foreground active:bg-sidebar-accent/60'
+            'flex flex-col items-center justify-center gap-0.5 flex-1 h-14 touch-manipulation relative',
+            mobileOpen ? 'text-primary' : 'text-muted-foreground'
           )}
         >
           <MoreHorizontal className="w-5 h-5" />
-          <span>More</span>
+          <span className="text-[10px] font-medium mt-1">More</span>
         </button>
       </nav>
 
@@ -482,7 +472,7 @@ export default function AppSidebar() {
           <div className="overflow-y-auto h-full pb-20 px-4 pt-3 overscroll-contain">
             {filteredNavSections.map(section => (
               <div key={section.title} className="mb-5">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em] mb-2 px-1">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
                   {section.title}
                 </p>
                 <div className="grid grid-cols-3 gap-2">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot, Sun, Moon } from 'lucide-react';
+import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot, Sun, Moon, Menu } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -153,43 +153,70 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     ? stores.find(s => s.id === selectedStoreId)?.name ?? 'Store'
     : 'All Stores';
 
+  // Dispatch custom event to open mobile sidebar
+  const openMobileSidebar = () => {
+    // We need to communicate with AppSidebar — use a custom DOM event
+    window.dispatchEvent(new CustomEvent('open-mobile-sidebar'));
+  };
+
   return (
     <>
-      <header className="h-14 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
-        {/* Left: breadcrumbs + title */}
-        <div className="min-w-0 pl-12 md:pl-0 flex flex-col justify-center">
-          {crumbs.length > 1 ? (
-            <>
-              <Breadcrumb>
-                <BreadcrumbList className="text-[11px]">
-                  {crumbs.slice(0, -1).map((crumb, i) => (
-                    <BreadcrumbItem key={i}>
-                      <BreadcrumbLink className="text-muted-foreground/70 hover:text-muted-foreground transition-colors text-[11px]">
-                        {crumb}
-                      </BreadcrumbLink>
-                      <BreadcrumbSeparator />
+      {/* Mobile: h-14, Desktop: h-12 */}
+      <header className="h-14 sm:h-12 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
+        {/* Left side */}
+        <div className="min-w-0 flex items-center gap-2">
+          {/* Mobile hamburger in topbar */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-10 w-10 shrink-0 touch-manipulation -ml-1"
+            onClick={openMobileSidebar}
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+
+          <div className="min-w-0 flex flex-col justify-center">
+            {/* Breadcrumbs: hidden on mobile, shown on md+ */}
+            {crumbs.length > 1 ? (
+              <>
+                <Breadcrumb className="hidden md:flex">
+                  <BreadcrumbList className="text-[11px]">
+                    {crumbs.slice(0, -1).map((crumb, i) => (
+                      <BreadcrumbItem key={i}>
+                        <BreadcrumbLink className="text-muted-foreground/70 hover:text-muted-foreground transition-colors text-[11px]">
+                          {crumb}
+                        </BreadcrumbLink>
+                        <BreadcrumbSeparator />
+                      </BreadcrumbItem>
+                    ))}
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="text-foreground font-semibold text-[11px]">
+                        {crumbs[crumbs.length - 1]}
+                      </BreadcrumbPage>
                     </BreadcrumbItem>
-                  ))}
-                  <BreadcrumbItem>
-                    <BreadcrumbPage className="text-foreground font-semibold text-[11px]">
-                      {crumbs[crumbs.length - 1]}
-                    </BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-              {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">{subtitle}</p>}
-            </>
-          ) : (
-            <>
-              <h2 className="text-base font-semibold text-foreground truncate leading-tight">{title}</h2>
-              {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight">{subtitle}</p>}
-            </>
-          )}
+                  </BreadcrumbList>
+                </Breadcrumb>
+                {/* Mobile: show only page title */}
+                <h2 className="md:hidden text-sm font-semibold text-foreground truncate leading-tight">
+                  {crumbs[crumbs.length - 1]}
+                </h2>
+                {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5 hidden md:block">{subtitle}</p>}
+              </>
+            ) : (
+              <>
+                <h2 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight">{title}</h2>
+                {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight hidden md:block">{subtitle}</p>}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Company Switcher */}
-          <CompanySwitcher />
+          {/* Company Switcher — hidden on mobile */}
+          <div className="hidden sm:block">
+            <CompanySwitcher />
+          </div>
 
           {/* ⌘K Search trigger — desktop */}
           <button
@@ -203,7 +230,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </kbd>
           </button>
 
-          {/* Mobile search button — larger touch target */}
+          {/* Mobile search button */}
           <Button
             variant="ghost"
             size="icon"
@@ -213,7 +240,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             <Search className="w-5 h-5" />
           </Button>
 
-          {/* Dark / Light mode toggle — larger on mobile */}
+          {/* Dark / Light mode toggle */}
           <Button
             variant="ghost"
             size="icon"
@@ -269,13 +296,13 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </SelectContent>
           </Select>
 
-          {/* Notifications Bell — larger touch target on mobile */}
+          {/* Notifications Bell */}
           <Popover open={notifOpen} onOpenChange={setNotifOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative h-10 w-10 sm:h-8 sm:w-8 touch-manipulation">
                 <Bell className="w-5 h-5 sm:w-4 sm:h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold leading-none">
+                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold leading-none">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
@@ -337,7 +364,7 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </PopoverContent>
           </Popover>
 
-          {/* User Avatar Menu — larger touch target on mobile */}
+          {/* User Avatar Menu */}
           <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="h-10 sm:h-8 gap-2 px-2 rounded-lg touch-manipulation">
