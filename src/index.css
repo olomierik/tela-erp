@@ -115,7 +115,15 @@ a[href*="lovable.app"] {
     --sidebar-muted:      220 10% 58%;
   }
 
-  * { @apply border-border; box-sizing: border-box; }
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
 
   html, body, #root {
     overflow-x: hidden;
