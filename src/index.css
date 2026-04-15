@@ -73,11 +73,11 @@ a[href*="lovable.app"] {
 
   .dark {
     --background:       228 22% 7%;
-    --foreground:       225 15% 92%;
-    --card:             228 20% 10%;
-    --card-foreground:  225 15% 92%;
-    --popover:          228 20% 10%;
-    --popover-foreground: 225 15% 92%;
+    --foreground:       220 15% 92%;
+    --card:             228 20% 11%;
+    --card-foreground:  220 15% 92%;
+    --popover:          228 20% 11%;
+    --popover-foreground: 220 15% 92%;
 
     --primary:          230 65% 62%;
     --primary-foreground: 228 28% 8%;
@@ -86,7 +86,7 @@ a[href*="lovable.app"] {
     --secondary-foreground: 225 15% 85%;
 
     --muted:            228 18% 16%;
-    --muted-foreground: 225 10% 55%;
+    --muted-foreground: 220 10% 58%;
 
     --accent:           32 90% 55%;
     --accent-foreground: 228 28% 8%;
@@ -100,14 +100,19 @@ a[href*="lovable.app"] {
     --warning:          38 85% 52%;
     --warning-foreground: 228 28% 8%;
 
-    --border:           228 18% 18%;
+    --border:           228 16% 18%;
     --input:            228 18% 18%;
     --ring:             230 65% 62%;
 
-    --sidebar-background: 210 20% 96%;
-    --sidebar-foreground: 210 25% 10%;
-    --sidebar-accent:     210 15% 88%;
-    --sidebar-border:     210 15% 84%;
+    /* Sidebar — 2-4% lighter than page bg so it's distinguishable */
+    --sidebar-background: 228 22% 10%;
+    --sidebar-foreground: 220 15% 92%;
+    --sidebar-primary:    172 60% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent:     228 18% 18%;
+    --sidebar-accent-foreground: 220 15% 95%;
+    --sidebar-border:     228 16% 16%;
+    --sidebar-muted:      220 10% 58%;
   }
 
   * { @apply border-border; box-sizing: border-box; }
