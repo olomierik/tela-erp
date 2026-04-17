@@ -2,9 +2,18 @@ import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const OFFLINE_TABLES = new Set([
+  // Core
   'sales_orders', 'inventory_items', 'invoices', 'invoice_lines',
   'customers', 'suppliers', 'transactions', 'pos_orders',
-  'pos_order_items', 'inventory_transactions', 'inventory_adjustments', 'payments',
+  'pos_order_lines', 'inventory_transactions', 'inventory_adjustments', 'payments',
+  // Extended — full app coverage
+  'production_orders', 'campaigns', 'purchase_orders', 'inventory_reservations',
+  'audit_log', 'categories', 'stock_transfers', 'bom_templates', 'bom_lines',
+  'chart_of_accounts', 'journal_entries', 'stores', 'projects', 'project_tasks',
+  'notifications', 'employees', 'departments', 'attendance_logs', 'leave_requests',
+  'payroll_runs', 'payroll_lines', 'crm_deals', 'crm_activities', 'scanned_documents',
+  'fixed_assets', 'expense_claims', 'expense_items', 'budgets', 'budget_lines',
+  'automation_rules', 'tax_rates', 'team_invites',
 ]);
 
 const PULL_LIMIT = 500;

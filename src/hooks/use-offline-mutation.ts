@@ -20,6 +20,8 @@ import { scheduler } from '@/lib/offline/scheduler';
 const STORE_SCOPED: OfflineTable[] = [
   'sales_orders', 'inventory_items', 'customers', 'suppliers', 'transactions',
   'payments', 'pos_orders',
+  'production_orders', 'campaigns', 'purchase_orders', 'stock_transfers',
+  'employees', 'expense_claims',
 ];
 
 function uuid(): string {
