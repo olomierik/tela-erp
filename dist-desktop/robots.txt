@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /reseller
+Disallow: /billing
+Disallow: /reset-password
+
+Sitemap: https://tela-erp.com/sitemap.xml

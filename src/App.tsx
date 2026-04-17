@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Route, Routes, Navigate } from "react-router-dom";
+import { IS_DESKTOP } from "@/lib/desktop";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import { ModulesProvider } from "@/contexts/ModulesContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import ConflictInbox from "./pages/ConflictInbox";
+import DesktopSetup from "./pages/DesktopSetup";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
@@ -97,6 +99,9 @@ function TelemetryTracker() {
   return null;
 }
 
+// HashRouter keeps routing working when loaded via file:// in Electron
+const Router = IS_DESKTOP ? HashRouter : BrowserRouter;
+
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
@@ -110,7 +115,7 @@ const App = () => (
           <SidebarProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <Router>
             <TelemetryTracker />
             <WhatsAppButton />
             <ScrollButtons />
@@ -200,7 +205,10 @@ const App = () => (
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+              {/* Desktop-only first-run setup wizard */}
+              <Route path="/desktop-setup" element={<DesktopSetup />} />
+
+              </Router>
           </SidebarProvider>
           </NetworkStatusProvider>
           </ModulesProvider>
