@@ -1,22 +1,17 @@
 /**
  * Desktop Supabase-compatible client.
  *
- * Replaces the real Supabase client when the app is built with
- * vite.desktop.config.ts (VITE_DESKTOP=true).  All reads and writes go to the
- * local SQLite database via the Electron IPC bridge exposed by preload.cjs.
- *
- * The interface matches the subset of @supabase/supabase-js used by the app:
- *   supabase.from(table).select/insert/update/delete/upsert + filter/order/limit
- *   supabase.auth.getSession / onAuthStateChange / signInWithPassword / signUp / signOut
- *   supabase.functions.invoke  → no-op (returns empty success)
- *   supabase.channel / removeChannel → no-op stubs
+ * Works in two modes, auto-detected at runtime:
+ *   1. Electron IPC  – when window.electronAPI is present (packaged .exe / dev mode)
+ *   2. HTTP REST     – when running from browser against standalone/server.cjs
+ *                       (http://localhost:4321)
  */
 
 // ─── IPC bridge (exposed by electron/preload.cjs) ─────────────────────────
 
 declare global {
   interface Window {
-    electronAPI: {
+    electronAPI?: {
       isElectron: boolean;
       dbCrud: (args: any) => Promise<{ data: any; error: any }>;
       authGetSession: () => Promise<{ session: any; needsSetup: boolean }>;
@@ -29,7 +24,50 @@ declare global {
   }
 }
 
-const ipc = () => window.electronAPI;
+const HTTP_BASE = 'http://localhost:4321/api';
+
+async function httpPost(path: string, body: any): Promise<any> {
+  const res = await fetch(`${HTTP_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(txt || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// Unified backend — IPC when available, HTTP fallback otherwise
+const backend = {
+  isElectron: () => !!(typeof window !== 'undefined' && window.electronAPI?.isElectron),
+
+  async dbCrud(args: any): Promise<{ data: any; error: any }> {
+    if (backend.isElectron()) return window.electronAPI!.dbCrud(args);
+    return httpPost('/crud', args);
+  },
+
+  async authGetSession(): Promise<{ session: any; needsSetup: boolean }> {
+    if (backend.isElectron()) return window.electronAPI!.authGetSession();
+    return httpPost('/auth/session', {});
+  },
+
+  async authSignup(args: any): Promise<{ session: any; error: any }> {
+    if (backend.isElectron()) return window.electronAPI!.authSignup(args);
+    return httpPost('/auth/signup', args);
+  },
+
+  async authSignin(args: any): Promise<{ session: any; error: any }> {
+    if (backend.isElectron()) return window.electronAPI!.authSignin(args);
+    return httpPost('/auth/signin', args);
+  },
+
+  async authSignout(): Promise<{ error: any }> {
+    if (backend.isElectron()) return window.electronAPI!.authSignout();
+    return httpPost('/auth/signout', {});
+  },
+};
 
 // ─── Auth state ───────────────────────────────────────────────────────────
 
@@ -45,14 +83,14 @@ function notifyAuth(event: string, session: any) {
 // Bootstrap: load persisted session on first import
 (async () => {
   try {
-    const { session, needsSetup } = await ipc().authGetSession();
+    const { session, needsSetup } = await backend.authGetSession();
     if (session) {
       cachedSession = session;
       setTimeout(() => notifyAuth('SIGNED_IN', buildSupabaseSession(session)), 100);
     } else if (needsSetup) {
       setTimeout(() => notifyAuth('DESKTOP_SETUP_REQUIRED', null), 100);
     }
-  } catch { /* IPC not ready yet */ }
+  } catch { /* backend not ready yet */ }
 })();
 
 function buildSupabaseSession(raw: any) {
@@ -133,7 +171,7 @@ class DesktopQuery {
       }
 
       if (this._op === 'select' || this._op === 'delete') {
-        return await ipc().dbCrud({
+        return await backend.dbCrud({
           op:       this._op,
           table:    this._table,
           where:    this._where,
@@ -153,7 +191,7 @@ class DesktopQuery {
         data = Array.isArray(data) ? data.map(addTenant) : addTenant(data);
       }
 
-      return await ipc().dbCrud({
+      return await backend.dbCrud({
         op:     this._op,
         table:  this._table,
         where:  this._where,
@@ -220,7 +258,7 @@ class DesktopQuery {
 const auth = {
   async getSession() {
     try {
-      const { session } = await ipc().authGetSession();
+      const { session } = await backend.authGetSession();
       if (session) cachedSession = session;
       return { data: { session: session ? buildSupabaseSession(session) : null }, error: null };
     } catch (err: any) {
@@ -242,7 +280,7 @@ const auth = {
   },
 
   async signInWithPassword({ email, password }: { email: string; password: string }) {
-    const { session, error } = await ipc().authSignin({ email, password });
+    const { session, error } = await backend.authSignin({ email, password });
     if (error) return { data: { user: null, session: null }, error: { message: error } };
     cachedSession = session;
     const built = buildSupabaseSession(session);
@@ -253,7 +291,7 @@ const auth = {
   async signUp({ email, password, options }: { email: string; password: string; options?: any }) {
     const fullName    = options?.data?.full_name ?? options?.data?.name ?? '';
     const companyName = options?.data?.company ?? options?.data?.company_name ?? 'My Company';
-    const { session, error } = await ipc().authSignup({ email, password, fullName, companyName });
+    const { session, error } = await backend.authSignup({ email, password, fullName, companyName });
     if (error) return { data: { user: null, session: null }, error: { message: error } };
     cachedSession = session;
     const built = buildSupabaseSession(session);
@@ -262,7 +300,7 @@ const auth = {
   },
 
   async signOut() {
-    await ipc().authSignout();
+    await backend.authSignout();
     cachedSession = null;
     notifyAuth('SIGNED_OUT', null);
     return { error: null };
