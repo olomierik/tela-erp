@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
 import { toast } from 'sonner';
 import { isOfflineTable, OfflineTable, db } from '@/lib/offline/db';
+import { IS_DESKTOP } from '@/lib/desktop';
 import {
   useOfflineInsert, useOfflineUpdate, useOfflineDelete,
 } from '@/hooks/use-offline-mutation';
@@ -23,9 +24,10 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
 
-      // When offline, skip the network round-trip for offline-capable tables so the
-      // UI reflects locally-saved Dexie data immediately — no hanging fetch.
-      if (!navigator.onLine && isOfflineTable(table)) {
+      // Desktop mode routes all reads through the SQLite desktop client (supabase
+      // is already the desktop mock) — skip the Dexie branch entirely.
+      // Offline web mode: skip Supabase and serve from Dexie immediately.
+      if (!IS_DESKTOP && !navigator.onLine && isOfflineTable(table)) {
         let rows = await (db as any)[table].where('tenant_id').equals(tenant.id).toArray();
         if (selectedStoreId && STORE_SCOPED_TABLES.includes(table)) {
           rows = rows.filter((r: any) => !r.store_id || r.store_id === selectedStoreId);
@@ -102,9 +104,9 @@ export function useTenantInsert(table: TableName) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // For offline-capable tables, route through the outbox so the write
-  // succeeds even when the network is down.
-  return isOfflineTable(table) ? offlineInsert : onlineMutation;
+  // Desktop: always write to SQLite via the desktop client (no Dexie outbox).
+  // Web offline: route through the Dexie outbox.
+  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineInsert : onlineMutation;
 }
 
 export function useTenantUpdate(table: TableName) {
@@ -134,7 +136,7 @@ export function useTenantUpdate(table: TableName) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return isOfflineTable(table) ? offlineUpdate : onlineMutation;
+  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineUpdate : onlineMutation;
 }
 
 export function useTenantDelete(table: TableName) {
@@ -160,5 +162,5 @@ export function useTenantDelete(table: TableName) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  return isOfflineTable(table) ? offlineDelete : onlineMutation;
+  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineDelete : onlineMutation;
 }

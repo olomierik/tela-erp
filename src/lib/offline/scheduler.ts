@@ -9,6 +9,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { db, OFFLINE_TABLES, OutboxEntry, OfflineTable, getMeta, setMeta, ConflictEntry } from './db';
+import { IS_DESKTOP } from '@/lib/desktop';
 
 const PUSH_BATCH_SIZE = 50;
 const MIN_BACKOFF = 1000;
@@ -70,7 +71,8 @@ class Scheduler {
 
   // ─── Push loop ────────────────────────────────────────────────────────────
   async kick(): Promise<void> {
-    if (this.running || !navigator.onLine) return;
+    // Desktop app uses SQLite directly — no outbox sync needed.
+    if (IS_DESKTOP || this.running || !navigator.onLine) return;
     this.running = true;
     this.emit({ type: 'started' });
 
@@ -172,7 +174,7 @@ class Scheduler {
 
   // ─── Pull loop ────────────────────────────────────────────────────────────
   async pull(tenantId: string, tables: OfflineTable[] = OFFLINE_TABLES): Promise<void> {
-    if (!navigator.onLine || !this.leader) return;
+    if (IS_DESKTOP || !navigator.onLine || !this.leader) return;
 
     for (const table of tables) {
       const key = `pull_token:${table}:${tenantId}`;
