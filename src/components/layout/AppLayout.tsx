@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AppSidebar from './AppSidebar';
 import TopBar from './TopBar';
+import { TrialBanner } from '@/components/erp/TrialBanner';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { useModules } from '@/contexts/ModulesContext';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         'pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0',
         collapsed ? 'md:ml-14' : 'md:ml-60'
       )}>
+        <TrialBanner />
         <TopBar title={title} subtitle={subtitle} />
         <motion.main
           className="flex-1 p-3 sm:p-4 md:p-6 min-w-0 overflow-x-hidden"

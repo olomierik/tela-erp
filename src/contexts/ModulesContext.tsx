@@ -171,6 +171,7 @@ interface ModulesContextType {
   tierAllows: (key: ModuleKey) => boolean;    // is this module allowed by subscription?
   isModuleActive: (key: ModuleKey) => boolean; // allowed by tier AND user-selected
   maxUsers: number;
+  trialDaysRemaining: number | null;
   toggleModule: (key: ModuleKey) => void;
   setIndustry: (key: string) => void;
   completeOnboarding: (industry: string, modules: ModuleKey[]) => void;
@@ -203,6 +204,14 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
 
   const tierAllows = (key: ModuleKey) => tierAllowedModules.has(key);
   const maxUsers = TIER_MAX_USERS[tier];
+
+  const trialDaysRemaining = useMemo(() => {
+    const trialEndsAt = (tenant as any)?.trial_ends_at as string | null | undefined;
+    if (!trialEndsAt) return null;
+    const diff = new Date(trialEndsAt).getTime() - Date.now();
+    if (diff <= 0) return 0;
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  }, [(tenant as any)?.trial_ends_at]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -282,7 +291,7 @@ export function ModulesProvider({ children }: { children: ReactNode }) {
   return (
     <ModulesContext.Provider value={{
       activeModules, industry, onboardingCompleted, loading,
-      tier, tierAllows, isModuleActive, maxUsers,
+      tier, tierAllows, isModuleActive, maxUsers, trialDaysRemaining,
       toggleModule, setIndustry, completeOnboarding,
     }}>
       {children}

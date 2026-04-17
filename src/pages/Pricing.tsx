@@ -1,101 +1,120 @@
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, X, ChevronRight, Zap, Shield, Globe, Star, HelpCircle } from 'lucide-react';
+import { Check, X, ChevronRight, Zap, Shield, Globe, Star, HelpCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import telaLogo from '@/assets/tela-erp-logo.png';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.4 } }),
 };
 
-const TIERS = [
-  {
-    key: 'starter',
-    name: 'Starter',
-    price: 'Free',
-    period: 'forever',
-    description: 'Get started with the essentials — no credit card needed.',
-    highlight: false,
-    cta: 'Start Free',
-    ctaLink: '/signup',
-    color: 'border-border',
-    badge: null,
-    users: '1 user',
-    features: [
-      { label: 'Sales module', included: true },
-      { label: 'Inventory module', included: true },
-      { label: 'Dashboard & Reports', included: true },
-      { label: 'Multi-currency', included: false },
-      { label: 'All 17 modules', included: false },
-      { label: 'HR & Payroll', included: false },
-      { label: 'Projects & CRM', included: false },
-      { label: 'Fleet & Maintenance', included: false },
-      { label: 'AI CFO Assistant', included: false },
-      { label: 'White-label branding', included: false },
-      { label: 'API access', included: false },
-      { label: 'Priority support', included: false },
-    ],
-  },
-  {
-    key: 'premium',
-    name: 'Premium',
-    price: '$6',
-    period: '/month',
-    description: 'Everything your growing business needs in one place.',
-    highlight: true,
-    cta: 'Get Premium',
-    ctaLink: '/signup?plan=premium',
-    color: 'border-primary ring-2 ring-primary/20',
-    badge: 'Most Popular',
-    users: 'Up to 5 users',
-    features: [
-      { label: 'All 17 modules', included: true },
-      { label: 'Multi-currency (165+)', included: true },
-      { label: 'Industry presets (13)', included: true },
-      { label: 'AI CFO Assistant', included: true },
-      { label: 'Advanced reports & PDF', included: true },
-      { label: 'HR & Payroll', included: true },
-      { label: 'Fleet & Maintenance', included: true },
-      { label: 'POS & Subscriptions', included: true },
-      { label: 'Real-time sync', included: true },
-      { label: 'Email support', included: true },
-      { label: 'White-label branding', included: false },
-      { label: 'API access', included: false },
-    ],
-  },
-  {
-    key: 'enterprise',
-    name: 'Enterprise',
-    price: '$13',
-    period: '/month',
-    description: 'Unlimited scale, white-label, and full platform control.',
-    highlight: false,
-    cta: 'Get Enterprise',
-    ctaLink: '/contact',
-    color: 'border-border',
-    badge: null,
-    users: 'Unlimited users',
-    features: [
-      { label: 'Everything in Premium', included: true },
-      { label: 'Unlimited users', included: true },
-      { label: 'White-label branding', included: true },
-      { label: 'Custom domain', included: true },
-      { label: 'Reseller portal', included: true },
-      { label: 'Full API access', included: true },
-      { label: 'Priority support', included: true },
-      { label: 'Dedicated onboarding', included: true },
-      { label: 'SLA guarantee', included: true },
-      { label: 'Audit logging', included: true },
-      { label: 'Multi-company management', included: true },
-      { label: 'Custom integrations', included: true },
-    ],
-  },
-];
+const PRICES = {
+  premium_monthly:    import.meta.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID ?? '',
+  premium_yearly:     import.meta.env.VITE_STRIPE_PREMIUM_YEARLY_PRICE_ID ?? '',
+  enterprise_monthly: import.meta.env.VITE_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID ?? '',
+  enterprise_yearly:  import.meta.env.VITE_STRIPE_ENTERPRISE_YEARLY_PRICE_ID ?? '',
+};
+
+type BillingInterval = 'month' | 'year';
+
+function buildTiers(interval: BillingInterval) {
+  return [
+    {
+      key: 'starter',
+      name: 'Starter',
+      price: 'Free',
+      priceNote: 'forever',
+      description: 'Get started with the essentials — no credit card needed.',
+      highlight: false,
+      cta: 'Start Free',
+      isStripe: false,
+      priceId: '',
+      color: 'border-border',
+      badge: null as string | null,
+      users: '1 user',
+      features: [
+        { label: 'Sales module', included: true },
+        { label: 'Inventory module', included: true },
+        { label: 'Dashboard & Reports', included: true },
+        { label: 'Multi-currency', included: false },
+        { label: 'All 17 modules', included: false },
+        { label: 'HR & Payroll', included: false },
+        { label: 'Projects & CRM', included: false },
+        { label: 'Fleet & Maintenance', included: false },
+        { label: 'AI CFO Assistant', included: false },
+        { label: 'White-label branding', included: false },
+        { label: 'API access', included: false },
+        { label: 'Priority support', included: false },
+      ],
+    },
+    {
+      key: 'premium',
+      name: 'Premium',
+      price: interval === 'year' ? '$99' : '$12',
+      priceNote: interval === 'year' ? '/year' : '/month',
+      annualSavings: interval === 'year' ? 'Save $45' : null,
+      description: 'Everything your growing business needs in one place.',
+      highlight: true,
+      cta: interval === 'year' ? 'Get Premium (Annual)' : 'Get Premium',
+      isStripe: true,
+      priceId: interval === 'year' ? PRICES.premium_yearly : PRICES.premium_monthly,
+      color: 'border-primary ring-2 ring-primary/20',
+      badge: 'Most Popular' as string | null,
+      users: 'Up to 5 users',
+      features: [
+        { label: 'All 17 modules', included: true },
+        { label: 'Multi-currency (165+)', included: true },
+        { label: 'Industry presets (13)', included: true },
+        { label: 'AI CFO Assistant', included: true },
+        { label: 'Advanced reports & PDF', included: true },
+        { label: 'HR & Payroll', included: true },
+        { label: 'Fleet & Maintenance', included: true },
+        { label: 'POS & Subscriptions', included: true },
+        { label: 'Real-time sync', included: true },
+        { label: 'Email support', included: true },
+        { label: 'White-label branding', included: false },
+        { label: 'API access', included: false },
+      ],
+    },
+    {
+      key: 'enterprise',
+      name: 'Enterprise',
+      price: interval === 'year' ? '$249' : '$29',
+      priceNote: interval === 'year' ? '/year' : '/month',
+      annualSavings: interval === 'year' ? 'Save $99' : null,
+      description: 'Unlimited scale, white-label, and full platform control.',
+      highlight: false,
+      cta: interval === 'year' ? 'Get Enterprise (Annual)' : 'Get Enterprise',
+      isStripe: true,
+      priceId: interval === 'year' ? PRICES.enterprise_yearly : PRICES.enterprise_monthly,
+      color: 'border-border',
+      badge: null as string | null,
+      users: 'Unlimited users',
+      features: [
+        { label: 'Everything in Premium', included: true },
+        { label: 'Unlimited users', included: true },
+        { label: 'White-label branding', included: true },
+        { label: 'Custom domain', included: true },
+        { label: 'Reseller portal', included: true },
+        { label: 'Full API access', included: true },
+        { label: 'Priority support', included: true },
+        { label: 'Dedicated onboarding', included: true },
+        { label: 'SLA guarantee', included: true },
+        { label: 'Audit logging', included: true },
+        { label: 'Multi-company management', included: true },
+        { label: 'Custom integrations', included: true },
+      ],
+    },
+  ];
+}
 
 const ALL_MODULES = [
   'Sales Orders', 'Invoices', 'Inventory', 'Procurement', 'Production',
@@ -136,12 +155,44 @@ const FAQS = [
 export default function Pricing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [interval, setInterval] = useState<BillingInterval>('month');
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const { tenant, isDemo } = useAuth();
+  const navigate = useNavigate();
+
+  const TIERS = buildTiers(interval);
+
+  async function handleStripeCta(tier: ReturnType<typeof buildTiers>[number]) {
+    if (!tier.isStripe) { navigate('/signup'); return; }
+    if (isDemo || !tenant?.id) { navigate('/signup?plan=' + tier.key); return; }
+    if (!tier.priceId) {
+      toast.error('Stripe price not configured — add VITE_STRIPE_*_PRICE_ID to .env');
+      return;
+    }
+    setLoadingTier(tier.key);
+    try {
+      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+        body: {
+          priceId: tier.priceId,
+          tenantId: tenant.id,
+          successUrl: window.location.origin,
+          cancelUrl: window.location.origin + '/pricing',
+        },
+      });
+      if (error) throw error;
+      if (data?.url) window.location.href = data.url;
+    } catch (err: any) {
+      toast.error(err.message ?? 'Could not start checkout');
+    } finally {
+      setLoadingTier(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>Pricing — TELA-ERP | Starter Free, Premium $6/mo, Enterprise $13/mo</title>
-        <meta name="description" content="TELA-ERP pricing: Free Starter plan, Premium at $6/month (all modules, 5 users), Enterprise at $13/month (unlimited everything). Start free today." />
+        <title>Pricing — TELA-ERP | Starter Free, Premium $12/mo, Enterprise $29/mo</title>
+        <meta name="description" content="TELA-ERP pricing: Free Starter plan, Premium at $12/month (all modules, 5 users), Enterprise at $29/month (unlimited everything). Start free today." />
       </Helmet>
 
       {/* NAV */}
@@ -171,9 +222,30 @@ export default function Pricing() {
             Simple plans for every <span className="text-primary">stage of growth</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free with the essentials, unlock everything for $6/month, or go unlimited for $13/month.
+            Start free with the essentials, unlock everything for $12/month, or go unlimited for $29/month.
             No hidden fees, no per-module charges.
           </p>
+
+          {/* Billing interval toggle */}
+          <div className="mt-8 inline-flex items-center gap-1 bg-muted rounded-full p-1">
+            <button
+              onClick={() => setInterval('month')}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${
+                interval === 'month' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setInterval('year')}
+              className={`px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
+                interval === 'year' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Annual
+              <Badge className="text-[10px] bg-emerald-500 text-white border-0 py-0 px-1.5">Save up to 31%</Badge>
+            </button>
+          </div>
         </motion.div>
       </section>
 
@@ -195,17 +267,26 @@ export default function Pricing() {
                   <p className="text-sm text-muted-foreground mb-4">{tier.description}</p>
                   <div className="flex items-end justify-center gap-1">
                     <span className={`font-extrabold ${tier.price === 'Free' ? 'text-3xl' : 'text-5xl'}`}>{tier.price}</span>
-                    {tier.period !== 'forever' && <span className="text-muted-foreground text-sm mb-1">{tier.period}</span>}
+                    {tier.priceNote !== 'forever' && <span className="text-muted-foreground text-sm mb-1">{tier.priceNote}</span>}
                   </div>
+                  {(tier as any).annualSavings && (
+                    <Badge className="mt-2 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0 text-xs">
+                      {(tier as any).annualSavings}
+                    </Badge>
+                  )}
                   <p className="text-xs text-muted-foreground mt-2">{tier.users}</p>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
                   <Button
                     className={`w-full mb-6 ${tier.highlight ? 'gradient-primary' : ''}`}
                     variant={tier.highlight ? 'default' : 'outline'}
-                    asChild
+                    disabled={loadingTier === tier.key}
+                    onClick={() => handleStripeCta(tier)}
                   >
-                    <Link to={tier.ctaLink}>{tier.cta} <ChevronRight className="w-4 h-4 ml-1" /></Link>
+                    {loadingTier === tier.key
+                      ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                      : <>{tier.cta} <ChevronRight className="w-4 h-4 ml-1" /></>
+                    }
                   </Button>
                   <ul className="space-y-3">
                     {tier.features.map(f => (
@@ -227,6 +308,11 @@ export default function Pricing() {
         <p className="text-center text-sm text-muted-foreground mt-8">
           <Zap className="inline w-4 h-4 mr-1 text-amber-500" />
           All new accounts include a <strong>14-day free trial</strong> of Premium — no credit card required.
+          {interval === 'year' && (
+            <span className="ml-2 text-emerald-600 dark:text-emerald-400 font-medium">
+              Annual billing saves you up to 31% vs. monthly.
+            </span>
+          )}
         </p>
       </section>
 
