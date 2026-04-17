@@ -12,6 +12,8 @@ type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'cam
 
 const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders', 'customers', 'suppliers', 'stock_transfers', 'payments', 'employees', 'expense_claims'];
 
+const OFFLINE_ERROR = "You're offline. Connect to the internet to save this change.";
+
 export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at') {
   const { tenant, isDemo } = useAuth();
   const { selectedStoreId } = useStore();
@@ -21,8 +23,18 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
 
-      // Offline-capable tables: try network first; on failure fall back to the
-      // Dexie cache so the screen still renders when offline.
+      // When offline, skip the network round-trip for offline-capable tables so the
+      // UI reflects locally-saved Dexie data immediately — no hanging fetch.
+      if (!navigator.onLine && isOfflineTable(table)) {
+        let rows = await (db as any)[table].where('tenant_id').equals(tenant.id).toArray();
+        if (selectedStoreId && STORE_SCOPED_TABLES.includes(table)) {
+          rows = rows.filter((r: any) => !r.store_id || r.store_id === selectedStoreId);
+        }
+        return rows;
+      }
+
+      // Online path: try network first; on failure fall back to the Dexie cache
+      // so the screen still renders when the connection drops mid-session.
       try {
         let query = (supabase.from(table as any) as any)
           .select('*')
@@ -70,6 +82,7 @@ export function useTenantInsert(table: TableName) {
 
   const onlineMutation = useMutation({
     mutationFn: async (row: Record<string, any>) => {
+      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
       const insertData: Record<string, any> = { ...row, tenant_id: tenant!.id };
       // Auto-attach store_id for store-scoped tables
       if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
@@ -102,6 +115,7 @@ export function useTenantUpdate(table: TableName) {
   const onlineMutation = useMutation({
     mutationFn: async ({ id, ...updates }: Record<string, any>) => {
       if (!tenant?.id) throw new Error('No active tenant');
+      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
       // Omit tenant_id from updates to prevent tenant-hopping; enforce via .eq filter
       const { tenant_id: _omit, ...safeUpdates } = updates;
       const { data, error } = await (supabase.from(table as any) as any)
@@ -131,6 +145,7 @@ export function useTenantDelete(table: TableName) {
   const onlineMutation = useMutation({
     mutationFn: async (id: string) => {
       if (!tenant?.id) throw new Error('No active tenant');
+      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
       // IDOR guard: only delete records belonging to the current tenant
       const { error } = await (supabase.from(table as any) as any)
         .delete()
