@@ -16,6 +16,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import CommandPalette from '@/components/ui/CommandPalette';
 import CompanySwitcher from '@/components/company/CompanySwitcher';
+import { NetworkStatusIndicator } from '@/components/layout/NetworkStatusIndicator';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -295,6 +296,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Network / sync status */}
+          <NetworkStatusIndicator />
 
           {/* Notifications Bell */}
           <Popover open={notifOpen} onOpenChange={setNotifOpen}>

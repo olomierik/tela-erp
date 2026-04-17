@@ -10,7 +10,9 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ModulesProvider } from "@/contexts/ModulesContext";
+import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ConflictInbox from "./pages/ConflictInbox";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
@@ -104,6 +106,7 @@ const App = () => (
           <CurrencyProvider>
           <StoreProvider>
           <ModulesProvider>
+          <NetworkStatusProvider>
           <SidebarProvider>
           <Toaster />
           <Sonner />
@@ -165,6 +168,7 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
               <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
               <Route path="/industry-insights" element={<ProtectedRoute><IndustryInsights /></ProtectedRoute>} />
+              <Route path="/conflicts" element={<ProtectedRoute><ConflictInbox /></ProtectedRoute>} />
 
               {/* Tax & Compliance routes */}
               <Route path="/tax-consultant" element={<ProtectedRoute><TaxConsultant /></ProtectedRoute>} />
@@ -198,6 +202,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
           </SidebarProvider>
+          </NetworkStatusProvider>
           </ModulesProvider>
           </StoreProvider>
           </CurrencyProvider>
