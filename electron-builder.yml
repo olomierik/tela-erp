@@ -1,0 +1,54 @@
+appId: com.tela-erp.desktop
+productName: TELA ERP
+copyright: Copyright © 2024 TELA ERP
+
+# Entry point — compiled CJS main process
+main: electron/main.cjs
+
+directories:
+  buildResources: public
+  output: dist-installer
+
+files:
+  - dist-desktop/**/*
+  - electron/main.cjs
+  - electron/preload.cjs
+  - "!electron/main.ts"
+  - "!electron/preload.ts"
+  - "!electron/schema.sql"     # packaged via extraResources
+
+extraResources:
+  - from: electron/schema.sql
+    to:   schema.sql
+
+# Rebuild native modules (better-sqlite3) for the target Electron version
+npmRebuild: true
+
+# ── Windows ──────────────────────────────────────────────────────────────────
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - ia32
+  icon: public/favicon.ico
+  requestedExecutionLevel: asInvoker
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: TELA ERP
+  installerHeaderIcon: public/favicon.ico
+  deleteAppDataOnUninstall: false   # keep user database on uninstall
+
+# ── macOS (bonus — same source builds a .dmg) ────────────────────────────────
+mac:
+  target: dmg
+  category: public.app-category.business
+
+# ── Linux ────────────────────────────────────────────────────────────────────
+linux:
+  target: AppImage
+  category: Office

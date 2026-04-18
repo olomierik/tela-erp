@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, HashRouter, Route, Routes, Navigate } from "react-router-dom";
+import { IS_DESKTOP } from "@/lib/desktop";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +11,10 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { StoreProvider } from "@/contexts/StoreContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ModulesProvider } from "@/contexts/ModulesContext";
+import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ConflictInbox from "./pages/ConflictInbox";
+import DesktopSetup from "./pages/DesktopSetup";
 import Landing from "./pages/Landing";
 import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
@@ -95,6 +99,9 @@ function TelemetryTracker() {
   return null;
 }
 
+// HashRouter keeps routing working when loaded via file:// in Electron
+const Router = IS_DESKTOP ? HashRouter : BrowserRouter;
+
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
@@ -104,10 +111,11 @@ const App = () => (
           <CurrencyProvider>
           <StoreProvider>
           <ModulesProvider>
+          <NetworkStatusProvider>
           <SidebarProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <Router>
             <TelemetryTracker />
             <WhatsAppButton />
             <ScrollButtons />
@@ -165,6 +173,7 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><PointOfSale /></ProtectedRoute>} />
               <Route path="/subscriptions" element={<ProtectedRoute><Subscriptions /></ProtectedRoute>} />
               <Route path="/industry-insights" element={<ProtectedRoute><IndustryInsights /></ProtectedRoute>} />
+              <Route path="/conflicts" element={<ProtectedRoute><ConflictInbox /></ProtectedRoute>} />
 
               {/* Tax & Compliance routes */}
               <Route path="/tax-consultant" element={<ProtectedRoute><TaxConsultant /></ProtectedRoute>} />
@@ -194,10 +203,14 @@ const App = () => (
                 <Route path="checkout" element={<StorefrontCheckout />} />
               </Route>
 
+              {/* Desktop-only first-run setup wizard */}
+              <Route path="/desktop-setup" element={<DesktopSetup />} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+              </Router>
           </SidebarProvider>
+          </NetworkStatusProvider>
           </ModulesProvider>
           </StoreProvider>
           </CurrencyProvider>
