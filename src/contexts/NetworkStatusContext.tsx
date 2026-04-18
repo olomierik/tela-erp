@@ -41,8 +41,12 @@ export function NetworkStatusProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = scheduler.subscribe((e: SyncEvent) => {
       if (e.type === 'started') setSyncState('syncing');
-      if (e.type === 'pushed') { setLastSyncAt(new Date()); setLastError(null); }
-      if (e.type === 'pulled') { setLastSyncAt(new Date()); }
+      if (e.type === 'pushed') {
+        setSyncState('idle');
+        setLastSyncAt(new Date());
+        setLastError(null);
+      }
+      if (e.type === 'pulled') { setLastSyncAt(new Date()); setSyncState('idle'); }
       if (e.type === 'idle') setSyncState('idle');
       if (e.type === 'error') { setSyncState('error'); setLastError(e.error); }
       if (e.type === 'conflict') setConflicts(e.count);

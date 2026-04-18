@@ -1,18 +1,19 @@
 /**
  * Single-flight sync scheduler.
  *
- * Responsibilities:
- * - Push: drain the outbox to the server in batches, retry on failure with exp backoff.
- * - Pull: fetch delta from server, merge into local Dexie tables, resolve conflicts.
- * - Coordinate across tabs via BroadcastChannel so only one tab syncs at a time.
+ * Works entirely with direct Supabase table queries — no Edge Functions needed.
+ *
+ * Push: drain the outbox to Supabase in batches (insert / update / delete).
+ * Pull: fetch rows updated since the last pull token, merge into Dexie.
+ * Coordinate across tabs via BroadcastChannel so only one tab syncs at a time.
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import { db, OFFLINE_TABLES, OutboxEntry, OfflineTable, getMeta, setMeta, ConflictEntry } from './db';
+import { db, OFFLINE_TABLES, OutboxEntry, OfflineTable, getMeta, setMeta } from './db';
 import { IS_DESKTOP } from '@/lib/desktop';
 
 const PUSH_BATCH_SIZE = 50;
-const MIN_BACKOFF = 1000;
+const MIN_BACKOFF = 2_000;
 const MAX_BACKOFF = 60_000;
 const SYNC_CHANNEL = 'tela-sync-lock';
 
@@ -65,16 +66,13 @@ class Scheduler {
   }
 
   async conflictCount(tenantId?: string): Promise<number> {
-    if (!tenantId) return db._conflicts.count();
-    return db._conflicts.where('tenant_id').equals(tenantId).count();
+    return db._conflicts.count();
   }
 
   // ─── Push loop ────────────────────────────────────────────────────────────
   async kick(): Promise<void> {
-    // Desktop app uses SQLite directly — no outbox sync needed.
     if (IS_DESKTOP || this.running || !navigator.onLine) return;
     this.running = true;
-    this.emit({ type: 'started' });
 
     try {
       const batch = await db._outbox
@@ -88,21 +86,40 @@ class Scheduler {
         return;
       }
 
-      const { accepted, rejected } = await this.pushBatch(batch);
+      this.emit({ type: 'started' });
 
-      if (accepted.length > 0) {
-        await db._outbox.bulkDelete(accepted);
+      let accepted = 0;
+      let rejected = 0;
+      const toDelete: string[] = [];
+
+      for (const entry of batch) {
+        try {
+          await this.applyOutboxEntry(entry);
+          toDelete.push(entry.id);
+          accepted++;
+        } catch (err) {
+          const retries = (entry.retries ?? 0) + 1;
+          if (retries > 10) {
+            // Give up after 10 retries
+            toDelete.push(entry.id);
+            rejected++;
+          } else {
+            await db._outbox.update(entry.id, {
+              retries,
+              last_error: (err as Error).message,
+            });
+          }
+        }
       }
 
-      for (const r of rejected) {
-        await this.handleReject(r);
-      }
+      if (toDelete.length) await db._outbox.bulkDelete(toDelete);
 
-      this.emit({ type: 'pushed', accepted: accepted.length, rejected: rejected.length });
+      this.emit({ type: 'pushed', accepted, rejected });
       this.backoff = MIN_BACKOFF;
 
       const stillQueued = await db._outbox.count();
       if (stillQueued > 0) setTimeout(() => this.kick(), 200);
+      else this.emit({ type: 'idle' });
     } catch (err) {
       this.backoff = Math.min(this.backoff * 2, MAX_BACKOFF);
       this.emit({ type: 'error', error: (err as Error).message });
@@ -112,111 +129,90 @@ class Scheduler {
     }
   }
 
-  private async pushBatch(batch: OutboxEntry[]): Promise<{ accepted: string[]; rejected: RejectionInfo[] }> {
-    const { data, error } = await supabase.functions.invoke('sync-push', {
-      body: {
-        tenant_id: batch[0].tenant_id,
-        operations: batch.map(b => ({
-          idempotency_key: b.id,
-          table: b.table,
-          op: b.op,
-          row_id: b.row_id,
-          payload: b.payload,
-          base_version: b.base_version,
-          client_ts: b.client_ts,
-        })),
-      },
-    });
-    if (error) throw new Error(error.message);
-    return {
-      accepted: (data?.accepted ?? []) as string[],
-      rejected: (data?.rejected ?? []) as RejectionInfo[],
-    };
-  }
+  /** Apply a single outbox entry directly to Supabase. */
+  private async applyOutboxEntry(entry: OutboxEntry): Promise<void> {
+    const table = entry.table as any;
 
-  private async handleReject(r: RejectionInfo) {
-    const entry = await db._outbox.get(r.idempotency_key);
-    if (!entry) return;
-
-    if (r.reason === 'version_conflict' && r.server_row) {
-      // Record a conflict for user to resolve.
-      const conflict: ConflictEntry = {
-        id: `conf_${entry.id}`,
-        tenant_id: entry.tenant_id,
-        table: entry.table,
-        row_id: entry.row_id,
-        local: entry.payload,
-        remote: r.server_row,
-        reason: r.reason,
-        created_at: Date.now(),
-      };
-      await db._conflicts.put(conflict);
-      await db._outbox.delete(entry.id);
-      this.emit({ type: 'conflict', count: await db._conflicts.count() });
+    if (entry.op === 'delete') {
+      const { error } = await supabase.from(table)
+        .delete()
+        .eq('id', entry.row_id)
+        .eq('tenant_id', entry.tenant_id);
+      if (error) throw new Error(error.message);
       return;
     }
 
-    if (r.reason === 'permanent') {
-      await db._outbox.delete(entry.id);
-      this.emit({ type: 'error', error: `Dropped ${entry.table}:${entry.row_id} (${r.message ?? 'permanent failure'})` });
+    if (entry.op === 'upsert' || entry.op === 'insert') {
+      const payload = entry.payload ?? {};
+      const { error } = await supabase.from(table)
+        .upsert({ ...payload, tenant_id: entry.tenant_id }, { onConflict: 'id' });
+      if (error) throw new Error(error.message);
       return;
     }
 
-    // Transient — bump retries, keep in queue
-    const retries = (entry.retries ?? 0) + 1;
-    if (retries > 10) {
-      await db._outbox.delete(entry.id);
-      this.emit({ type: 'error', error: `Giving up on ${entry.table}:${entry.row_id} after 10 retries` });
-    } else {
-      await db._outbox.update(entry.id, { retries, last_error: r.message });
+    if (entry.op === 'update') {
+      const { id, tenant_id: _tid, ...rest } = entry.payload ?? {};
+      const { error } = await supabase.from(table)
+        .update(rest)
+        .eq('id', entry.row_id)
+        .eq('tenant_id', entry.tenant_id);
+      if (error) throw new Error(error.message);
+      return;
     }
   }
 
   // ─── Pull loop ────────────────────────────────────────────────────────────
+  /** Pull rows updated since the last token directly from Supabase. */
   async pull(tenantId: string, tables: OfflineTable[] = OFFLINE_TABLES): Promise<void> {
     if (IS_DESKTOP || !navigator.onLine || !this.leader) return;
 
     for (const table of tables) {
-      const key = `pull_token:${table}:${tenantId}`;
-      const since = await getMeta<string | null>(key, null);
+      const metaKey = `pull_since:${table}:${tenantId}`;
+      const since = await getMeta<string | null>(metaKey, null);
+      const pullStart = new Date().toISOString();
 
       try {
-        const { data, error } = await supabase.functions.invoke('sync-pull', {
-          body: { tenant_id: tenantId, table, since },
-        });
+        let query = (supabase.from(table as any) as any)
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (since) {
+          query = query.gte('updated_at', since);
+        }
+
+        const { data, error } = await query.order('updated_at', { ascending: true }).limit(500);
         if (error) throw new Error(error.message);
 
-        const changes = (data?.changes ?? []) as any[];
-        const deletes = (data?.deletes ?? []) as string[];
-        const nextToken = data?.next_token as string | undefined;
+        const rows: any[] = data ?? [];
+        if (rows.length === 0) continue;
 
         await db.transaction('rw', (db as any)[table], async () => {
-          for (const row of changes) {
+          for (const row of rows) {
             const local = await (db as any)[table].get(row.id);
-            if (local?._dirty) continue; // never clobber local pending changes
+            // Never overwrite a locally-dirty (pending) row
+            if (local?._dirty) continue;
             await (db as any)[table].put({ ...row, _dirty: 0 });
-          }
-          for (const id of deletes) {
-            await (db as any)[table].delete(id);
           }
         });
 
-        if (nextToken) await setMeta(key, nextToken);
-        this.emit({ type: 'pulled', table, count: changes.length + deletes.length });
+        await setMeta(metaKey, pullStart);
+        this.emit({ type: 'pulled', table, count: rows.length });
       } catch (err) {
-        this.emit({ type: 'error', error: `pull ${table}: ${(err as Error).message}` });
+        // Pull failures are non-critical — log but don't surface as UI error.
+        console.warn(`[sync] pull ${table}:`, (err as Error).message);
       }
     }
   }
 
-  startBackgroundPull(tenantId: string, intervalMs = 60_000) {
+  startBackgroundPull(tenantId: string, intervalMs = 120_000) {
     this.stopBackgroundPull();
     const tick = () => {
       this.pull(tenantId).finally(() => {
         this.pullTimer = setTimeout(tick, intervalMs);
       });
     };
-    this.pullTimer = setTimeout(tick, 2_000);
+    // Delay first pull by 5s to avoid hammering on login
+    this.pullTimer = setTimeout(tick, 5_000);
   }
 
   stopBackgroundPull() {
