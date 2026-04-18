@@ -57,7 +57,7 @@ export default function Stores() {
     if (!newStore.name.trim() || isDemo) return;
     try {
       const { error } = await (supabase.from('stores') as any)
-        .insert({ tenant_id: tenant!.id, name: newStore.name, location: newStore.location, address: newStore.address });
+        .insert({ tenant_id: tenant?.id, name: newStore.name, location: newStore.location, address: newStore.address });
       if (error) throw error;
       toast.success('Store created');
       setNewStore({ name: '', location: '', address: '' });

@@ -56,7 +56,7 @@ export default function WhiteLabel() {
           custom_domain: customDomain || null,
           slug: subdomain,
         })
-        .eq('id', tenant!.id);
+        .eq('id', tenant?.id);
 
       if (error) throw error;
       applyTenantTheme(primaryColor, accentColor);
