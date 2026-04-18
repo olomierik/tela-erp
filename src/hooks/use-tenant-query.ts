@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStore } from '@/contexts/StoreContext';
@@ -13,7 +13,21 @@ type TableName = 'production_orders' | 'inventory_items' | 'sales_orders' | 'cam
 
 const STORE_SCOPED_TABLES: TableName[] = ['production_orders', 'inventory_items', 'sales_orders', 'campaigns', 'transactions', 'purchase_orders', 'customers', 'suppliers', 'stock_transfers', 'payments', 'employees', 'expense_claims'];
 
-const OFFLINE_ERROR = "You're offline. Connect to the internet to save this change.";
+function invalidateAll(qc: ReturnType<typeof useQueryClient>, table: string) {
+  qc.invalidateQueries({ queryKey: [table] });
+  qc.invalidateQueries({ queryKey: ['offline', table] });
+}
+
+/** Mirror fresh server rows into Dexie so offline reads stay up to date. */
+async function warmCache(table: TableName, rows: any[]) {
+  if (!isOfflineTable(table) || !rows?.length) return;
+  await db.transaction('rw', (db as any)[table], async () => {
+    for (const row of rows) {
+      const existing = await (db as any)[table].get(row.id);
+      if (!existing?._dirty) await (db as any)[table].put({ ...row, _dirty: 0 });
+    }
+  });
+}
 
 export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at') {
   const { tenant, isDemo } = useAuth();
@@ -24,9 +38,7 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
     queryFn: async () => {
       if (isDemo || !tenant?.id) return [];
 
-      // Desktop mode routes all reads through the SQLite desktop client (supabase
-      // is already the desktop mock) — skip the Dexie branch entirely.
-      // Offline web mode: skip Supabase and serve from Dexie immediately.
+      // Web + offline + cacheable → read from Dexie.
       if (!IS_DESKTOP && !navigator.onLine && isOfflineTable(table)) {
         let rows = await (db as any)[table].where('tenant_id').equals(tenant.id).toArray();
         if (selectedStoreId && STORE_SCOPED_TABLES.includes(table)) {
@@ -35,8 +47,7 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
         return rows;
       }
 
-      // Online path: try network first; on failure fall back to the Dexie cache
-      // so the screen still renders when the connection drops mid-session.
+      // Online (or desktop, which proxies to SQLite via the desktop client).
       try {
         let query = (supabase.from(table as any) as any)
           .select('*')
@@ -49,20 +60,11 @@ export function useTenantQuery<T = any>(table: TableName, orderBy = 'created_at'
         const { data, error } = await query.order(orderBy, { ascending: false });
         if (error) throw error;
 
-        // Warm the offline cache on successful reads so later offline loads work.
-        if (isOfflineTable(table) && data?.length) {
-          await db.transaction('rw', (db as any)[table], async () => {
-            for (const row of data) {
-              const existing = await (db as any)[table].get(row.id);
-              if (!existing?._dirty) await (db as any)[table].put({ ...row, _dirty: 0 });
-            }
-          });
-        }
-
+        await warmCache(table, data ?? []);
         return data ?? [];
       } catch (err) {
-        // Network failure + offline-capable table → serve from Dexie.
-        if (isOfflineTable(table)) {
+        // Mid-session network drop → fall back to whatever Dexie has cached.
+        if (!IS_DESKTOP && isOfflineTable(table)) {
           let rows = await (db as any)[table].where('tenant_id').equals(tenant.id).toArray();
           if (selectedStoreId && STORE_SCOPED_TABLES.includes(table)) {
             rows = rows.filter((r: any) => !r.store_id || r.store_id === selectedStoreId);
@@ -80,13 +82,19 @@ export function useTenantInsert(table: TableName) {
   const { tenant } = useAuth();
   const { selectedStoreId } = useStore();
   const qc = useQueryClient();
-  const offlineInsert = useOfflineInsert(isOfflineTable(table) ? (table as OfflineTable) : ('sales_orders' as OfflineTable));
+  const offlineTable: OfflineTable | null = isOfflineTable(table) ? (table as OfflineTable) : null;
+  const offlineInsert = useOfflineInsert(offlineTable ?? ('sales_orders' as OfflineTable));
 
-  const onlineMutation = useMutation({
+  return useMutation({
     mutationFn: async (row: Record<string, any>) => {
-      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
-      const insertData: Record<string, any> = { ...row, tenant_id: tenant!.id };
-      // Auto-attach store_id for store-scoped tables
+      if (!tenant?.id) throw new Error('No active tenant');
+      const useOfflineQueue = !IS_DESKTOP && !navigator.onLine && !!offlineTable;
+
+      if (useOfflineQueue) {
+        return offlineInsert.mutateAsync(row);
+      }
+
+      const insertData: Record<string, any> = { ...row, tenant_id: tenant.id };
       if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
         insertData.store_id = selectedStoreId;
       }
@@ -95,72 +103,86 @@ export function useTenantInsert(table: TableName) {
         .select()
         .single();
       if (error) throw error;
+
+      if (offlineTable && data) {
+        await (db as any)[offlineTable].put({ ...data, _dirty: 0 });
+      }
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [table] });
+      invalidateAll(qc, table);
       toast.success('Record created');
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  // Desktop: always write to SQLite via the desktop client (no Dexie outbox).
-  // Web offline: route through the Dexie outbox.
-  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineInsert : onlineMutation;
 }
 
 export function useTenantUpdate(table: TableName) {
   const { tenant } = useAuth();
   const qc = useQueryClient();
-  const offlineUpdate = useOfflineUpdate(isOfflineTable(table) ? (table as OfflineTable) : ('sales_orders' as OfflineTable));
+  const offlineTable: OfflineTable | null = isOfflineTable(table) ? (table as OfflineTable) : null;
+  const offlineUpdate = useOfflineUpdate(offlineTable ?? ('sales_orders' as OfflineTable));
 
-  const onlineMutation = useMutation({
+  return useMutation({
     mutationFn: async ({ id, ...updates }: Record<string, any>) => {
       if (!tenant?.id) throw new Error('No active tenant');
-      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
-      // Omit tenant_id from updates to prevent tenant-hopping; enforce via .eq filter
+      const useOfflineQueue = !IS_DESKTOP && !navigator.onLine && !!offlineTable;
+
+      if (useOfflineQueue) {
+        return offlineUpdate.mutateAsync({ id, ...updates });
+      }
+
       const { tenant_id: _omit, ...safeUpdates } = updates;
       const { data, error } = await (supabase.from(table as any) as any)
         .update(safeUpdates)
         .eq('id', id)
-        .eq('tenant_id', tenant.id) // IDOR guard: only update records in the current tenant
+        .eq('tenant_id', tenant.id)
         .select()
         .single();
       if (error) throw error;
+
+      if (offlineTable && data) {
+        await (db as any)[offlineTable].put({ ...data, _dirty: 0 });
+      }
       return data;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [table] });
+      invalidateAll(qc, table);
       toast.success('Record updated');
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineUpdate : onlineMutation;
 }
 
 export function useTenantDelete(table: TableName) {
   const { tenant } = useAuth();
   const qc = useQueryClient();
-  const offlineDelete = useOfflineDelete(isOfflineTable(table) ? (table as OfflineTable) : ('sales_orders' as OfflineTable));
+  const offlineTable: OfflineTable | null = isOfflineTable(table) ? (table as OfflineTable) : null;
+  const offlineDelete = useOfflineDelete(offlineTable ?? ('sales_orders' as OfflineTable));
 
-  const onlineMutation = useMutation({
+  return useMutation({
     mutationFn: async (id: string) => {
       if (!tenant?.id) throw new Error('No active tenant');
-      if (!navigator.onLine) throw new Error(OFFLINE_ERROR);
-      // IDOR guard: only delete records belonging to the current tenant
+      const useOfflineQueue = !IS_DESKTOP && !navigator.onLine && !!offlineTable;
+
+      if (useOfflineQueue) {
+        return offlineDelete.mutateAsync(id);
+      }
+
       const { error } = await (supabase.from(table as any) as any)
         .delete()
         .eq('id', id)
         .eq('tenant_id', tenant.id);
       if (error) throw error;
+
+      if (offlineTable) {
+        await (db as any)[offlineTable].delete(id);
+      }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: [table] });
+      invalidateAll(qc, table);
       toast.success('Record deleted');
     },
     onError: (e: Error) => toast.error(e.message),
   });
-
-  return (!IS_DESKTOP && isOfflineTable(table)) ? offlineDelete : onlineMutation;
 }
