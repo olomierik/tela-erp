@@ -170,7 +170,7 @@ class QueryBuilder {
   // Electron / SQLite execution
   // ------------------------------------------------------------------
   private async _executeElectron(): Promise<{ data: any; error: any }> {
-    const api = window.electronAPI!;
+    const api: any = electronApi();
 
     if (this._operation === 'select') {
       const { sql, params } = this._buildSelectSQL();
