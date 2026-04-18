@@ -123,14 +123,14 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div className="flex-1 text-center lg:text-left" initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-medium">
-              🌍 Open Source ERP for Africa & the World
+              Enterprise Resource Planning, Reimagined
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
               The Complete ERP for{' '}
-              <span className="text-gradient">Every Business</span>
+              <span className="text-gradient">Modern Business</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              17 modules, 13 industry presets, and flexible pricing — from <strong>free Starter</strong> to full Enterprise. TELA-ERP grows with your business.
+              17 integrated modules. 13 industry presets. Built for teams that demand precision, speed, and clarity at every level of operation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
