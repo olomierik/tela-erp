@@ -39,7 +39,7 @@ export function NetworkStatusProvider({ children }: { children: ReactNode }) {
 
   // subscribe to scheduler events
   useEffect(() => {
-    return scheduler.subscribe((e: SyncEvent) => {
+    const unsubscribe = scheduler.subscribe((e: SyncEvent) => {
       if (e.type === 'started') setSyncState('syncing');
       if (e.type === 'pushed') { setLastSyncAt(new Date()); setLastError(null); }
       if (e.type === 'pulled') { setLastSyncAt(new Date()); }
@@ -54,6 +54,7 @@ export function NetworkStatusProvider({ children }: { children: ReactNode }) {
         scheduler.conflictCount(tid).then(setConflicts);
       }
     });
+    return () => { unsubscribe(); };
   }, [tenant?.id]);
 
   // refresh counts initially and periodically

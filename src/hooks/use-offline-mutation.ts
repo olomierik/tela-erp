@@ -67,7 +67,7 @@ export function useOfflineQuery<T = any>(table: OfflineTable, orderBy: keyof T |
           .limit(500);
         if (data && data.length) {
           await db.transaction('rw', (db as any)[table], async () => {
-            for (const row of data) await (db as any)[table].put({ ...row, _dirty: 0 });
+            for (const row of data as any[]) await (db as any)[table].put({ ...(row as any), _dirty: 0 });
           });
           local = data as any[];
           if (selectedStoreId && STORE_SCOPED.includes(table)) {
