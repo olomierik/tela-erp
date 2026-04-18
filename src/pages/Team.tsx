@@ -144,7 +144,7 @@ export default function Team() {
 
       // Insert invite record directly into team_invites table
       const { data, error } = await (supabase.from as any)('team_invites').insert({
-        tenant_id: tenant!.id,
+        tenant_id: tenant?.id,
         email: inviteEmail.trim().toLowerCase(),
         role: inviteRole,
         store_id: inviteStore || null,

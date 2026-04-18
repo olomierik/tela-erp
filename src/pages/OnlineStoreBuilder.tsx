@@ -59,7 +59,7 @@ export default function OnlineStoreBuilder() {
     if (!form.name.trim() || !form.slug.trim()) { toast.error('Name and slug are required'); return; }
     try {
       const { error } = await (supabase.from('online_stores') as any).insert({
-        tenant_id: tenant!.id,
+        tenant_id: tenant?.id,
         store_id: form.store_id || null,
         slug: form.slug,
         name: form.name,

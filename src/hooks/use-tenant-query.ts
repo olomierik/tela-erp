@@ -40,7 +40,8 @@ export function useTenantInsert(table: TableName) {
 
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
-      const insertData: Record<string, any> = { ...row, tenant_id: tenant!.id };
+      if (!tenant?.id) throw new Error('Not signed in or tenant not loaded yet. Please try again.');
+      const insertData: Record<string, any> = { ...row, tenant_id: tenant.id };
       // Auto-attach store_id for store-scoped tables
       if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
         insertData.store_id = selectedStoreId;
@@ -49,7 +50,7 @@ export function useTenantInsert(table: TableName) {
         .insert(insertData)
         .select()
         .single();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
