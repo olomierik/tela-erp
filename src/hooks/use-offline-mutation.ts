@@ -54,7 +54,8 @@ export function useOfflineQuery<T = any>(table: OfflineTable, orderBy: keyof T |
       //    Debounced by the scheduler so rapid calls don't stampede.
       if (navigator.onLine) {
         scheduler.pull(tenant.id, [table]).then(() => {
-          qc.invalidateQueries({ queryKey: ['offline', table, tenant.id] });
+          qc.invalidateQueries({ queryKey: ['offline', table] });
+          qc.invalidateQueries({ queryKey: [table] });
         });
       }
 

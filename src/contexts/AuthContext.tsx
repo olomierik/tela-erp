@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
+import { clearTenantData } from '@/lib/offline/db';
 import type { Tenant, UserRole } from '@/types/erp';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -224,7 +225,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const tenantId = tenant?.id;
     await supabase.auth.signOut();
+    if (tenantId) {
+      try { await clearTenantData(tenantId); } catch { /* best-effort */ }
+    }
     setSession(null);
     enableDemoMode();
   };

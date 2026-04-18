@@ -203,11 +203,11 @@ const App = () => (
                 <Route path="checkout" element={<StorefrontCheckout />} />
               </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
               {/* Desktop-only first-run setup wizard */}
               <Route path="/desktop-setup" element={<DesktopSetup />} />
 
+              <Route path="*" element={<NotFound />} />
+            </Routes>
               </Router>
           </SidebarProvider>
           </NetworkStatusProvider>
