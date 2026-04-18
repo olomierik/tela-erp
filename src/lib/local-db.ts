@@ -7,19 +7,13 @@
 // ------------------------------------------------------------------
 // Type helpers
 // ------------------------------------------------------------------
-declare global {
-  interface Window {
-    electronAPI?: {
-      dbQuery: (sql: string, params?: any[]) => Promise<{ data: any; error: string | null }>;
-      dbRun: (sql: string, params?: any[]) => Promise<{ data: any; error: string | null }>;
-      dbAll: (sql: string, params?: any[]) => Promise<{ data: any[]; error: string | null }>;
-      isElectron: boolean;
-    };
-  }
-}
+// Note: window.electronAPI shape is declared canonically in
+// src/integrations/supabase/client.desktop.ts. Here we treat it as `any`
+// for the legacy dbQuery/dbRun/dbAll methods used by older offline code.
+const electronApi = (): any =>
+  typeof window !== 'undefined' ? (window as any).electronAPI : undefined;
 
-const isElectron = () =>
-  typeof window !== 'undefined' && window.electronAPI?.isElectron === true;
+const isElectron = () => electronApi()?.isElectron === true;
 
 // ------------------------------------------------------------------
 // In-memory fallback store (browser dev mode)
