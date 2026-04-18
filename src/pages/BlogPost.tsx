@@ -184,7 +184,7 @@ export default function BlogPost() {
       {/* FOOTER */}
       <footer className="border-t border-border py-8 bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} TELA-ERP — Free Open Source ERP</span>
+          <span>© {new Date().getFullYear()} TELA-ERP — Enterprise Resource Planning</span>
           <div className="flex gap-4">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
