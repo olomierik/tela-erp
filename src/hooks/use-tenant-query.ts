@@ -87,14 +87,9 @@ export function useTenantInsert(table: TableName) {
 
   return useMutation({
     mutationFn: async (row: Record<string, any>) => {
-      if (!tenant?.id) throw new Error('No active tenant');
-      const useOfflineQueue = !IS_DESKTOP && !navigator.onLine && !!offlineTable;
-
-      if (useOfflineQueue) {
-        return offlineInsert.mutateAsync(row);
-      }
-
+      if (!tenant?.id) throw new Error('Not signed in or tenant not loaded yet. Please try again.');
       const insertData: Record<string, any> = { ...row, tenant_id: tenant.id };
+      // Auto-attach store_id for store-scoped tables
       if (selectedStoreId && STORE_SCOPED_TABLES.includes(table) && !row.store_id) {
         insertData.store_id = selectedStoreId;
       }
@@ -102,11 +97,7 @@ export function useTenantInsert(table: TableName) {
         .insert(insertData)
         .select()
         .single();
-      if (error) throw error;
-
-      if (offlineTable && data) {
-        await (db as any)[offlineTable].put({ ...data, _dirty: 0 });
-      }
+      if (error) throw new Error(error.message);
       return data;
     },
     onSuccess: () => {
