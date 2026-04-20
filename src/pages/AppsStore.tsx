@@ -172,58 +172,53 @@ function AppCard({
       'group relative transition-all duration-200 hover:shadow-md',
       installed && 'ring-1 ring-primary/30 bg-primary/[0.02]'
     )}>
-      <CardContent className="p-5">
+      <CardContent className="p-3">
         {/* Icon + Category */}
-        <div className="flex items-start justify-between mb-3">
-          <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center text-white shrink-0', app.color)}>
-            <Icon className="w-5 h-5" />
+        <div className="flex items-start justify-between mb-2">
+          <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center text-white shrink-0', app.color)}>
+            <Icon className="w-4 h-4" />
           </div>
-          <Badge variant="outline" className="text-[10px] font-normal">
-            {categoryLabel}
-          </Badge>
+          {installed && (
+            <span className="flex items-center gap-0.5 text-[10px] text-primary font-medium">
+              <Check className="w-3 h-3" />
+            </span>
+          )}
         </div>
 
         {/* Name + Summary */}
-        <h3 className="font-semibold text-sm text-foreground mb-1">{app.name}</h3>
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+        <h3 className="font-semibold text-xs text-foreground mb-0.5 leading-tight line-clamp-1">{app.name}</h3>
+        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2.5 leading-snug">
           {app.description}
         </p>
 
         {/* Action */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[10px] text-muted-foreground/70 truncate">{categoryLabel}</span>
           {installed ? (
-            <>
-              <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                <Check className="w-3.5 h-3.5" /> Installed
-              </span>
-              {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs h-7 text-muted-foreground hover:text-destructive"
-                  onClick={onUninstall}
-                >
-                  Uninstall
-                </Button>
-              )}
-            </>
+            isAdmin ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive"
+                onClick={onUninstall}
+              >
+                Remove
+              </Button>
+            ) : (
+              <span className="text-[10px] text-primary font-medium">Installed</span>
+            )
+          ) : isAdmin ? (
+            <Button
+              size="sm"
+              className="text-[10px] h-6 px-2 gap-1"
+              onClick={onInstall}
+              disabled={installing}
+            >
+              <Download className="w-3 h-3" />
+              Install
+            </Button>
           ) : (
-            <>
-              <span className="text-xs text-muted-foreground">Free</span>
-              {isAdmin ? (
-                <Button
-                  size="sm"
-                  className="text-xs h-7 gap-1"
-                  onClick={onInstall}
-                  disabled={installing}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Install
-                </Button>
-              ) : (
-                <span className="text-xs text-muted-foreground italic">Admin required</span>
-              )}
-            </>
+            <span className="text-[10px] text-muted-foreground italic">Admin only</span>
           )}
         </div>
       </CardContent>
