@@ -27,7 +27,7 @@ export default function CompanySwitcher() {
     if (isDemo || !user?.id) {
       setCompanies([{
         id: 'demo-tenant',
-        name: tenant?.name || 'TELA Industries',
+        name: tenant?.name || 'Demo Company',
         business_type: 'trading',
         default_currency: 'USD',
       }]);
