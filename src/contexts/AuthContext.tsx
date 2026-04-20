@@ -39,17 +39,17 @@ const DEMO_PROFILE: Profile = {
   id: 'demo-user',
   user_id: 'demo-user',
   tenant_id: 'demo-tenant',
-  email: 'admin@tela-erp.com',
-  full_name: 'Alex Morgan',
-  phone: '+254 700 000 000',
+  email: 'demo@tela-erp.com',
+  full_name: 'Demo User',
+  phone: '',
   is_active: true,
   created_at: new Date().toISOString(),
 };
 
 const DEMO_TENANT: Tenant = {
   id: 'demo-tenant',
-  name: 'TELA Industries',
-  slug: 'tela-industries',
+  name: 'Demo Company',
+  slug: 'demo-company',
   primary_color: '#3B82F6',
   subscription_tier: 'premium',
   is_active: true,
