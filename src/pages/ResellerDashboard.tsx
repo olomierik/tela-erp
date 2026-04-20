@@ -61,10 +61,12 @@ export default function ResellerDashboard() {
 
       let logoUrl: string | undefined;
 
-      // Upload logo if provided
+      // Upload logo if provided.
+      // Path MUST be prefixed with the uploader's tenant_id to satisfy
+      // the tenant-scoped storage RLS policy.
       if (logoFile) {
         const ext = logoFile.name.split('.').pop();
-        const path = `${slug}/logo.${ext}`;
+        const path = `${tenant.id}/${slug}-logo-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from('tenant-logos')
           .upload(path, logoFile, { upsert: true });
