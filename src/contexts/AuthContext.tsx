@@ -35,27 +35,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const DEMO_PROFILE: Profile = {
-  id: 'demo-user',
-  user_id: 'demo-user',
-  tenant_id: 'demo-tenant',
-  email: 'demo@tela-erp.com',
-  full_name: 'Demo User',
-  phone: '',
-  is_active: true,
-  created_at: new Date().toISOString(),
-};
-
-const DEMO_TENANT: Tenant = {
-  id: 'demo-tenant',
-  name: 'Demo Company',
-  slug: 'demo-company',
-  primary_color: '#3B82F6',
-  subscription_tier: 'premium',
-  is_active: true,
-  created_at: new Date().toISOString(),
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -63,7 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
+  // Demo mode is permanently disabled. Field kept for backward compatibility
+  // with components that still read it; it is always false.
+  const isDemo = false;
 
   const fetchUserData = async (userId: string) => {
     try {
@@ -142,12 +123,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const enableDemoMode = () => {
-    setIsDemo(true);
-    setProfile(DEMO_PROFILE);
-    setTenant(DEMO_TENANT);
-    setRole('admin');
-    setUser({ id: 'demo', email: 'admin@tela-erp.com' } as any);
+  const clearAuthState = () => {
+    setProfile(null);
+    setTenant(null);
+    setRole(null);
+    setUser(null);
+    setSession(null);
   };
 
   useEffect(() => {
@@ -157,11 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentSession?.user ?? null);
 
         if (currentSession?.user) {
-          setIsDemo(false);
           setTimeout(() => fetchUserData(currentSession.user.id), 0);
-        } else if (!isDemo) {
-          // No real user — enable demo mode for preview
-          enableDemoMode();
+        } else {
+          clearAuthState();
         }
         setLoading(false);
       }
@@ -172,8 +151,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(existingSession?.user ?? null);
       if (existingSession?.user) {
         fetchUserData(existingSession.user.id);
-      } else {
-        enableDemoMode();
       }
       setLoading(false);
     });
@@ -184,7 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    setIsDemo(false);
   };
 
   const signUp = async (email: string, password: string, fullName: string, companyName?: string, signUpRole?: UserRole, phone?: string) => {
@@ -230,12 +206,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (tenantId) {
       try { await clearTenantData(tenantId); } catch { /* best-effort */ }
     }
-    setSession(null);
-    enableDemoMode();
+    clearAuthState();
   };
 
   const refreshProfile = async () => {
-    if (user && !isDemo) await fetchUserData(user.id);
+    if (user) await fetchUserData(user.id);
   };
 
   return (
