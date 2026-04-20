@@ -496,46 +496,60 @@ export default function HR() {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((emp: any) => (
-                  <motion.div key={emp.id} whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
-                    <Card className="rounded-xl border-border hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-sm font-bold">
-                              {(emp.full_name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+              <Card className="rounded-xl border-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground">
+                        <th className="text-left px-4 py-3 font-medium">Employee</th>
+                        <th className="text-left px-4 py-3 font-medium">Position</th>
+                        <th className="text-left px-4 py-3 font-medium">Department</th>
+                        <th className="text-left px-4 py-3 font-medium">Start Date</th>
+                        <th className="text-right px-4 py-3 font-medium">Salary</th>
+                        <th className="text-left px-4 py-3 font-medium">Status</th>
+                        <th className="text-right px-4 py-3 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filtered.map((emp: any) => (
+                        <tr key={emp.id} className="hover:bg-accent/40 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold shrink-0">
+                                {(emp.full_name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm text-foreground truncate">{emp.full_name}</p>
+                                <p className="text-xs text-muted-foreground truncate">{emp.email || '—'}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-sm text-foreground">{emp.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{emp.position}</p>
+                          </td>
+                          <td className="px-4 py-3 text-foreground">{emp.position || '—'}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{emp.department || '—'}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{emp.start_date || '—'}</td>
+                          <td className="px-4 py-3 text-right font-medium text-foreground">{formatMoney(emp.salary || 0)}</td>
+                          <td className="px-4 py-3"><StatusBadge status={emp.status || 'active'} /></td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-1.5">
+                              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openEdit(emp)}>
+                                <Edit className="w-3 h-3" /> Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                onClick={() => !isDemo && deleteEmployee.mutate(emp.id)}
+                              >
+                                <UserX className="w-3 h-3" />
+                              </Button>
                             </div>
-                          </div>
-                          <StatusBadge status={emp.status || 'active'} />
-                        </div>
-                        <div className="space-y-1.5 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1.5"><Building2 className="w-3 h-3" />{emp.department || '—'}</div>
-                          <div className="flex items-center gap-1.5"><Calendar className="w-3 h-3" />Since {emp.start_date || '—'}</div>
-                          <div className="flex items-center gap-1.5"><DollarSign className="w-3 h-3" />{formatMoney(emp.salary || 0)}/year</div>
-                        </div>
-                        <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-                          <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1" onClick={() => openEdit(emp)}>
-                            <Edit className="w-3 h-3" /> Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
-                            onClick={() => !isDemo && deleteEmployee.mutate(emp.id)}
-                          >
-                            <UserX className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
             )}
           </div>
         </TabsContent>
