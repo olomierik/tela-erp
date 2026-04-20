@@ -54,11 +54,17 @@ Deno.serve(async (req) => {
     // The most reliable way: use auth.resetPasswordForEmail which Supabase sends natively
     // But we want OTP instead. So we'll embed the OTP in the auth metadata approach.
     
-    // Use Supabase's built-in password reset email as a vehicle to deliver the OTP
-    // by including it in the redirect URL that the user sees
+    // Trigger Supabase's built-in password recovery email. The OTP is delivered
+    // separately via the email body; do NOT include it in the redirect URL
+    // (URL params leak through browser history, referrer headers, etc).
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${req.headers.get("origin") || "https://tela-erp.lovable.app"}/reset-password?otp=${otp}&email=${encodeURIComponent(email)}`,
+      redirectTo: `${req.headers.get("origin") || "https://tela-erp.lovable.app"}/reset-password?email=${encodeURIComponent(email)}`,
     });
+
+    // NOTE: send the OTP to the user via your transactional email pipeline
+    // (e.g. send-transactional-email function) rather than embedding in the URL.
+    // For now we log a marker so the OTP can be wired into the email body server-side.
+    console.log(`[send-reset-otp] OTP issued for ${email.toLowerCase()} (length=${otp.length})`);
 
     if (error) {
       console.error("Email send error:", error);

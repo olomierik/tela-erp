@@ -47,7 +47,31 @@ Deno.serve(async (req) => {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    // Find valid OTP
+    // ---- Brute-force protection: cap attempts per active OTP window ----
+    const MAX_ATTEMPTS = 5;
+    const { data: activeOtp } = await supabase
+      .from("password_reset_otps")
+      .select("id, attempt_count")
+      .eq("email", email.toLowerCase())
+      .eq("used", false)
+      .gte("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (activeOtp && (activeOtp.attempt_count ?? 0) >= MAX_ATTEMPTS) {
+      // Invalidate the OTP after too many guesses
+      await supabase
+        .from("password_reset_otps")
+        .update({ used: true })
+        .eq("id", activeOtp.id);
+      return new Response(
+        JSON.stringify({ error: "Too many attempts. Please request a new code." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Find valid OTP matching the provided hash
     const { data: otpRecord, error: otpError } = await supabase
       .from("password_reset_otps")
       .select("*")
@@ -60,6 +84,13 @@ Deno.serve(async (req) => {
       .single();
 
     if (otpError || !otpRecord) {
+      // Increment attempt counter on the active (non-matching) OTP
+      if (activeOtp) {
+        await supabase
+          .from("password_reset_otps")
+          .update({ attempt_count: (activeOtp.attempt_count ?? 0) + 1 })
+          .eq("id", activeOtp.id);
+      }
       return new Response(
         JSON.stringify({ error: "Invalid or expired OTP code" }),
         {

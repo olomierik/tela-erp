@@ -4960,6 +4960,7 @@ export type Database = {
       }
       password_reset_otps: {
         Row: {
+          attempt_count: number
           created_at: string | null
           email: string
           expires_at: string
@@ -4968,6 +4969,7 @@ export type Database = {
           used: boolean | null
         }
         Insert: {
+          attempt_count?: number
           created_at?: string | null
           email: string
           expires_at: string
@@ -4976,6 +4978,7 @@ export type Database = {
           used?: boolean | null
         }
         Update: {
+          attempt_count?: number
           created_at?: string | null
           email?: string
           expires_at?: string
