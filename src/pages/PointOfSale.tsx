@@ -309,18 +309,22 @@ export default function PointOfSale() {
     },
   ];
 
-  // Add action column for open sessions
-  if (!isDemo) {
-    columns.push({
-      key: 'id',
-      label: 'Action',
-      render: (_v, row) => row.status === 'open' ? (
-        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => handleQuickSale(row)}>
-          <DollarSign className="w-3 h-3" /> Sell
-        </Button>
-      ) : null,
-    });
-  }
+  // Action column — always visible; "Sell" enabled only for open sessions
+  columns.push({
+    key: 'id',
+    label: 'Action',
+    render: (_v, row) => (
+      <Button
+        size="sm"
+        className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm disabled:opacity-50"
+        onClick={() => row.status === 'open' && handleQuickSale(row)}
+        disabled={row.status !== 'open'}
+        title={row.status === 'open' ? 'Sell items in this session' : 'Open the session to sell'}
+      >
+        <DollarSign className="w-3.5 h-3.5" /> Sell
+      </Button>
+    ),
+  });
 
   return (
     <AppLayout title="Point of Sale" subtitle="POS sessions and retail orders">
