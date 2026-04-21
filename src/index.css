@@ -5,12 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Hide Lovable platform UI injections ── */
-[data-lovable],
-[class*="lovable"],
-[id*="lovable"],
+/* ── Hide only explicit Lovable badges/overlays, never generic containers ── */
 [data-lovable-blank-page-placeholder],
-iframe[src*="lovable"],
 a[href*="lovable.dev"],
 a[href*="lovable.app"] {
   display: none !important;
