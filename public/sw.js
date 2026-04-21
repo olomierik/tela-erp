@@ -9,12 +9,13 @@
  * - All other requests: passthrough.
  */
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE  = `tela-shell-${VERSION}`;
 const STATIC_CACHE = `tela-static-${VERSION}`;
 const API_CACHE    = `tela-api-${VERSION}`;
 
-const SHELL_ASSETS = ['/', '/index.html'];
+const SHELL_URL = '/index.html';
+const SHELL_ASSETS = ['/', SHELL_URL];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -42,20 +43,27 @@ function isApiCall(url) {
   return /\/(rest|functions)\/v1\//.test(url);
 }
 
+async function fetchFreshShell() {
+  const response = await fetch(SHELL_URL, { cache: 'no-store' });
+  if (response && response.ok) {
+    const cache = await caches.open(SHELL_CACHE);
+    await cache.put(SHELL_URL, response.clone());
+    await cache.put('/', response.clone());
+  }
+  return response;
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
 
-  // App shell — SWR
+  // App shell — network-first to avoid stale cached HTML after deploys.
   if (req.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        const net = fetch(req).then((res) => {
-          if (res && res.ok) caches.open(SHELL_CACHE).then((c) => c.put(req, res.clone()));
-          return res;
-        }).catch(() => cached);
-        return cached || net;
+      fetchFreshShell().catch(async () => {
+        const cached = await caches.match(SHELL_URL);
+        return cached || caches.match('/');
       }),
     );
     return;
