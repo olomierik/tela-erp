@@ -55,7 +55,7 @@ const features = [
 
 const faqs = [
   { q: 'What is TELA-ERP?', a: 'TELA-ERP is a cloud-based enterprise resource planning platform built for businesses of all sizes and industries. It unifies inventory, sales, production, accounting, HR, CRM, fleet, maintenance, projects, and more in one interconnected system.' },
-  { q: 'Which plan is right for me?', a: 'Start with Starter (free) if you only need Sales and Inventory with 1 user. Upgrade to Premium ($6/mo) to unlock all 17 modules for up to 5 users. Choose Enterprise ($13/mo) for unlimited users, white-labeling, reseller tools, and API access.' },
+  { q: 'Which plan is right for me?', a: 'Start with Starter (free) if you only need Sales and Inventory with 1 user. Upgrade to Premium ($12/mo or $99/yr) to unlock all 17 modules for up to 5 users. Choose Enterprise ($29/mo or $249/yr) for unlimited users, white-labeling, reseller tools, and API access.' },
   { q: 'Can I upgrade or downgrade later?', a: 'Yes. You can upgrade at any time and your new modules become available immediately. Downgrading takes effect at the end of your current billing period.' },
   { q: 'How does multi-tenancy work?', a: 'Each business gets fully isolated data with Row Level Security. Resellers can onboard and manage multiple client businesses from a single dashboard.' },
   { q: 'What currencies are supported?', a: 'TELA-ERP supports 165+ currencies with live exchange rates. Set your default currency and view reports in any currency on-the-fly.' },
@@ -70,8 +70,8 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
-        <title>TELA-ERP — Complete ERP for Every Business | Free Starter, $6/mo Premium</title>
-        <meta name="description" content="TELA-ERP: Free Starter plan, Premium at $6/month (all 17 modules), Enterprise at $13/month. Manage inventory, sales, production, fleet, accounting & more for any industry." />
+        <title>TELA-ERP — Complete ERP for Every Business | Free Starter, $12/mo Premium</title>
+        <meta name="description" content="TELA-ERP: Free Starter plan, Premium at $12/month (all 17 modules), Enterprise at $29/month. Manage inventory, sales, production, fleet, accounting & more for any industry." />
         <link rel="canonical" href="https://tela-erp.com/" />
       </Helmet>
       {/* NAV */}
@@ -286,8 +286,8 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             {[
               { name: 'Starter', price: 'Free', period: 'forever', users: '1 user', desc: 'Perfect for solo entrepreneurs getting started.', features: ['Sales module', 'Inventory module', 'Dashboard & Reports', '14-day Premium trial'], cta: 'Start Free', link: '/signup', highlight: false },
-              { name: 'Premium', price: '$6', period: '/month', users: 'Up to 5 users', desc: 'All 17 modules for growing businesses.', features: ['All 17 modules', 'AI CFO Assistant', 'Multi-currency (165+)', 'Industry presets', 'Fleet & Maintenance', 'Email support'], cta: 'Get Premium', link: '/signup?plan=premium', highlight: true },
-              { name: 'Enterprise', price: '$13', period: '/month', users: 'Unlimited users', desc: 'White-label and full platform control.', features: ['Everything in Premium', 'Unlimited users', 'White-label branding', 'Reseller portal', 'API access', 'Priority support'], cta: 'Contact Sales', link: '/contact', highlight: false },
+              { name: 'Premium', price: '$12', period: '/month', users: 'Up to 5 users', desc: 'All 17 modules for growing businesses. Save with annual billing ($99/yr).', features: ['All 17 modules', 'AI CFO Assistant', 'Multi-currency (165+)', 'Industry presets', 'Fleet & Maintenance', 'Email support'], cta: 'Get Premium', link: '/signup?plan=premium', highlight: true },
+              { name: 'Enterprise', price: '$29', period: '/month', users: 'Unlimited users', desc: 'White-label and full platform control. Save with annual billing ($249/yr).', features: ['Everything in Premium', 'Unlimited users', 'White-label branding', 'Reseller portal', 'API access', 'Priority support'], cta: 'Contact Sales', link: '/contact', highlight: false },
             ].map((tier, i) => (
               <motion.div key={tier.name} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1} className="relative">
                 {tier.highlight && (
