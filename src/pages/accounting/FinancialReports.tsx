@@ -3,13 +3,14 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { cn } from '@/lib/utils';
-import { BarChart3, TrendingUp, TrendingDown, Scale, Download, RefreshCw } from 'lucide-react';
+import { BarChart3, TrendingUp, Scale, Download, RefreshCw } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-reports';
+import { toast } from 'sonner';
 
 interface ReportRow {
   tenant_id: string;
@@ -47,6 +48,18 @@ export default function FinancialReports() {
 
   useEffect(() => { loadReports(); }, [tenant?.id]);
 
+  // Realtime: refresh whenever any voucher is posted (manual or auto from sales/purchases/production)
+  useEffect(() => {
+    if (!tenant?.id || isDemo) return;
+    const channel = supabase
+      .channel('financial-reports-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounting_vouchers', filter: `tenant_id=eq.${tenant.id}` }, () => loadReports())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounting_voucher_entries', filter: `tenant_id=eq.${tenant.id}` }, () => loadReports())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id, isDemo]);
+
   // P&L summary
   const totalIncome = plData.filter(r => r.account_type === 'revenue' || r.account_type === 'income')
     .reduce((s, r) => s + Math.abs(Number(r.running_balance)), 0);
@@ -65,6 +78,75 @@ export default function FinancialReports() {
   // TB totals
   const tbTotalDebit = trialData.reduce((s, r) => s + Number(r.total_debit), 0);
   const tbTotalCredit = trialData.reduce((s, r) => s + Number(r.total_credit), 0);
+
+  // ── PDF download helpers ────────────────────────────────────────────────
+  const today = new Date().toLocaleDateString();
+  const tenantName = tenant?.name || 'TELA-ERP';
+
+  const downloadTrialBalance = () => {
+    if (!trialData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Trial Balance',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Debit', 'Credit', 'Balance'],
+      rows: trialData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Number(r.total_debit)),
+        formatMoney(Number(r.total_credit)),
+        formatMoney(Number(r.running_balance)),
+      ]),
+      stats: [
+        { label: 'Total Debit', value: formatMoney(tbTotalDebit) },
+        { label: 'Total Credit', value: formatMoney(tbTotalCredit) },
+        { label: 'Status', value: Math.abs(tbTotalDebit - tbTotalCredit) < 0.01 ? 'Balanced' : 'Out of balance' },
+      ],
+      numericColumns: [3, 4, 5],
+    });
+    toast.success('Trial Balance PDF downloaded');
+  };
+
+  const downloadProfitLoss = () => {
+    if (!plData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Profit & Loss Statement',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Amount'],
+      rows: plData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Math.abs(Number(r.running_balance))),
+      ]),
+      stats: [
+        { label: 'Total Revenue', value: formatMoney(totalIncome) },
+        { label: 'Total Expenses', value: formatMoney(totalExpenses) },
+        { label: 'Net Profit', value: formatMoney(netPL) },
+      ],
+      numericColumns: [3],
+    });
+    toast.success('Profit & Loss PDF downloaded');
+  };
+
+  const downloadBalanceSheet = () => {
+    if (!bsData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Balance Sheet',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Amount'],
+      rows: bsData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Number(r.running_balance)),
+      ]),
+      stats: [
+        { label: 'Total Assets', value: formatMoney(totalAssets) },
+        { label: 'Total Liabilities', value: formatMoney(totalLiabilities) },
+        { label: 'Total Equity', value: formatMoney(totalEquity) },
+      ],
+      numericColumns: [3],
+    });
+    toast.success('Balance Sheet PDF downloaded');
+  };
 
   const ReportTable = ({ data, showType = false }: { data: ReportRow[]; showType?: boolean }) => (
     <div className="overflow-x-auto">
@@ -110,14 +192,23 @@ export default function FinancialReports() {
   return (
     <AppLayout title="Financial Reports">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-xl font-bold text-foreground">Financial Reports</h1>
-            <p className="text-sm text-muted-foreground">Real-time financial statements from the accounting engine</p>
+            <p className="text-sm text-muted-foreground">Real-time statements from all posted vouchers (manual + auto from Sales, Purchases, Production)</p>
           </div>
-          <Button size="sm" variant="outline" onClick={loadReports} className="gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={tab === 'trial-balance' ? downloadTrialBalance : tab === 'profit-loss' ? downloadProfitLoss : downloadBalanceSheet}
+              className="gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </Button>
+            <Button size="sm" variant="outline" onClick={loadReports} className="gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </Button>
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
