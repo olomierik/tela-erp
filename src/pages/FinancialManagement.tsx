@@ -19,6 +19,7 @@ import {
   Banknote,
   BarChart3,
   BookOpen,
+  Boxes,
   Building2,
   Calculator,
   CreditCard,
