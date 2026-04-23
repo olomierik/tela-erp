@@ -448,6 +448,16 @@ export default function FinancialManagement() {
         status: integrationStatus(fixedAssets.length, depreciationTransactions.length),
         detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} accumulated depreciation · ${depreciationTransactions.length} finance entries`,
       },
+      {
+        source: 'Inventory (Stock Asset)',
+        target: 'Balance Sheet · Current Assets',
+        status: inventory.length === 0
+          ? 'idle'
+          : Math.abs(inventoryVariance) > Math.max(inventoryStockValue * 0.05, 1000)
+            ? 'partial'
+            : 'connected',
+        detail: `${inventory.length} SKUs · ${inventoryUnits.toLocaleString()} units · stock@cost ${moneyOrDash(formatMoney, inventoryStockValue)} · GL inventory ${moneyOrDash(formatMoney, inventoryLedgerBalance)}${Math.abs(inventoryVariance) > 1 ? ` · variance ${moneyOrDash(formatMoney, inventoryVariance)}` : ''}`,
+      },
     ];
 
     return {
