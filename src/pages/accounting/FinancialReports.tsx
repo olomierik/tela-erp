@@ -48,6 +48,18 @@ export default function FinancialReports() {
 
   useEffect(() => { loadReports(); }, [tenant?.id]);
 
+  // Realtime: refresh whenever any voucher is posted (manual or auto from sales/purchases/production)
+  useEffect(() => {
+    if (!tenant?.id || isDemo) return;
+    const channel = supabase
+      .channel('financial-reports-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounting_vouchers', filter: `tenant_id=eq.${tenant.id}` }, () => loadReports())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'accounting_voucher_entries', filter: `tenant_id=eq.${tenant.id}` }, () => loadReports())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id, isDemo]);
+
   // P&L summary
   const totalIncome = plData.filter(r => r.account_type === 'revenue' || r.account_type === 'income')
     .reduce((s, r) => s + Math.abs(Number(r.running_balance)), 0);
