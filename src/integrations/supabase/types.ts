@@ -56,8 +56,36 @@ export type Database = {
             foreignKeyName: "account_mappings_credit_account_id_fkey"
             columns: ["credit_account_id"]
             isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_mappings_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "account_mappings_debit_account_id_fkey"
@@ -65,6 +93,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_mappings_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "account_mappings_tenant_id_fkey"
@@ -111,8 +153,29 @@ export type Database = {
             foreignKeyName: "accounting_ledger_balances_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
@@ -159,8 +222,29 @@ export type Database = {
             foreignKeyName: "accounting_voucher_entries_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "accounting_voucher_entries_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "accounting_voucher_entries_tenant_id_fkey"
@@ -767,8 +851,29 @@ export type Database = {
             foreignKeyName: "chart_of_accounts_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "chart_of_accounts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "chart_of_accounts_tenant_id_fkey"
@@ -1944,8 +2049,36 @@ export type Database = {
             foreignKeyName: "journal_entries_credit_account_id_fkey"
             columns: ["credit_account_id"]
             isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "balance_sheet_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "journal_entries_debit_account_id_fkey"
@@ -1953,6 +2086,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "chart_of_accounts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_entries_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "profit_loss_view"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "journal_entries_debit_account_id_fkey"
+            columns: ["debit_account_id"]
+            isOneToOne: false
+            referencedRelation: "trial_balance_view"
+            referencedColumns: ["account_id"]
           },
           {
             foreignKeyName: "journal_entries_tenant_id_fkey"
@@ -6907,6 +7054,7 @@ export type Database = {
       balance_sheet_view: {
         Row: {
           account_code: string | null
+          account_id: string | null
           account_name: string | null
           account_type: string | null
           running_balance: number | null
@@ -6916,7 +7064,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            foreignKeyName: "chart_of_accounts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6927,6 +7075,7 @@ export type Database = {
       profit_loss_view: {
         Row: {
           account_code: string | null
+          account_id: string | null
           account_name: string | null
           account_type: string | null
           running_balance: number | null
@@ -6936,7 +7085,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            foreignKeyName: "chart_of_accounts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6957,14 +7106,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "accounting_ledger_balances_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "chart_of_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "accounting_ledger_balances_tenant_id_fkey"
+            foreignKeyName: "chart_of_accounts_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
