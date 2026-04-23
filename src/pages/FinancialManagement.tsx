@@ -377,7 +377,15 @@ export default function FinancialManagement() {
         route: '/assets',
         icon: Landmark,
         metric: moneyOrDash(formatMoney, fixedAssetValue),
-        detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} depreciation`,
+      },
+      {
+        key: 'inventory',
+        name: 'Inventory (Stock Asset)',
+        description: 'Live stock-on-hand value at cost — the largest current asset for trading & manufacturing.',
+        route: '/inventory',
+        icon: Boxes,
+        metric: moneyOrDash(formatMoney, inventoryStockValue),
+        detail: `${inventoryUnits.toLocaleString()} units · ${inventory.length} SKUs · ${lowStockCount} low · ${outOfStockCount} out`,
       },
       {
         key: 'cash-bank',
