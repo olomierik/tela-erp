@@ -572,8 +572,15 @@ export default function FinancialManagement() {
             <div className="grid gap-3 md:grid-cols-4">
               <KpiCard label="Accounts Receivable" value={isLoading ? null : formatMoney(metrics.receivables)} icon={FileText} hint={`${metrics.overdueInvoices.length} overdue invoices`} />
               <KpiCard label="Accounts Payable" value={isLoading ? null : formatMoney(metrics.payables)} icon={CreditCard} hint={`${metrics.salesDelivered.length > 0 ? metrics.salesDelivered.length : purchases.length} finance-linked source docs`} />
+              <KpiCard label="Inventory @ Cost" value={isLoading ? null : formatMoney(metrics.inventoryStockValue)} icon={Boxes} hint={`${metrics.inventoryUnits.toLocaleString()} units · ${inventory.length} SKUs`} />
               <KpiCard label="Fixed Assets" value={isLoading ? null : formatMoney(metrics.fixedAssetValue)} icon={Landmark} hint={`${fixedAssets.length} tracked assets`} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
               <KpiCard label="Tax Liability" value={isLoading ? null : formatMoney(metrics.taxLiability)} icon={Shield} hint={`${taxRates.length} configured tax rates`} />
+              <KpiCard label="Inventory @ Retail" value={isLoading ? null : formatMoney(metrics.inventoryRetailValue)} icon={Receipt} hint={`Potential revenue · ${metrics.lowStockCount} low / ${metrics.outOfStockCount} out`} />
+              <KpiCard label="Sellable Stock" value={isLoading ? null : formatMoney(metrics.inventorySellableValue)} icon={Boxes} hint="Good-status stock at cost" />
+              <KpiCard label="Stock vs GL Variance" value={isLoading ? null : formatMoney(metrics.inventoryVariance)} icon={Scale} hint={`GL inventory ${formatMoney(metrics.inventoryLedgerBalance)}`} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
