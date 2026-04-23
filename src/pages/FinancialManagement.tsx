@@ -287,6 +287,31 @@ export default function FinancialManagement() {
     const payrollNet = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_net || 0), 0);
     const fixedAssetValue = moneySum(fixedAssets, 'current_value');
     const depreciationTotal = moneySum(fixedAssets, 'accumulated_depreciation');
+    // Inventory stock value = sum(qty × unit_cost) — true operational stock asset
+    const sellableInventory = inventory.filter((item: any) => String(item.status ?? 'good') === 'good');
+    const inventoryStockValue = inventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
+      0,
+    );
+    const inventorySellableValue = sellableInventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
+      0,
+    );
+    const inventoryRetailValue = inventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.selling_price || 0),
+      0,
+    );
+    const inventoryUnits = inventory.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0);
+    const lowStockCount = inventory.filter(
+      (item: any) => Number(item.quantity || 0) > 0 && Number(item.quantity || 0) <= Number(item.reorder_level || 0),
+    ).length;
+    const outOfStockCount = inventory.filter((item: any) => Number(item.quantity || 0) <= 0).length;
+    // Ledger inventory (accounting view) — match common stock/inventory accounts
+    const inventoryLedgerBalance = finance.trialBalance
+      .filter((row) => /\b1400\b|\b1410\b|\b1420\b|inventory|stock|finished goods|raw materials|work in progress/i
+        .test(`${row.account_code ?? ''} ${row.account_name ?? ''}`))
+      .reduce((sum, row) => sum + Number(row.running_balance || 0), 0);
+    const inventoryVariance = inventoryStockValue - inventoryLedgerBalance;
     const salesDelivered = sales.filter((order: any) => ['delivered', 'shipped'].includes(String(order.status ?? '').toLowerCase()));
     const salesDeliveredTotal = moneySum(salesDelivered, 'total_amount');
     const purchaseReceivedTotal = moneySum(receivedPurchases, 'total_amount');
