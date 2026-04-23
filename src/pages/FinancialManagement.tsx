@@ -81,6 +81,9 @@ const REALTIME_TABLES = [
   'production_orders',
   'customers',
   'suppliers',
+  'inventory_items',
+  'inventory_transactions',
+  'inventory_adjustments',
 ] as const;
 
 const moneySum = (rows: any[], field: string) => rows.reduce((sum, row) => sum + Number(row?.[field] || 0), 0);
