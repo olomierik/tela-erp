@@ -3,13 +3,14 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { cn } from '@/lib/utils';
-import { BarChart3, TrendingUp, TrendingDown, Scale, Download, RefreshCw } from 'lucide-react';
+import { BarChart3, TrendingUp, Scale, Download, RefreshCw } from 'lucide-react';
+import { generatePDFReport } from '@/lib/pdf-reports';
+import { toast } from 'sonner';
 
 interface ReportRow {
   tenant_id: string;
