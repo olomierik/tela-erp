@@ -19,6 +19,7 @@ import {
   Banknote,
   BarChart3,
   BookOpen,
+  Boxes,
   Building2,
   Calculator,
   CreditCard,
@@ -81,6 +82,9 @@ const REALTIME_TABLES = [
   'production_orders',
   'customers',
   'suppliers',
+  'inventory_items',
+  'inventory_transactions',
+  'inventory_adjustments',
 ] as const;
 
 const moneySum = (rows: any[], field: string) => rows.reduce((sum, row) => sum + Number(row?.[field] || 0), 0);
@@ -128,6 +132,7 @@ export default function FinancialManagement() {
   const { data: coaData } = useTenantQuery('chart_of_accounts');
   const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
   const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
+  const { data: inventoryData } = useTenantQuery('inventory_items');
 
   const sales = salesData ?? [];
   const purchases = purchaseData ?? [];
@@ -145,6 +150,7 @@ export default function FinancialManagement() {
   const coa = (coaData ?? []) as any[];
   const vouchers = (voucherData ?? []) as any[];
   const voucherEntries = (voucherEntryData ?? []) as any[];
+  const inventory = (inventoryData ?? []) as any[];
 
   const isLoading = [
     salesData,
@@ -163,6 +169,7 @@ export default function FinancialManagement() {
     coaData,
     voucherData,
     voucherEntryData,
+    inventoryData,
   ].some((value) => value === undefined);
 
   useEffect(() => {
@@ -280,6 +287,31 @@ export default function FinancialManagement() {
     const payrollNet = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_net || 0), 0);
     const fixedAssetValue = moneySum(fixedAssets, 'current_value');
     const depreciationTotal = moneySum(fixedAssets, 'accumulated_depreciation');
+    // Inventory stock value = sum(qty × unit_cost) — true operational stock asset
+    const sellableInventory = inventory.filter((item: any) => String(item.status ?? 'good') === 'good');
+    const inventoryStockValue = inventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
+      0,
+    );
+    const inventorySellableValue = sellableInventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.unit_cost || 0),
+      0,
+    );
+    const inventoryRetailValue = inventory.reduce(
+      (sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.selling_price || 0),
+      0,
+    );
+    const inventoryUnits = inventory.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0);
+    const lowStockCount = inventory.filter(
+      (item: any) => Number(item.quantity || 0) > 0 && Number(item.quantity || 0) <= Number(item.reorder_level || 0),
+    ).length;
+    const outOfStockCount = inventory.filter((item: any) => Number(item.quantity || 0) <= 0).length;
+    // Ledger inventory (accounting view) — match common stock/inventory accounts
+    const inventoryLedgerBalance = finance.trialBalance
+      .filter((row) => /\b1400\b|\b1410\b|\b1420\b|inventory|stock|finished goods|raw materials|work in progress/i
+        .test(`${row.account_code ?? ''} ${row.account_name ?? ''}`))
+      .reduce((sum, row) => sum + Number(row.running_balance || 0), 0);
+    const inventoryVariance = inventoryStockValue - inventoryLedgerBalance;
     const salesDelivered = sales.filter((order: any) => ['delivered', 'shipped'].includes(String(order.status ?? '').toLowerCase()));
     const salesDeliveredTotal = moneySum(salesDelivered, 'total_amount');
     const purchaseReceivedTotal = moneySum(receivedPurchases, 'total_amount');
@@ -348,6 +380,15 @@ export default function FinancialManagement() {
         detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} depreciation`,
       },
       {
+        key: 'inventory',
+        name: 'Inventory (Stock Asset)',
+        description: 'Live stock-on-hand value at cost — the largest current asset for trading & manufacturing.',
+        route: '/inventory',
+        icon: Boxes,
+        metric: moneyOrDash(formatMoney, inventoryStockValue),
+        detail: `${inventoryUnits.toLocaleString()} units · ${inventory.length} SKUs · ${lowStockCount} low · ${outOfStockCount} out`,
+      },
+      {
         key: 'cash-bank',
         name: 'Cash & Bank',
         description: 'Liquidity from finance-ledger cash and bank accounts.',
@@ -407,6 +448,16 @@ export default function FinancialManagement() {
         status: integrationStatus(fixedAssets.length, depreciationTransactions.length),
         detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} accumulated depreciation · ${depreciationTransactions.length} finance entries`,
       },
+      {
+        source: 'Inventory (Stock Asset)',
+        target: 'Balance Sheet · Current Assets',
+        status: inventory.length === 0
+          ? 'idle'
+          : Math.abs(inventoryVariance) > Math.max(inventoryStockValue * 0.05, 1000)
+            ? 'partial'
+            : 'connected',
+        detail: `${inventory.length} SKUs · ${inventoryUnits.toLocaleString()} units · stock@cost ${moneyOrDash(formatMoney, inventoryStockValue)} · GL inventory ${moneyOrDash(formatMoney, inventoryLedgerBalance)}${Math.abs(inventoryVariance) > 1 ? ` · variance ${moneyOrDash(formatMoney, inventoryVariance)}` : ''}`,
+      },
     ];
 
     return {
@@ -438,6 +489,14 @@ export default function FinancialManagement() {
       totalLiabilities: finance.totalLiabilities,
       totalEquity: finance.totalEquity,
       totalRevenue: finance.totalRevenue,
+      inventoryStockValue,
+      inventorySellableValue,
+      inventoryRetailValue,
+      inventoryUnits,
+      inventoryLedgerBalance,
+      inventoryVariance,
+      lowStockCount,
+      outOfStockCount,
     };
   }, [
     budgets,
@@ -453,10 +512,11 @@ export default function FinancialManagement() {
     finance.totalExpenses,
     finance.totalLiabilities,
     finance.totalRevenue,
-    finance.trialBalance.length,
+    finance.trialBalance,
     finance.trialDifference,
     fixedAssets,
     formatMoney,
+    inventory,
     invoices,
     payrollRuns,
     productionOrders,
@@ -512,8 +572,15 @@ export default function FinancialManagement() {
             <div className="grid gap-3 md:grid-cols-4">
               <KpiCard label="Accounts Receivable" value={isLoading ? null : formatMoney(metrics.receivables)} icon={FileText} hint={`${metrics.overdueInvoices.length} overdue invoices`} />
               <KpiCard label="Accounts Payable" value={isLoading ? null : formatMoney(metrics.payables)} icon={CreditCard} hint={`${metrics.salesDelivered.length > 0 ? metrics.salesDelivered.length : purchases.length} finance-linked source docs`} />
+              <KpiCard label="Inventory @ Cost" value={isLoading ? null : formatMoney(metrics.inventoryStockValue)} icon={Boxes} hint={`${metrics.inventoryUnits.toLocaleString()} units · ${inventory.length} SKUs`} />
               <KpiCard label="Fixed Assets" value={isLoading ? null : formatMoney(metrics.fixedAssetValue)} icon={Landmark} hint={`${fixedAssets.length} tracked assets`} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-4">
               <KpiCard label="Tax Liability" value={isLoading ? null : formatMoney(metrics.taxLiability)} icon={Shield} hint={`${taxRates.length} configured tax rates`} />
+              <KpiCard label="Inventory @ Retail" value={isLoading ? null : formatMoney(metrics.inventoryRetailValue)} icon={Receipt} hint={`Potential revenue · ${metrics.lowStockCount} low / ${metrics.outOfStockCount} out`} />
+              <KpiCard label="Sellable Stock" value={isLoading ? null : formatMoney(metrics.inventorySellableValue)} icon={Boxes} hint="Good-status stock at cost" />
+              <KpiCard label="Stock vs GL Variance" value={isLoading ? null : formatMoney(metrics.inventoryVariance)} icon={Scale} hint={`GL inventory ${formatMoney(metrics.inventoryLedgerBalance)}`} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
@@ -524,7 +591,11 @@ export default function FinancialManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <BalanceRow label="Total Assets" value={isLoading ? '—' : formatMoney(metrics.totalAssets)} />
+                  <BalanceRow label="Total Assets (GL)" value={isLoading ? '—' : formatMoney(metrics.totalAssets)} />
+                  <BalanceRow label="↳ Cash & Bank" value={isLoading ? '—' : formatMoney(finance.cashBalance)} />
+                  <BalanceRow label="↳ Receivables" value={isLoading ? '—' : formatMoney(metrics.receivables)} />
+                  <BalanceRow label="↳ Inventory @ Cost (operational)" value={isLoading ? '—' : formatMoney(metrics.inventoryStockValue)} />
+                  <BalanceRow label="↳ Fixed Assets" value={isLoading ? '—' : formatMoney(metrics.fixedAssetValue)} />
                   <BalanceRow label="Total Liabilities" value={isLoading ? '—' : formatMoney(metrics.totalLiabilities)} />
                   <BalanceRow label="Total Equity" value={isLoading ? '—' : formatMoney(metrics.totalEquity)} />
                   <div className="flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
