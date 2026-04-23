@@ -150,6 +150,7 @@ export default function FinancialManagement() {
   const coa = (coaData ?? []) as any[];
   const vouchers = (voucherData ?? []) as any[];
   const voucherEntries = (voucherEntryData ?? []) as any[];
+  const inventory = (inventoryData ?? []) as any[];
 
   const isLoading = [
     salesData,
@@ -168,6 +169,7 @@ export default function FinancialManagement() {
     coaData,
     voucherData,
     voucherEntryData,
+    inventoryData,
   ].some((value) => value === undefined);
 
   useEffect(() => {
