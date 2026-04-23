@@ -1,485 +1,618 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
+import CompanySwitcher from '@/components/company/CompanySwitcher';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import {
-  BookOpen, FileText, BarChart3, TrendingUp, TrendingDown,
-  ArrowRight, Calculator, Wallet, Scale, Receipt, Landmark,
-  PiggyBank, Banknote, Building2, Shield, Activity, DollarSign,
-  CreditCard, AlertCircle, CheckCircle2,
-} from 'lucide-react';
+import { useTenantQuery } from '@/hooks/use-tenant-query';
 import { cn } from '@/lib/utils';
-import CompanySwitcher from '@/components/company/CompanySwitcher';
+import {
+  Activity,
+  ArrowRight,
+  Banknote,
+  BarChart3,
+  BookOpen,
+  Building2,
+  Calculator,
+  CreditCard,
+  FileText,
+  Landmark,
+  PiggyBank,
+  Receipt,
+  Scale,
+  Shield,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react';
 
-interface CFOKpis {
-  totalRevenue: number;
-  totalExpenses: number;
-  netProfit: number;
-  cashBalance: number;
-  accountsReceivable: number;
-  accountsPayable: number;
-  totalAssets: number;
-  totalLiabilities: number;
-  totalEquity: number;
-  fixedAssetsValue: number;
-  budgetUtilization: number;
-  pendingInvoices: number;
-  overdueInvoices: number;
-  taxLiability: number;
+type ReportRow = {
+  account_code: string | null;
+  account_id: string | null;
+  account_name: string | null;
+  account_type: string | null;
+  running_balance: number | null;
+  total_credit: number | null;
+  total_debit: number | null;
+  tenant_id: string | null;
+};
+
+type ModuleCard = {
+  key: string;
+  name: string;
+  description: string;
+  route: string;
+  icon: typeof BookOpen;
+  metric: string;
+  detail: string;
+};
+
+type IntegrationStatus = 'connected' | 'partial' | 'idle';
+
+type IntegrationPoint = {
+  source: string;
+  target: string;
+  status: IntegrationStatus;
+  detail: string;
+};
+
+const REALTIME_TABLES = [
+  'sales_orders',
+  'purchase_orders',
+  'invoices',
+  'transactions',
+  'budgets',
+  'budget_lines',
+  'fixed_assets',
+  'asset_depreciation_entries',
+  'expense_claims',
+  'expense_items',
+  'payroll_runs',
+  'tax_rates',
+  'chart_of_accounts',
+  'accounting_vouchers',
+  'accounting_voucher_entries',
+  'production_orders',
+  'customers',
+  'suppliers',
+] as const;
+
+const moneySum = (rows: any[], field: string) => rows.reduce((sum, row) => sum + Number(row?.[field] || 0), 0);
+const countWhere = (rows: any[], predicate: (row: any) => boolean) => rows.filter(predicate).length;
+
+function formatRatio(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return '—';
+  return `${value.toFixed(2)}x`;
 }
 
-const SUB_MODULES = [
-  {
-    key: 'general-ledger',
-    name: 'General Ledger',
-    description: 'Chart of accounts, journal entries & vouchers',
-    icon: BookOpen,
-    color: 'bg-indigo-500',
-    route: '/accounting/ledger',
-    secondaryRoutes: [
-      { label: 'Vouchers', route: '/accounting/vouchers' },
-      { label: 'Reports', route: '/accounting/reports' },
-    ],
-  },
-  {
-    key: 'accounts-receivable',
-    name: 'Accounts Receivable',
-    description: 'Customer invoices, payments & aging',
-    icon: FileText,
-    color: 'bg-emerald-500',
-    route: '/invoices',
-    secondaryRoutes: [{ label: 'Customers', route: '/customers' }],
-  },
-  {
-    key: 'accounts-payable',
-    name: 'Accounts Payable',
-    description: 'Supplier bills, payments & vendor management',
-    icon: CreditCard,
-    color: 'bg-amber-500',
-    route: '/procurement',
-    secondaryRoutes: [{ label: 'Suppliers', route: '/suppliers' }],
-  },
-  {
-    key: 'budgeting',
-    name: 'Budgeting & Planning',
-    description: 'Departmental budgets, variance analysis',
-    icon: PiggyBank,
-    color: 'bg-pink-500',
-    route: '/budgets',
-  },
-  {
-    key: 'tax-management',
-    name: 'Tax Management',
-    description: 'TRA filing, calendar, scenarios & optimization',
-    icon: Shield,
-    color: 'bg-red-600',
-    route: '/tax-calendar',
-    secondaryRoutes: [
-      { label: 'TRA Filing', route: '/tra-filing' },
-      { label: 'Scenarios', route: '/tax-scenarios' },
-    ],
-  },
-  {
-    key: 'fixed-assets',
-    name: 'Fixed Assets',
-    description: 'Asset register, depreciation schedules',
-    icon: Landmark,
-    color: 'bg-amber-600',
-    route: '/assets',
-  },
-  {
-    key: 'cash-bank',
-    name: 'Cash & Bank',
-    description: 'Bank accounts, cash flow & reconciliation',
-    icon: Banknote,
-    color: 'bg-teal-500',
-    route: '/expenses',
-  },
-  {
-    key: 'reporting',
-    name: 'Financial Reporting',
-    description: 'P&L, Balance Sheet, Trial Balance, Cash Flow',
-    icon: BarChart3,
-    color: 'bg-blue-600',
-    route: '/accounting/reports',
-    secondaryRoutes: [{ label: 'CFO AI', route: '/ai-cfo' }],
-  },
-];
+function percent(part: number, whole: number) {
+  if (!whole || !Number.isFinite(part) || !Number.isFinite(whole)) return 0;
+  return Math.max(0, Math.round((part / whole) * 100));
+}
+
+function moneyOrDash(formatMoney: (value: number) => string, value: number) {
+  return Number.isFinite(value) ? formatMoney(value) : '—';
+}
+
+function integrationStatus(sourceCount: number, financeCount: number): IntegrationStatus {
+  if (sourceCount === 0) return 'idle';
+  if (financeCount === 0) return 'partial';
+  return financeCount < sourceCount ? 'partial' : 'connected';
+}
 
 export default function FinancialManagement() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { tenant, isDemo } = useAuth();
   const { formatMoney, displayCurrency } = useCurrency();
-  const [loading, setLoading] = useState(true);
-  const [kpis, setKpis] = useState<CFOKpis>({
-    totalRevenue: 0, totalExpenses: 0, netProfit: 0, cashBalance: 0,
-    accountsReceivable: 0, accountsPayable: 0, totalAssets: 0,
-    totalLiabilities: 0, totalEquity: 0, fixedAssetsValue: 0,
-    budgetUtilization: 0, pendingInvoices: 0, overdueInvoices: 0, taxLiability: 0,
-  });
+
+  const { data: salesData } = useTenantQuery('sales_orders');
+  const { data: purchaseData } = useTenantQuery('purchase_orders');
+  const { data: invoiceData } = useTenantQuery('invoices');
+  const { data: transactionData } = useTenantQuery('transactions');
+  const { data: budgetData } = useTenantQuery('budgets');
+  const { data: budgetLineData } = useTenantQuery('budget_lines');
+  const { data: fixedAssetData } = useTenantQuery('fixed_assets' as any);
+  const { data: expenseClaimData } = useTenantQuery('expense_claims' as any);
+  const { data: payrollRunData } = useTenantQuery('payroll_runs' as any);
+  const { data: taxRateData } = useTenantQuery('tax_rates' as any);
+  const { data: customerData } = useTenantQuery('customers');
+  const { data: supplierData } = useTenantQuery('suppliers');
+  const { data: productionData } = useTenantQuery('production_orders');
+  const { data: coaData } = useTenantQuery('chart_of_accounts');
+  const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
+  const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
+  const { data: depreciationEntryData } = useTenantQuery('asset_depreciation_entries' as any);
+
+  const sales = salesData ?? [];
+  const purchases = purchaseData ?? [];
+  const invoices = invoiceData ?? [];
+  const transactions = transactionData ?? [];
+  const budgets = budgetData ?? [];
+  const budgetLines = budgetLineData ?? [];
+  const fixedAssets = (fixedAssetData ?? []) as any[];
+  const expenseClaims = (expenseClaimData ?? []) as any[];
+  const payrollRuns = (payrollRunData ?? []) as any[];
+  const taxRates = (taxRateData ?? []) as any[];
+  const customers = customerData ?? [];
+  const suppliers = supplierData ?? [];
+  const productionOrders = productionData ?? [];
+  const coa = (coaData ?? []) as any[];
+  const vouchers = (voucherData ?? []) as any[];
+  const voucherEntries = (voucherEntryData ?? []) as any[];
+  const depreciationEntries = (depreciationEntryData ?? []) as any[];
+
+  const isLoading = [
+    salesData,
+    purchaseData,
+    invoiceData,
+    transactionData,
+    budgetData,
+    budgetLineData,
+    fixedAssetData,
+    expenseClaimData,
+    payrollRunData,
+    taxRateData,
+    customerData,
+    supplierData,
+    productionData,
+    coaData,
+    voucherData,
+    voucherEntryData,
+    depreciationEntryData,
+  ].some((value) => value === undefined);
 
   useEffect(() => {
-    loadKpis();
-  }, [tenant?.id]);
+    if (!tenant?.id || isDemo) return;
 
-  async function loadKpis() {
-    if (!tenant?.id || isDemo) {
-      setKpis({
-        totalRevenue: 12500000, totalExpenses: 8200000, netProfit: 4300000,
-        cashBalance: 6200000, accountsReceivable: 3400000, accountsPayable: 2100000,
-        totalAssets: 28500000, totalLiabilities: 12800000, totalEquity: 15700000,
-        fixedAssetsValue: 8900000, budgetUtilization: 67, pendingInvoices: 12,
-        overdueInvoices: 3, taxLiability: 1840000,
-      });
-      setLoading(false);
-      return;
+    const invalidate = (table: string) => {
+      queryClient.invalidateQueries({ queryKey: [table, tenant.id] });
+      if (table === 'accounting_vouchers' || table === 'accounting_voucher_entries' || table === 'chart_of_accounts') {
+        queryClient.invalidateQueries({ queryKey: ['accounting_vouchers', tenant.id] });
+        queryClient.invalidateQueries({ queryKey: ['accounting_voucher_entries', tenant.id] });
+        queryClient.invalidateQueries({ queryKey: ['chart_of_accounts', tenant.id] });
+      }
+    };
+
+    const channel = REALTIME_TABLES.reduce((acc, table) => {
+      acc.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table, filter: `tenant_id=eq.${tenant.id}` },
+        () => invalidate(table),
+      );
+      return acc;
+    }, supabase.channel(`financial-management-${tenant.id}`));
+
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [tenant?.id, isDemo, queryClient]);
+
+  const finance = useMemo(() => {
+    const postedVoucherIds = new Set(vouchers.filter((voucher) => voucher.status === 'posted').map((voucher) => voucher.id));
+    const accountMap = Object.fromEntries(coa.map((account: any) => [account.id, account]));
+    const rollup = new Map<string, { debit: number; credit: number; account: any }>();
+
+    for (const entry of voucherEntries) {
+      if (!postedVoucherIds.has(entry.voucher_id)) continue;
+      const account = accountMap[entry.account_id];
+      if (!account) continue;
+
+      const current = rollup.get(entry.account_id) ?? { debit: 0, credit: 0, account };
+      current.debit += Number(entry.debit || 0);
+      current.credit += Number(entry.credit || 0);
+      rollup.set(entry.account_id, current);
     }
-    setLoading(true);
-    try {
-      const tid = tenant.id;
-      const [accountsRes, invoicesRes, assetsRes, budgetsRes, vouchersRes] = await Promise.all([
-        (supabase as any).from('chart_of_accounts').select('account_type, balance').eq('tenant_id', tid),
-        (supabase as any).from('invoices').select('total_amount, status, due_date').eq('tenant_id', tid),
-        (supabase as any).from('fixed_assets').select('current_value').eq('tenant_id', tid),
-        (supabase as any).from('budgets').select('total_budget').eq('tenant_id', tid),
-        (supabase as any).from('accounting_voucher_entries').select('debit, credit, account_id, chart_of_accounts!inner(account_type, code)').eq('tenant_id', tid),
-      ]);
 
-      const accounts = accountsRes.data ?? [];
-      const sumByType = (type: string) =>
-        accounts.filter((a: any) => a.account_type === type).reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
+    const trialBalance: ReportRow[] = Array.from(rollup.values())
+      .map(({ debit, credit, account }) => ({
+        account_code: account.code,
+        account_id: account.id,
+        account_name: account.name,
+        account_type: account.account_type,
+        running_balance: debit - credit,
+        total_credit: credit,
+        total_debit: debit,
+        tenant_id: account.tenant_id,
+      }))
+      .sort((left, right) => String(left.account_code ?? '').localeCompare(String(right.account_code ?? '')));
 
-      const totalAssets = sumByType('asset');
-      const totalLiabilities = sumByType('liability');
-      const totalEquity = sumByType('equity');
-      const totalRevenue = sumByType('revenue');
-      const totalExpenses = sumByType('expense');
+    const byType = (types: string[]) => trialBalance.filter((row) => types.includes(String(row.account_type ?? '')));
+    const sumRunning = (rows: ReportRow[]) => rows.reduce((sum, row) => sum + Number(row.running_balance || 0), 0);
+    const sumAbsRunning = (rows: ReportRow[]) => rows.reduce((sum, row) => sum + Math.abs(Number(row.running_balance || 0)), 0);
+    const findBalance = (matchers: RegExp[]) => trialBalance
+      .filter((row) => matchers.some((matcher) => matcher.test(`${row.account_code ?? ''} ${row.account_name ?? ''}`)))
+      .reduce((sum, row) => sum + Number(row.running_balance || 0), 0);
 
-      // Cash & Bank from CoA codes 1000, 1010
-      const cashBalance = accounts
-        .filter((a: any) => ['Cash', 'Bank'].some(n => (a as any).name?.includes?.(n)))
-        .reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
+    const revenue = sumAbsRunning(byType(['revenue', 'income']));
+    const expenses = sumAbsRunning(byType(['expense']));
+    const assets = sumRunning(byType(['asset']));
+    const liabilities = sumAbsRunning(byType(['liability']));
+    const equity = sumAbsRunning(byType(['equity']));
+    const cashBalance = findBalance([/\b1000\b/i, /\b1010\b/i, /cash/i, /bank/i, /mobile money/i]);
+    const receivablesBalance = Math.abs(findBalance([/accounts receivable/i, /\b1100\b/i]));
+    const payablesBalance = Math.abs(findBalance([/accounts payable/i, /\b2000\b/i]));
+    const taxBalance = Math.abs(findBalance([/vat/i, /tax/i, /paye/i, /nssf/i, /sdl/i, /wcf/i]));
 
-      const invoices = invoicesRes.data ?? [];
-      const today = new Date().toISOString().split('T')[0];
-      const accountsReceivable = invoices
-        .filter((i: any) => i.status !== 'paid')
-        .reduce((s: number, i: any) => s + Number(i.total_amount || 0), 0);
-      const pendingInvoices = invoices.filter((i: any) => i.status === 'sent' || i.status === 'pending').length;
-      const overdueInvoices = invoices.filter((i: any) => i.status !== 'paid' && i.due_date && i.due_date < today).length;
+    return {
+      postedVoucherIds,
+      trialBalance,
+      totalRevenue: revenue,
+      totalExpenses: expenses,
+      totalAssets: assets,
+      totalLiabilities: liabilities,
+      totalEquity: equity,
+      cashBalance,
+      receivablesBalance,
+      payablesBalance,
+      taxBalance,
+      trialDifference: Math.abs(
+        trialBalance.reduce((sum, row) => sum + Number(row.total_debit || 0), 0) -
+        trialBalance.reduce((sum, row) => sum + Number(row.total_credit || 0), 0),
+      ),
+    };
+  }, [coa, voucherEntries, vouchers]);
 
-      const fixedAssetsValue = (assetsRes.data ?? []).reduce((s: number, a: any) => s + Number(a.current_value || 0), 0);
-      const totalBudget = (budgetsRes.data ?? []).reduce((s: number, b: any) => s + Number(b.total_budget || 0), 0);
-      const budgetUtilization = totalBudget > 0 ? Math.min(100, Math.round((totalExpenses / totalBudget) * 100)) : 0;
+  const metrics = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const openInvoices = invoices.filter((invoice: any) => !['paid', 'cancelled'].includes(String(invoice.status ?? '')));
+    const overdueInvoices = openInvoices.filter((invoice: any) => invoice.due_date && invoice.due_date < today);
+    const receivedPurchases = purchases.filter((po: any) => String(po.status ?? '').toLowerCase() === 'received');
+    const approvedExpenses = expenseClaims.filter((claim) => ['approved', 'paid'].includes(String(claim.status ?? '')));
+    const submittedExpenses = expenseClaims.filter((claim) => String(claim.status ?? '') === 'submitted');
+    const finalizedPayroll = payrollRuns.filter((run) => String(run.status ?? '') !== 'draft');
+    const activeBudget = moneySum(budgets, 'total_budget');
+    const budgetActuals = budgetLines.reduce((sum, line: any) => sum + Number(line.actual_amount || 0), 0);
+    const expenseTotalFromTransactions = transactions
+      .filter((txn: any) => String(txn.type ?? '') === 'expense')
+      .reduce((sum: number, txn: any) => sum + Number(txn.amount || 0), 0);
+    const actualSpend = budgetActuals > 0 ? budgetActuals : expenseTotalFromTransactions;
+    const netProfit = finance.totalRevenue - finance.totalExpenses;
+    const profitMargin = percent(netProfit, finance.totalRevenue);
+    const expenseRatio = percent(finance.totalExpenses, finance.totalRevenue || 1);
+    const currentRatio = finance.totalLiabilities > 0 ? finance.totalAssets / finance.totalLiabilities : 0;
+    const budgetUtilization = percent(actualSpend, activeBudget || 1);
+    const payrollGross = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_gross || 0), 0);
+    const payrollNet = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_net || 0), 0);
+    const fixedAssetValue = moneySum(fixedAssets, 'current_value');
+    const depreciationTotal = moneySum(depreciationEntries, 'depreciation_amount');
+    const salesDelivered = sales.filter((order: any) => ['delivered', 'shipped'].includes(String(order.status ?? '').toLowerCase()));
+    const salesDeliveredTotal = moneySum(salesDelivered, 'total_amount');
+    const purchaseReceivedTotal = moneySum(receivedPurchases, 'total_amount');
+    const expenseTransactions = transactions.filter((txn: any) => String(txn.category ?? '') === 'Employee Expenses');
+    const payrollTransactions = transactions.filter((txn: any) => ['Salary Expense', 'Payroll Deductions'].includes(String(txn.category ?? '')));
+    const depreciationTransactions = transactions.filter((txn: any) => /depreciation/i.test(String(txn.category ?? '')));
+    const sourceModuleCounts = vouchers.reduce((acc: Record<string, number>, voucher: any) => {
+      const moduleKey = String(voucher.source_module ?? 'manual');
+      acc[moduleKey] = (acc[moduleKey] || 0) + 1;
+      return acc;
+    }, {});
 
-      // AP from liability accounts containing "Payable"
-      const accountsPayable = accounts
-        .filter((a: any) => a.account_type === 'liability')
-        .reduce((s: number, a: any) => s + Number(a.balance || 0), 0);
+    const moduleCards: ModuleCard[] = [
+      {
+        key: 'general-ledger',
+        name: 'General Ledger',
+        description: 'Live chart of accounts, posted vouchers, and balancing control.',
+        route: '/accounting/ledger',
+        icon: BookOpen,
+        metric: `${finance.trialBalance.length} active accounts`,
+        detail: `${vouchers.filter((voucher) => voucher.status === 'posted').length} posted vouchers`,
+      },
+      {
+        key: 'accounts-receivable',
+        name: 'Accounts Receivable',
+        description: 'Outstanding customer invoices and collection exposure.',
+        route: '/invoices',
+        icon: FileText,
+        metric: moneyOrDash(formatMoney, openInvoices.reduce((sum: number, invoice: any) => sum + Number(invoice.total_amount || 0), 0)),
+        detail: `${overdueInvoices.length} overdue · ${customers.length} customers`,
+      },
+      {
+        key: 'accounts-payable',
+        name: 'Accounts Payable',
+        description: 'Received procurement commitments and supplier exposure.',
+        route: '/procurement',
+        icon: CreditCard,
+        metric: moneyOrDash(formatMoney, finance.payablesBalance || purchaseReceivedTotal),
+        detail: `${receivedPurchases.length} received POs · ${suppliers.length} suppliers`,
+      },
+      {
+        key: 'budgeting',
+        name: 'Budgeting & Planning',
+        description: 'Budget envelopes, actuals, and utilization trends.',
+        route: '/budgets',
+        icon: PiggyBank,
+        metric: `${budgets.length} budgets`,
+        detail: `${budgetUtilization}% utilized · ${moneyOrDash(formatMoney, activeBudget)}`,
+      },
+      {
+        key: 'tax-management',
+        name: 'Tax Management',
+        description: 'Tax settings and live liability visibility from finance flows.',
+        route: '/tax-calendar',
+        icon: Shield,
+        metric: moneyOrDash(formatMoney, finance.taxBalance),
+        detail: `${taxRates.length} tax rules configured`,
+      },
+      {
+        key: 'fixed-assets',
+        name: 'Fixed Assets',
+        description: 'Asset register, net book value, and depreciation activity.',
+        route: '/assets',
+        icon: Landmark,
+        metric: moneyOrDash(formatMoney, fixedAssetValue),
+        detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} depreciation`,
+      },
+      {
+        key: 'cash-bank',
+        name: 'Cash & Bank',
+        description: 'Liquidity from finance-ledger cash and bank accounts.',
+        route: '/expenses',
+        icon: Banknote,
+        metric: moneyOrDash(formatMoney, finance.cashBalance),
+        detail: `${transactions.length} cash-impacting finance transactions`,
+      },
+      {
+        key: 'reporting',
+        name: 'Financial Reporting',
+        description: 'Real-time statements backed by posted accounting activity.',
+        route: '/accounting/reports',
+        icon: BarChart3,
+        metric: finance.trialDifference < 0.01 ? 'Trial balance matched' : 'Trial balance needs review',
+        detail: `${postedStatementsCount(sourceModuleCounts)} auto-posted module feeds`,
+      },
+    ];
 
-      const taxLiability = accounts
-        .filter((a: any) => a.account_type === 'liability')
-        .reduce((s: number, a: any) => s + Number(a.balance || 0), 0) * 0.18;
+    const integrationPoints: IntegrationPoint[] = [
+      {
+        source: 'Sales / POS',
+        target: 'General Ledger + AR',
+        status: integrationStatus(salesDelivered.length, sourceModuleCounts.sales || 0),
+        detail: `${salesDelivered.length} delivered orders · ${(sourceModuleCounts.sales || 0)} finance postings · ${moneyOrDash(formatMoney, salesDeliveredTotal)}`,
+      },
+      {
+        source: 'Procurement',
+        target: 'General Ledger + AP',
+        status: integrationStatus(receivedPurchases.length, sourceModuleCounts.procurement || 0),
+        detail: `${receivedPurchases.length} received POs · ${(sourceModuleCounts.procurement || 0)} finance postings · ${moneyOrDash(formatMoney, purchaseReceivedTotal)}`,
+      },
+      {
+        source: 'Production',
+        target: 'Inventory + General Ledger',
+        status: integrationStatus(
+          countWhere(productionOrders, (order) => String(order.status ?? '').toLowerCase() === 'completed'),
+          sourceModuleCounts.production || 0,
+        ),
+        detail: `${countWhere(productionOrders, (order) => String(order.status ?? '').toLowerCase() === 'completed')} completed orders · ${(sourceModuleCounts.production || 0)} finance postings`,
+      },
+      {
+        source: 'HR / Payroll',
+        target: 'Expense + Statutory Liability',
+        status: integrationStatus(finalizedPayroll.length, payrollTransactions.length),
+        detail: `${finalizedPayroll.length} payroll runs · ${payrollTransactions.length} payroll finance entries · ${moneyOrDash(formatMoney, payrollNet || payrollGross)}`,
+      },
+      {
+        source: 'Expense Claims',
+        target: 'Operating Expense',
+        status: integrationStatus(approvedExpenses.length, expenseTransactions.length),
+        detail: `${approvedExpenses.length} approved claims · ${expenseTransactions.length} finance entries · ${submittedExpenses.length} awaiting approval`,
+      },
+      {
+        source: 'Fixed Assets',
+        target: 'Depreciation + Balance Sheet',
+        status: integrationStatus(depreciationEntries.length || fixedAssets.length, depreciationTransactions.length),
+        detail: `${fixedAssets.length} assets · ${depreciationEntries.length} depreciation runs · ${depreciationTransactions.length} finance entries`,
+      },
+    ];
 
-      setKpis({
-        totalRevenue, totalExpenses, netProfit: totalRevenue - totalExpenses,
-        cashBalance, accountsReceivable, accountsPayable,
-        totalAssets, totalLiabilities, totalEquity,
-        fixedAssetsValue, budgetUtilization, pendingInvoices, overdueInvoices, taxLiability,
-      });
-    } catch (e) {
-      console.warn('[FinancialManagement] load kpis failed', e);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const profitMargin = kpis.totalRevenue > 0 ? Math.round((kpis.netProfit / kpis.totalRevenue) * 100) : 0;
-  const currentRatio = kpis.totalLiabilities > 0 ? (kpis.totalAssets / kpis.totalLiabilities).toFixed(2) : '—';
+    return {
+      activeBudget,
+      approvedExpenses,
+      budgetUtilization,
+      currentRatio,
+      depreciationTotal,
+      expenseRatio,
+      expenseTransactions,
+      fixedAssetValue,
+      integrationPoints,
+      moduleCards,
+      netProfit,
+      openInvoices,
+      overdueInvoices,
+      payrollGross,
+      payrollNet,
+      payrollTransactions,
+      profitMargin,
+      receivables: finance.receivablesBalance || openInvoices.reduce((sum: number, invoice: any) => sum + Number(invoice.total_amount || 0), 0),
+      payables: finance.payablesBalance || purchaseReceivedTotal,
+      salesDelivered,
+      salesDeliveredTotal,
+      submittedExpenses,
+      taxLiability: finance.taxBalance,
+      totalAssets: finance.totalAssets,
+      totalExpenses: finance.totalExpenses,
+      totalLiabilities: finance.totalLiabilities,
+      totalEquity: finance.totalEquity,
+      totalRevenue: finance.totalRevenue,
+    };
+  }, [
+    budgets,
+    budgetLines,
+    coa,
+    depreciationEntries,
+    expenseClaims,
+    finance.cashBalance,
+    finance.payablesBalance,
+    finance.receivablesBalance,
+    finance.taxBalance,
+    finance.totalAssets,
+    finance.totalEquity,
+    finance.totalExpenses,
+    finance.totalLiabilities,
+    finance.totalRevenue,
+    finance.trialBalance.length,
+    finance.trialDifference,
+    fixedAssets,
+    formatMoney,
+    invoices,
+    payrollRuns,
+    productionOrders,
+    purchases,
+    sales,
+    suppliers.length,
+    taxRates.length,
+    transactions,
+    vouchers,
+    customers.length,
+  ]);
 
   return (
-    <AppLayout title="Financial Management" subtitle="Unified CFO command center across all financial sub-modules">
+    <AppLayout title="Financial Management" subtitle="Live CFO visibility across the connected finance engine">
       <div className="space-y-6">
-        {/* Header with company switcher */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-              <Building2 className="w-5 h-5" />
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Real-time financial visibility</p>
-              <p className="text-xs text-muted-foreground/70">
-                Reporting currency: <span className="font-medium text-foreground">{displayCurrency}</span>
-              </p>
+              <p className="text-sm text-muted-foreground">Connected finance data from operations, accounting, and reporting</p>
+              <p className="text-xs text-muted-foreground">Reporting currency: <span className="font-medium text-foreground">{displayCurrency}</span></p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <CompanySwitcher />
             <Button variant="outline" size="sm" onClick={() => navigate('/accounting/reports')}>
-              <BarChart3 className="w-4 h-4 mr-1.5" /> Full Reports
+              <BarChart3 className="mr-1.5 h-4 w-4" /> Reports
             </Button>
             <Button size="sm" onClick={() => navigate('/ai-cfo')}>
-              <Activity className="w-4 h-4 mr-1.5" /> Ask CFO AI
+              <Activity className="mr-1.5 h-4 w-4" /> CFO AI
             </Button>
           </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList className="bg-muted/40 flex-wrap h-auto">
+          <TabsList className="h-auto flex-wrap bg-muted/40">
             <TabsTrigger value="overview">CFO Overview</TabsTrigger>
             <TabsTrigger value="modules">Sub-Modules</TabsTrigger>
             <TabsTrigger value="health">Financial Health</TabsTrigger>
             <TabsTrigger value="integration">Integration Map</TabsTrigger>
           </TabsList>
 
-          {/* ─── CFO OVERVIEW ─────────────────────────── */}
           <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KpiCard
-                label="Net Profit"
-                value={loading ? null : formatMoney(kpis.netProfit)}
-                icon={kpis.netProfit >= 0 ? TrendingUp : TrendingDown}
-                trend={kpis.netProfit >= 0 ? 'up' : 'down'}
-                hint={`${profitMargin}% margin`}
-              />
-              <KpiCard
-                label="Total Revenue"
-                value={loading ? null : formatMoney(kpis.totalRevenue)}
-                icon={DollarSign}
-                trend="up"
-                hint="All sources"
-              />
-              <KpiCard
-                label="Total Expenses"
-                value={loading ? null : formatMoney(kpis.totalExpenses)}
-                icon={Receipt}
-                trend="neutral"
-                hint={`Budget ${kpis.budgetUtilization}% used`}
-              />
-              <KpiCard
-                label="Cash & Bank"
-                value={loading ? null : formatMoney(kpis.cashBalance)}
-                icon={Wallet}
-                trend="up"
-                hint="Liquid assets"
-              />
+            <div className="grid gap-3 md:grid-cols-4">
+              <KpiCard label="Net Profit" value={isLoading ? null : formatMoney(metrics.netProfit)} icon={metrics.netProfit >= 0 ? TrendingUp : TrendingDown} hint={`${metrics.profitMargin}% margin`} />
+              <KpiCard label="Total Revenue" value={isLoading ? null : formatMoney(metrics.totalRevenue)} icon={Receipt} hint={`${metrics.salesDelivered.length} delivered sales orders`} />
+              <KpiCard label="Total Expenses" value={isLoading ? null : formatMoney(metrics.totalExpenses)} icon={Calculator} hint={`${metrics.budgetUtilization}% of budget used`} />
+              <KpiCard label="Cash & Bank" value={isLoading ? null : formatMoney(finance.cashBalance)} icon={Wallet} hint="Live cash-account balance" />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KpiCard
-                label="Accounts Receivable"
-                value={loading ? null : formatMoney(kpis.accountsReceivable)}
-                icon={FileText}
-                trend="neutral"
-                hint={`${kpis.pendingInvoices} pending`}
-                accent="emerald"
-              />
-              <KpiCard
-                label="Accounts Payable"
-                value={loading ? null : formatMoney(kpis.accountsPayable)}
-                icon={CreditCard}
-                trend="neutral"
-                hint="Outstanding bills"
-                accent="amber"
-              />
-              <KpiCard
-                label="Fixed Assets"
-                value={loading ? null : formatMoney(kpis.fixedAssetsValue)}
-                icon={Landmark}
-                trend="neutral"
-                hint="Net book value"
-                accent="indigo"
-              />
-              <KpiCard
-                label="Tax Liability"
-                value={loading ? null : formatMoney(kpis.taxLiability)}
-                icon={Shield}
-                trend="neutral"
-                hint="Estimated"
-                accent="red"
-              />
+            <div className="grid gap-3 md:grid-cols-4">
+              <KpiCard label="Accounts Receivable" value={isLoading ? null : formatMoney(metrics.receivables)} icon={FileText} hint={`${metrics.overdueInvoices.length} overdue invoices`} />
+              <KpiCard label="Accounts Payable" value={isLoading ? null : formatMoney(metrics.payables)} icon={CreditCard} hint={`${metrics.salesDelivered.length > 0 ? metrics.salesDelivered.length : purchases.length} finance-linked source docs`} />
+              <KpiCard label="Fixed Assets" value={isLoading ? null : formatMoney(metrics.fixedAssetValue)} icon={Landmark} hint={`${fixedAssets.length} tracked assets`} />
+              <KpiCard label="Tax Liability" value={isLoading ? null : formatMoney(metrics.taxLiability)} icon={Shield} hint={`${taxRates.length} configured tax rates`} />
             </div>
 
-            {/* Balance sheet snapshot + alerts */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <Card className="md:col-span-2">
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Card className="lg:col-span-2">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Scale className="w-4 h-4 text-primary" /> Balance Sheet Snapshot
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Scale className="h-4 w-4 text-primary" /> Balance Sheet Snapshot
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <BalanceRow label="Total Assets" value={formatMoney(kpis.totalAssets)} positive />
-                  <BalanceRow label="Total Liabilities" value={formatMoney(kpis.totalLiabilities)} />
-                  <BalanceRow label="Total Equity" value={formatMoney(kpis.totalEquity)} positive bold />
-                  <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
+                  <BalanceRow label="Total Assets" value={isLoading ? '—' : formatMoney(metrics.totalAssets)} />
+                  <BalanceRow label="Total Liabilities" value={isLoading ? '—' : formatMoney(metrics.totalLiabilities)} />
+                  <BalanceRow label="Total Equity" value={isLoading ? '—' : formatMoney(metrics.totalEquity)} />
+                  <div className="flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
                     <span>Current Ratio</span>
-                    <span className="font-mono">{currentRatio}</span>
+                    <span className="font-mono text-foreground">{formatRatio(metrics.currentRatio)}</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-500" /> Alerts
-                  </CardTitle>
+                  <CardTitle className="text-base">CFO Signals</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <AlertRow
-                    icon={AlertCircle}
-                    color="text-red-500"
-                    label={`${kpis.overdueInvoices} overdue invoices`}
-                    onClick={() => navigate('/invoices')}
-                  />
-                  <AlertRow
-                    icon={CheckCircle2}
-                    color="text-emerald-500"
-                    label={`${kpis.pendingInvoices} pending invoices`}
-                    onClick={() => navigate('/invoices')}
-                  />
-                  <AlertRow
-                    icon={PiggyBank}
-                    color={kpis.budgetUtilization > 80 ? 'text-red-500' : 'text-emerald-500'}
-                    label={`Budget ${kpis.budgetUtilization}% utilized`}
-                    onClick={() => navigate('/budgets')}
-                  />
-                  <AlertRow
-                    icon={Shield}
-                    color="text-amber-500"
-                    label="Review tax filings"
-                    onClick={() => navigate('/tax-calendar')}
-                  />
+                  <AlertRow label={`${metrics.overdueInvoices.length} overdue invoices need follow-up`} onClick={() => navigate('/invoices')} />
+                  <AlertRow label={`${metrics.submittedExpenses.length} expense claims pending approval`} onClick={() => navigate('/expenses')} />
+                  <AlertRow label={`${metrics.budgetUtilization}% budget utilization across active budgets`} onClick={() => navigate('/budgets')} />
+                  <AlertRow label={finance.trialDifference < 0.01 ? 'Trial balance is matched in real time' : 'Trial balance difference needs review'} onClick={() => navigate('/accounting/reports')} />
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          {/* ─── SUB-MODULES ─────────────────────────── */}
           <TabsContent value="modules">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {SUB_MODULES.map((mod) => (
-                <Card
-                  key={mod.key}
-                  className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/40"
-                  onClick={() => navigate(mod.route)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center text-white', mod.color)}>
-                        <mod.icon className="w-5 h-5" />
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {metrics.moduleCards.map((module) => (
+                <Card key={module.key} className="cursor-pointer transition-shadow hover:shadow-sm" onClick={() => navigate(module.route)}>
+                  <CardContent className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <module.icon className="h-5 w-5" />
                       </div>
-                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-sm text-foreground mb-1">{mod.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{mod.description}</p>
-                    {mod.secondaryRoutes && (
-                      <div className="flex flex-wrap gap-1 pt-2 border-t border-border/50">
-                        {mod.secondaryRoutes.map((sub) => (
-                          <Badge
-                            key={sub.route}
-                            variant="secondary"
-                            className="text-[10px] cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                            onClick={(e) => { e.stopPropagation(); navigate(sub.route); }}
-                          >
-                            {sub.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">{module.name}</h3>
+                      <p className="mt-1 text-xs text-muted-foreground">{module.description}</p>
+                    </div>
+                    <div className="space-y-1 border-t pt-3">
+                      <p className="text-sm font-semibold text-foreground">{module.metric}</p>
+                      <p className="text-xs text-muted-foreground">{module.detail}</p>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </TabsContent>
 
-          {/* ─── FINANCIAL HEALTH ─────────────────────── */}
           <TabsContent value="health" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Profitability</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <HealthBar label="Profit Margin" value={profitMargin} max={100} suffix="%" />
-                  <HealthBar
-                    label="Revenue Growth"
-                    value={kpis.totalRevenue > 0 ? 12 : 0}
-                    max={50}
-                    suffix="% MoM"
-                  />
-                  <HealthBar label="Expense Ratio"
-                    value={kpis.totalRevenue > 0 ? Math.round((kpis.totalExpenses / kpis.totalRevenue) * 100) : 0}
-                    max={100} suffix="%" inverse
-                  />
+                  <HealthBar label="Profit Margin" value={metrics.profitMargin} max={100} suffix="%" />
+                  <HealthBar label="Expense Ratio" value={metrics.expenseRatio} max={100} suffix="%" inverse />
+                  <HealthBar label="Budget Utilization" value={metrics.budgetUtilization} max={100} suffix="%" inverse />
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Liquidity & Solvency</CardTitle>
+                  <CardTitle className="text-base">Liquidity & Coverage</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <HealthBar label="Cash Coverage"
-                    value={kpis.totalExpenses > 0 ? Math.round((kpis.cashBalance / kpis.totalExpenses) * 100) : 100}
-                    max={100} suffix="%"
-                  />
-                  <HealthBar label="Budget Utilization" value={kpis.budgetUtilization} max={100} suffix="%" inverse />
-                  <HealthBar label="AR / AP Ratio"
-                    value={kpis.accountsPayable > 0 ? Math.round((kpis.accountsReceivable / kpis.accountsPayable) * 100) : 100}
-                    max={200} suffix="%"
-                  />
+                  <HealthBar label="Cash Coverage" value={percent(finance.cashBalance, metrics.totalExpenses || 1)} max={100} suffix="%" />
+                  <HealthBar label="AR / AP Ratio" value={percent(metrics.receivables, metrics.payables || 1)} max={200} suffix="%" />
+                  <HealthBar label="Payroll as Expense Share" value={percent(metrics.payrollGross, metrics.totalExpenses || 1)} max={100} suffix="%" inverse />
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          {/* ─── INTEGRATION MAP ─────────────────────── */}
           <TabsContent value="integration">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Module Integration Points</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3 text-sm">
-                  <IntegrationRow
-                    source="Sales / POS"
-                    target="General Ledger + AR"
-                    description="Sales orders auto-post to revenue & receivable accounts via auto-voucher trigger"
-                  />
-                  <IntegrationRow
-                    source="Procurement"
-                    target="General Ledger + AP"
-                    description="Purchase orders auto-create supplier bills and payable entries on receipt"
-                  />
-                  <IntegrationRow
-                    source="HR / Payroll"
-                    target="General Ledger + Cash"
-                    description="Payroll runs post salary expense and tax liability entries"
-                  />
-                  <IntegrationRow
-                    source="Inventory"
-                    target="General Ledger"
-                    description="Stock movements update COGS and inventory asset accounts in real time"
-                  />
-                  <IntegrationRow
-                    source="Production"
-                    target="General Ledger"
-                    description="Completed orders transfer WIP to finished goods inventory"
-                  />
-                  <IntegrationRow
-                    source="Fixed Assets"
-                    target="General Ledger"
-                    description="Depreciation schedules post monthly journal entries automatically"
-                  />
-                </div>
+              <CardContent className="space-y-3">
+                {metrics.integrationPoints.map((point) => (
+                  <IntegrationRow key={point.source} point={point} />
+                ))}
               </CardContent>
             </Card>
           </TabsContent>
@@ -489,94 +622,98 @@ export default function FinancialManagement() {
   );
 }
 
-// ─── Helper components ───────────────────────────────────────────
+function postedStatementsCount(sourceModuleCounts: Record<string, number>) {
+  return ['sales', 'procurement', 'production'].reduce((sum, key) => sum + Number(sourceModuleCounts[key] || 0), 0);
+}
 
 function KpiCard({
-  label, value, icon: Icon, trend, hint, accent,
+  label,
+  value,
+  icon: Icon,
+  hint,
 }: {
-  label: string; value: string | null; icon: any;
-  trend: 'up' | 'down' | 'neutral'; hint?: string;
-  accent?: 'emerald' | 'amber' | 'indigo' | 'red';
+  label: string;
+  value: string | null;
+  icon: typeof Activity;
+  hint?: string;
 }) {
-  const accentMap: Record<string, string> = {
-    emerald: 'text-emerald-600 bg-emerald-500/10',
-    amber: 'text-amber-600 bg-amber-500/10',
-    indigo: 'text-indigo-600 bg-indigo-500/10',
-    red: 'text-red-600 bg-red-500/10',
-  };
-  const trendColor = trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-red-500' : 'text-muted-foreground';
   return (
     <Card>
-      <CardContent className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-          <div className={cn('w-7 h-7 rounded-md flex items-center justify-center',
-            accent ? accentMap[accent] : 'bg-primary/10 text-primary')}>
-            <Icon className={cn('w-3.5 h-3.5', trendColor)} />
+      <CardContent className="p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Icon className="h-4 w-4" />
           </div>
         </div>
-        {value === null ? (
-          <Skeleton className="h-7 w-24" />
-        ) : (
-          <p className="text-lg font-bold text-foreground tabular-nums">{value}</p>
-        )}
-        {hint && <p className="text-[10px] text-muted-foreground mt-1">{hint}</p>}
+        {value === null ? <Skeleton className="h-7 w-28" /> : <p className="text-lg font-bold tabular-nums text-foreground">{value}</p>}
+        {hint ? <p className="mt-1 text-[10px] text-muted-foreground">{hint}</p> : null}
       </CardContent>
     </Card>
   );
 }
 
-function BalanceRow({ label, value, positive, bold }: { label: string; value: string; positive?: boolean; bold?: boolean }) {
+function BalanceRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className={cn('flex items-center justify-between text-sm', bold && 'font-semibold')}>
+    <div className="flex items-center justify-between text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className={cn('tabular-nums', positive ? 'text-emerald-600' : 'text-foreground')}>{value}</span>
+      <span className="font-medium tabular-nums text-foreground">{value}</span>
     </div>
   );
 }
 
-function AlertRow({ icon: Icon, color, label, onClick }: { icon: any; color: string; label: string; onClick: () => void }) {
+function AlertRow({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex items-center gap-2 w-full text-left text-xs hover:bg-muted/50 rounded-md p-2 transition-colors"
-    >
-      <Icon className={cn('w-3.5 h-3.5', color)} />
-      <span className="flex-1">{label}</span>
-      <ArrowRight className="w-3 h-3 text-muted-foreground" />
+    <button onClick={onClick} className="flex w-full items-center gap-2 rounded-md border bg-muted/30 p-2 text-left text-xs transition-colors hover:bg-muted/60">
+      <ArrowRight className="h-3.5 w-3.5 text-primary" />
+      <span className="flex-1 text-foreground">{label}</span>
     </button>
   );
 }
 
-function HealthBar({ label, value, max, suffix, inverse }: {
-  label: string; value: number; max: number; suffix?: string; inverse?: boolean;
+function HealthBar({
+  label,
+  value,
+  max,
+  suffix,
+  inverse,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  suffix?: string;
+  inverse?: boolean;
 }) {
-  const pct = Math.min(100, Math.max(0, (value / max) * 100));
-  const color = inverse
-    ? pct > 75 ? 'bg-red-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500'
-    : pct > 50 ? 'bg-emerald-500' : pct > 25 ? 'bg-amber-500' : 'bg-red-500';
+  const safeValue = Math.max(0, Math.min(value, max));
+  const width = `${Math.max(6, Math.round((safeValue / max) * 100))}%`;
+  const tone = inverse && safeValue > max * 0.75 ? 'bg-destructive' : 'bg-primary';
+
   return (
     <div>
-      <div className="flex items-center justify-between text-xs mb-1.5">
+      <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
-        <span className="font-mono font-medium">{value}{suffix}</span>
+        <span className="font-mono font-medium text-foreground">{value}{suffix}</span>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
-        <div className={cn('h-full transition-all', color)} style={{ width: `${pct}%` }} />
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div className={cn('h-full transition-all', tone)} style={{ width }} />
       </div>
     </div>
   );
 }
 
-function IntegrationRow({ source, target, description }: { source: string; target: string; description: string }) {
+function IntegrationRow({ point }: { point: IntegrationPoint }) {
+  const variant = point.status === 'connected' ? 'default' : point.status === 'partial' ? 'secondary' : 'outline';
+  const label = point.status === 'connected' ? 'Connected' : point.status === 'partial' ? 'Needs review' : 'No activity yet';
+
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/40">
-      <div className="flex items-center gap-2 shrink-0">
-        <Badge variant="outline" className="text-[10px]">{source}</Badge>
-        <ArrowRight className="w-3 h-3 text-muted-foreground" />
-        <Badge variant="secondary" className="text-[10px]">{target}</Badge>
+    <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Badge variant="outline">{point.source}</Badge>
+        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+        <Badge variant="secondary">{point.target}</Badge>
+        <Badge variant={variant}>{label}</Badge>
       </div>
-      <p className="text-xs text-muted-foreground flex-1">{description}</p>
+      <p className="text-xs text-muted-foreground md:max-w-[60%] md:text-right">{point.detail}</p>
     </div>
   );
 }
