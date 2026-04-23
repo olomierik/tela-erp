@@ -192,14 +192,23 @@ export default function FinancialReports() {
   return (
     <AppLayout title="Financial Reports">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-xl font-bold text-foreground">Financial Reports</h1>
-            <p className="text-sm text-muted-foreground">Real-time financial statements from the accounting engine</p>
+            <p className="text-sm text-muted-foreground">Real-time statements from all posted vouchers (manual + auto from Sales, Purchases, Production)</p>
           </div>
-          <Button size="sm" variant="outline" onClick={loadReports} className="gap-1.5">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={tab === 'trial-balance' ? downloadTrialBalance : tab === 'profit-loss' ? downloadProfitLoss : downloadBalanceSheet}
+              className="gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" /> Download PDF
+            </Button>
+            <Button size="sm" variant="outline" onClick={loadReports} className="gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            </Button>
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
