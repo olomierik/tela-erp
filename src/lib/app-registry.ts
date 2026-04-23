@@ -111,6 +111,17 @@ export const APP_CATALOG: AppDefinition[] = [
 
   // ─── Finance ─────────────────────────────────────────────────
   {
+    key: 'financial-management',
+    name: 'Financial Management',
+    summary: 'Unified CFO command center',
+    description: 'All-in-one finance suite: General Ledger, AR, AP, Budgets, Tax, Fixed Assets, Cash & Bank, and Financial Reporting with multi-currency, multi-entity support and real-time CFO dashboard.',
+    category: 'finance',
+    icon: 'Building2',
+    color: 'bg-gradient-to-br from-indigo-500 to-blue-600',
+    routes: ['/financial-management'],
+    tags: ['cfo', 'finance', 'gl', 'ar', 'ap', 'budgets', 'tax', 'reports'],
+  },
+  {
     key: 'accounting',
     name: 'Accounting',
     summary: 'Double-entry bookkeeping',

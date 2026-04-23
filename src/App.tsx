@@ -62,6 +62,7 @@ import Expenses from "./pages/Expenses";
 import Budgets from "./pages/Budgets";
 import AutomationBuilder from "./pages/AutomationBuilder";
 import AppsStore from "./pages/AppsStore";
+import FinancialManagement from "./pages/FinancialManagement";
 import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
 import Fleet from "./pages/Fleet";
@@ -167,6 +168,7 @@ const App = () => (
               <Route path="/budgets" element={<ProtectedRoute><Budgets /></ProtectedRoute>} />
               <Route path="/automations" element={<ProtectedRoute><AutomationBuilder /></ProtectedRoute>} />
               <Route path="/apps" element={<ProtectedRoute><AppsStore /></ProtectedRoute>} />
+              <Route path="/financial-management" element={<ProtectedRoute><FinancialManagement /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/fleet" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />
               <Route path="/maintenance" element={<ProtectedRoute><Maintenance /></ProtectedRoute>} />

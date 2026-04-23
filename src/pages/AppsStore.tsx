@@ -5,7 +5,7 @@ import {
   Factory, Users, Globe, Megaphone, ArrowRightLeft, ArrowLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Briefcase, Brain, Receipt, Store,
-  ScanLine, UserPlus, PiggyBank, Landmark,
+  ScanLine, UserPlus, PiggyBank, Landmark, Building2,
   Search, Check, Download, X, Grid3X3, Star,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ const ICON_MAP: Record<string, any> = {
   Factory, Users, Globe, Megaphone, ArrowRightLeft,
   UserCircle, FolderKanban, Calculator, BarChart3,
   Settings, Briefcase, Brain, Receipt, Store,
-  ScanLine, UserPlus, PiggyBank, Landmark,
+  ScanLine, UserPlus, PiggyBank, Landmark, Building2,
 };
 
 function getIcon(name: string) {
