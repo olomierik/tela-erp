@@ -591,7 +591,11 @@ export default function FinancialManagement() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <BalanceRow label="Total Assets" value={isLoading ? '—' : formatMoney(metrics.totalAssets)} />
+                  <BalanceRow label="Total Assets (GL)" value={isLoading ? '—' : formatMoney(metrics.totalAssets)} />
+                  <BalanceRow label="↳ Cash & Bank" value={isLoading ? '—' : formatMoney(finance.cashBalance)} />
+                  <BalanceRow label="↳ Receivables" value={isLoading ? '—' : formatMoney(metrics.receivables)} />
+                  <BalanceRow label="↳ Inventory @ Cost (operational)" value={isLoading ? '—' : formatMoney(metrics.inventoryStockValue)} />
+                  <BalanceRow label="↳ Fixed Assets" value={isLoading ? '—' : formatMoney(metrics.fixedAssetValue)} />
                   <BalanceRow label="Total Liabilities" value={isLoading ? '—' : formatMoney(metrics.totalLiabilities)} />
                   <BalanceRow label="Total Equity" value={isLoading ? '—' : formatMoney(metrics.totalEquity)} />
                   <div className="flex items-center justify-between border-t pt-2 text-xs text-muted-foreground">
