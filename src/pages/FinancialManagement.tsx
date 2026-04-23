@@ -132,6 +132,7 @@ export default function FinancialManagement() {
   const { data: coaData } = useTenantQuery('chart_of_accounts');
   const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
   const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
+  const { data: inventoryData } = useTenantQuery('inventory_items');
 
   const sales = salesData ?? [];
   const purchases = purchaseData ?? [];
