@@ -79,6 +79,75 @@ export default function FinancialReports() {
   const tbTotalDebit = trialData.reduce((s, r) => s + Number(r.total_debit), 0);
   const tbTotalCredit = trialData.reduce((s, r) => s + Number(r.total_credit), 0);
 
+  // ── PDF download helpers ────────────────────────────────────────────────
+  const today = new Date().toLocaleDateString();
+  const tenantName = tenant?.name || 'TELA-ERP';
+
+  const downloadTrialBalance = () => {
+    if (!trialData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Trial Balance',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Debit', 'Credit', 'Balance'],
+      rows: trialData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Number(r.total_debit)),
+        formatMoney(Number(r.total_credit)),
+        formatMoney(Number(r.running_balance)),
+      ]),
+      stats: [
+        { label: 'Total Debit', value: formatMoney(tbTotalDebit) },
+        { label: 'Total Credit', value: formatMoney(tbTotalCredit) },
+        { label: 'Status', value: Math.abs(tbTotalDebit - tbTotalCredit) < 0.01 ? 'Balanced' : 'Out of balance' },
+      ],
+      numericColumns: [3, 4, 5],
+    });
+    toast.success('Trial Balance PDF downloaded');
+  };
+
+  const downloadProfitLoss = () => {
+    if (!plData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Profit & Loss Statement',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Amount'],
+      rows: plData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Math.abs(Number(r.running_balance))),
+      ]),
+      stats: [
+        { label: 'Total Revenue', value: formatMoney(totalIncome) },
+        { label: 'Total Expenses', value: formatMoney(totalExpenses) },
+        { label: 'Net Profit', value: formatMoney(netPL) },
+      ],
+      numericColumns: [3],
+    });
+    toast.success('Profit & Loss PDF downloaded');
+  };
+
+  const downloadBalanceSheet = () => {
+    if (!bsData.length) { toast.error('No data to export'); return; }
+    generatePDFReport({
+      title: 'Balance Sheet',
+      subtitle: `As at ${today}`,
+      tenantName,
+      headers: ['Code', 'Account', 'Type', 'Amount'],
+      rows: bsData.map(r => [
+        r.account_code, r.account_name, r.account_type,
+        formatMoney(Number(r.running_balance)),
+      ]),
+      stats: [
+        { label: 'Total Assets', value: formatMoney(totalAssets) },
+        { label: 'Total Liabilities', value: formatMoney(totalLiabilities) },
+        { label: 'Total Equity', value: formatMoney(totalEquity) },
+      ],
+      numericColumns: [3],
+    });
+    toast.success('Balance Sheet PDF downloaded');
+  };
+
   const ReportTable = ({ data, showType = false }: { data: ReportRow[]; showType?: boolean }) => (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
