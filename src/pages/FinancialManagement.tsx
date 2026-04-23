@@ -116,7 +116,7 @@ const SUB_MODULES = [
 export default function FinancialManagement() {
   const navigate = useNavigate();
   const { tenant, isDemo } = useAuth();
-  const { formatMoney, currency } = useCurrency();
+  const { formatMoney, displayCurrency } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<CFOKpis>({
     totalRevenue: 0, totalExpenses: 0, netProfit: 0, cashBalance: 0,
@@ -216,7 +216,7 @@ export default function FinancialManagement() {
             <div>
               <p className="text-sm text-muted-foreground">Real-time financial visibility</p>
               <p className="text-xs text-muted-foreground/70">
-                Reporting currency: <span className="font-medium text-foreground">{currency}</span>
+                Reporting currency: <span className="font-medium text-foreground">{displayCurrency}</span>
               </p>
             </div>
           </div>
