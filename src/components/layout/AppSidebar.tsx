@@ -11,7 +11,7 @@ import {
   UsersRound, PiggyBank, UserPlus, Grid3X3,
   Car, Wrench, ShoppingBag, RefreshCw, Lightbulb,
   Scale, CalendarDays, TrendingDown, ClipboardList,
-  Upload, AlertTriangle, Zap, FileSearch,
+  Upload, AlertTriangle, Zap, FileSearch, Building2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -71,6 +71,13 @@ const navSections: NavSection[] = [
       { label: 'Suppliers', icon: UserPlus, path: '/suppliers', module: 'procurement' },
       { label: 'Transfers', icon: ArrowRightLeft, path: '/transfers', module: 'inventory' },
       { label: 'Production', icon: Factory, path: '/production', module: 'production' },
+    ],
+  },
+  {
+    title: 'Financial Management',
+    appKey: 'financial-management',
+    items: [
+      { label: 'CFO Command Center', icon: Building2, path: '/financial-management', appKey: 'financial-management' },
     ],
   },
   {
