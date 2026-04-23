@@ -71,7 +71,6 @@ const REALTIME_TABLES = [
   'budgets',
   'budget_lines',
   'fixed_assets',
-  'asset_depreciation_entries',
   'expense_claims',
   'expense_items',
   'payroll_runs',
@@ -129,7 +128,6 @@ export default function FinancialManagement() {
   const { data: coaData } = useTenantQuery('chart_of_accounts');
   const { data: voucherData } = useTenantQuery('accounting_vouchers' as any);
   const { data: voucherEntryData } = useTenantQuery('accounting_voucher_entries' as any);
-  const { data: depreciationEntryData } = useTenantQuery('asset_depreciation_entries' as any);
 
   const sales = salesData ?? [];
   const purchases = purchaseData ?? [];
@@ -147,7 +145,6 @@ export default function FinancialManagement() {
   const coa = (coaData ?? []) as any[];
   const vouchers = (voucherData ?? []) as any[];
   const voucherEntries = (voucherEntryData ?? []) as any[];
-  const depreciationEntries = (depreciationEntryData ?? []) as any[];
 
   const isLoading = [
     salesData,
@@ -166,18 +163,17 @@ export default function FinancialManagement() {
     coaData,
     voucherData,
     voucherEntryData,
-    depreciationEntryData,
   ].some((value) => value === undefined);
 
   useEffect(() => {
     if (!tenant?.id || isDemo) return;
 
     const invalidate = (table: string) => {
-      queryClient.invalidateQueries({ queryKey: [table, tenant.id] });
+      queryClient.invalidateQueries({ queryKey: [table] });
       if (table === 'accounting_vouchers' || table === 'accounting_voucher_entries' || table === 'chart_of_accounts') {
-        queryClient.invalidateQueries({ queryKey: ['accounting_vouchers', tenant.id] });
-        queryClient.invalidateQueries({ queryKey: ['accounting_voucher_entries', tenant.id] });
-        queryClient.invalidateQueries({ queryKey: ['chart_of_accounts', tenant.id] });
+        queryClient.invalidateQueries({ queryKey: ['accounting_vouchers'] });
+        queryClient.invalidateQueries({ queryKey: ['accounting_voucher_entries'] });
+        queryClient.invalidateQueries({ queryKey: ['chart_of_accounts'] });
       }
     };
 
@@ -283,7 +279,7 @@ export default function FinancialManagement() {
     const payrollGross = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_gross || 0), 0);
     const payrollNet = finalizedPayroll.reduce((sum, run) => sum + Number(run.total_net || 0), 0);
     const fixedAssetValue = moneySum(fixedAssets, 'current_value');
-    const depreciationTotal = moneySum(depreciationEntries, 'depreciation_amount');
+    const depreciationTotal = moneySum(fixedAssets, 'accumulated_depreciation');
     const salesDelivered = sales.filter((order: any) => ['delivered', 'shipped'].includes(String(order.status ?? '').toLowerCase()));
     const salesDeliveredTotal = moneySum(salesDelivered, 'total_amount');
     const purchaseReceivedTotal = moneySum(receivedPurchases, 'total_amount');
@@ -408,8 +404,8 @@ export default function FinancialManagement() {
       {
         source: 'Fixed Assets',
         target: 'Depreciation + Balance Sheet',
-        status: integrationStatus(depreciationEntries.length || fixedAssets.length, depreciationTransactions.length),
-        detail: `${fixedAssets.length} assets · ${depreciationEntries.length} depreciation runs · ${depreciationTransactions.length} finance entries`,
+        status: integrationStatus(fixedAssets.length, depreciationTransactions.length),
+        detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} accumulated depreciation · ${depreciationTransactions.length} finance entries`,
       },
     ];
 
@@ -447,7 +443,6 @@ export default function FinancialManagement() {
     budgets,
     budgetLines,
     coa,
-    depreciationEntries,
     expenseClaims,
     finance.cashBalance,
     finance.payablesBalance,
