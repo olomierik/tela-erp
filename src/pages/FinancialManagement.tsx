@@ -377,6 +377,7 @@ export default function FinancialManagement() {
         route: '/assets',
         icon: Landmark,
         metric: moneyOrDash(formatMoney, fixedAssetValue),
+        detail: `${fixedAssets.length} assets · ${moneyOrDash(formatMoney, depreciationTotal)} depreciation`,
       },
       {
         key: 'inventory',
