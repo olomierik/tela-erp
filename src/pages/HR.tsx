@@ -3,8 +3,10 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Users, Plus, Search, UserX, Calendar,
-  DollarSign, Building2, Edit, CheckCircle, XCircle, Download, Loader2,
+  DollarSign, Building2, Edit, CheckCircle, XCircle, Download, Loader2, FileText,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -383,7 +385,157 @@ export default function HR() {
   const totalNet          = payrollData.reduce((s, e) => s + e.net, 0);
   const totalEmployerCost = payrollData.reduce((s, e) => s + e.totalEmployerCost, 0);
 
-  const month = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  // ── Selected payslip month (YYYY-MM) ──────────────────────────────────────
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const monthLabel = (() => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+  })();
+  const month = monthLabel;
+
+  // ── Payslip PDF generator (one employee) ──────────────────────────────────
+  const generatePayslipPDF = (emp: any, openInNewTab = false) => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const companyName = tenant?.name || 'Company';
+    const companyAddress = (tenant as any)?.address || '';
+    const companyTin = (tenant as any)?.tin || '';
+
+    // Header band
+    doc.setFillColor(79, 70, 229); // indigo-600
+    doc.rect(0, 0, pageWidth, 70, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAYSLIP', 40, 32);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Pay Period: ${monthLabel}`, 40, 52);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName, pageWidth - 40, 32, { align: 'right' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    if (companyAddress) doc.text(companyAddress, pageWidth - 40, 48, { align: 'right' });
+    if (companyTin) doc.text(`TIN: ${companyTin}`, pageWidth - 40, 60, { align: 'right' });
+
+    // Employee block
+    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(10);
+    let y = 100;
+    const labelX = 40, valX = 160, label2X = 320, val2X = 440;
+    doc.setFont('helvetica', 'bold'); doc.text('Employee:', labelX, y);
+    doc.setFont('helvetica', 'normal'); doc.text(String(emp.full_name || '—'), valX, y);
+    doc.setFont('helvetica', 'bold'); doc.text('Employee ID:', label2X, y);
+    doc.setFont('helvetica', 'normal'); doc.text(String(emp.id).slice(0, 8).toUpperCase(), val2X, y);
+    y += 16;
+    doc.setFont('helvetica', 'bold'); doc.text('Position:', labelX, y);
+    doc.setFont('helvetica', 'normal'); doc.text(String(emp.position || '—'), valX, y);
+    doc.setFont('helvetica', 'bold'); doc.text('Department:', label2X, y);
+    doc.setFont('helvetica', 'normal'); doc.text(String(emp.department || '—'), val2X, y);
+    y += 16;
+    doc.setFont('helvetica', 'bold'); doc.text('Pay Date:', labelX, y);
+    doc.setFont('helvetica', 'normal'); doc.text(new Date().toLocaleDateString(), valX, y);
+    doc.setFont('helvetica', 'bold'); doc.text('Pay Period:', label2X, y);
+    doc.setFont('helvetica', 'normal'); doc.text(monthLabel, val2X, y);
+
+    const fmt = (n: number) => Math.round(n).toLocaleString();
+
+    // Earnings
+    autoTable(doc, {
+      startY: y + 24,
+      head: [['Earnings', 'Amount']],
+      body: [
+        ['Basic Salary', fmt(emp.basic)],
+        ['Allowances', fmt(emp.allowances)],
+        [{ content: 'Gross Earnings', styles: { fontStyle: 'bold' } }, { content: fmt(emp.gross), styles: { fontStyle: 'bold' } }],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      columnStyles: { 1: { halign: 'right' } },
+      margin: { left: 40, right: 40 },
+    });
+
+    const afterEarnings = (doc as any).lastAutoTable.finalY;
+
+    // Deductions
+    autoTable(doc, {
+      startY: afterEarnings + 12,
+      head: [['Deductions', 'Amount']],
+      body: [
+        [`PAYE (TRA — band ${emp.band})`, fmt(emp.paye)],
+        ['NSSF (Employee 10%)', fmt(emp.nssfEmployee)],
+        [{ content: 'Total Deductions', styles: { fontStyle: 'bold' } }, { content: fmt(emp.paye + emp.nssfEmployee), styles: { fontStyle: 'bold' } }],
+      ],
+      theme: 'striped',
+      headStyles: { fillColor: [220, 38, 38], textColor: 255 },
+      columnStyles: { 1: { halign: 'right' } },
+      margin: { left: 40, right: 40 },
+    });
+
+    const afterDeductions = (doc as any).lastAutoTable.finalY;
+
+    // Net pay banner
+    doc.setFillColor(238, 242, 255);
+    doc.rect(40, afterDeductions + 14, pageWidth - 80, 38, 'F');
+    doc.setTextColor(79, 70, 229);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('NET PAY (Take-home)', 56, afterDeductions + 38);
+    doc.setFontSize(16);
+    doc.text(fmt(emp.net), pageWidth - 56, afterDeductions + 38, { align: 'right' });
+
+    // Employer contributions (informational)
+    autoTable(doc, {
+      startY: afterDeductions + 68,
+      head: [['Employer Contributions (not deducted from employee)', 'Amount']],
+      body: [
+        ['NSSF (Employer 10%)', fmt(emp.nssfEmployer)],
+        ['SDL (3.5% of gross)', fmt(emp.sdl)],
+        ['WCF (0.5% of gross)', fmt(emp.wcf)],
+        [{ content: 'Total Employer Cost', styles: { fontStyle: 'bold' } }, { content: fmt(emp.totalEmployerCost), styles: { fontStyle: 'bold' } }],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [245, 158, 11], textColor: 255, fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [80, 80, 80] },
+      columnStyles: { 1: { halign: 'right' } },
+      margin: { left: 40, right: 40 },
+    });
+
+    // Footer
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setTextColor(140, 140, 140);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text(
+      'This is a computer-generated payslip. Computed per Tanzania TRA PAYE bands and statutory NSSF/SDL/WCF rates.',
+      pageWidth / 2,
+      pageHeight - 30,
+      { align: 'center' },
+    );
+
+    const filename = `payslip-${(emp.full_name || 'employee').replace(/\s+/g, '-').toLowerCase()}-${selectedMonth}.pdf`;
+    if (openInNewTab) {
+      doc.output('dataurlnewwindow');
+    } else {
+      doc.save(filename);
+    }
+  };
+
+  const handleDownloadPayslip = (emp: any) => {
+    generatePayslipPDF(emp, false);
+    toast.success(`Payslip for ${emp.full_name} downloaded`);
+  };
+
+  const handleDownloadAllPayslips = () => {
+    if (payrollData.length === 0) return;
+    payrollData.forEach((emp, idx) => {
+      // small stagger so browsers don't block multiple downloads
+      setTimeout(() => generatePayslipPDF(emp, false), idx * 250);
+    });
+    toast.success(`Generating ${payrollData.length} payslips for ${monthLabel}…`);
+  };
+
 
   const handleDownload = () => {
     const headers = ['Employee', 'Position', 'Department', 'Basic Salary', 'Allowances', 'Gross Salary', 'PAYE', 'NSSF (Emp 10%)', 'Net Pay', 'NSSF (Empr 10%)', 'SDL (3.5%)', 'WCF (0.5%)', 'Total Employer Cost'];
@@ -637,9 +789,28 @@ export default function HR() {
                 <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
                 <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="payslip-month" className="text-xs text-muted-foreground">Month</Label>
+                  <Input
+                    id="payslip-month"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
+                    className="h-8 w-[150px] text-xs"
+                  />
+                </div>
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
-                  <Download className="w-3.5 h-3.5" /> Download CSV
+                  <Download className="w-3.5 h-3.5" /> CSV
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  onClick={handleDownloadAllPayslips}
+                  disabled={payrollData.length === 0}
+                >
+                  <FileText className="w-3.5 h-3.5" /> All Payslips (PDF)
                 </Button>
                 <Button
                   size="sm"
@@ -694,6 +865,7 @@ export default function HR() {
                           <th className="text-right px-3 py-3 font-medium text-amber-500">NSSF Empr</th>
                           <th className="text-right px-3 py-3 font-medium text-amber-500">SDL 3.5%</th>
                           <th className="text-right px-3 py-3 font-medium text-amber-500">WCF 0.5%</th>
+                          <th className="text-center px-3 py-3 font-medium">Payslip</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
@@ -721,6 +893,17 @@ export default function HR() {
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.nssfEmployer).toLocaleString()}</td>
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.sdl).toLocaleString()}</td>
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.wcf).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1.5"
+                                onClick={() => handleDownloadPayslip(emp)}
+                                title={`Download payslip for ${emp.full_name} — ${monthLabel}`}
+                              >
+                                <FileText className="w-3 h-3" /> PDF
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -735,6 +918,7 @@ export default function HR() {
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalNssfEmpr).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalSDL).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalWCF).toLocaleString()}</td>
+                          <td className="px-3 py-3" />
                         </tr>
                       </tfoot>
                     </table>

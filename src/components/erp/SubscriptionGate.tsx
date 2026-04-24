@@ -34,6 +34,7 @@ const REQUIRED_TIER: Record<ModuleKey, SubscriptionTier> = {
   fleet:         'premium',
   maintenance:   'premium',
   ai:            'premium',
+  service_delivery: 'premium',
 };
 
 export function SubscriptionGate({ moduleKey, children, inline = false }: SubscriptionGateProps) {
