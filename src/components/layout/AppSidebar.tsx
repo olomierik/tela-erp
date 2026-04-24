@@ -253,43 +253,46 @@ export default function AppSidebar() {
   /* ─── Nav Item (desktop & mobile drawer) ─── */
   const NavItemComponent = ({ item, isMobileDrawer }: { item: NavItem; isMobileDrawer?: boolean }) => {
     const active = isActive(item.path);
-    const height = isMobileDrawer ? 'h-11' : 'h-9';
-    const padding = isMobileDrawer ? 'px-4 gap-3' : 'px-3 gap-3';
-    const iconSize = isMobileDrawer ? 'w-5 h-5' : 'w-4 h-4';
-    const textSize = isMobileDrawer ? 'text-sm' : 'text-[13px]';
+    const iconSize = isMobileDrawer ? 'w-[18px] h-[18px]' : 'w-[15px] h-[15px]';
+    const textSize = isMobileDrawer ? 'text-[13.5px]' : 'text-[12.5px]';
+    const height = isMobileDrawer ? 'h-10' : 'h-8';
+    const px = isMobileDrawer ? 'px-3.5' : 'px-2.5';
 
     const linkContent = (
       <Link
         to={item.path}
         onClick={() => { setMobileOpen(false); setMoreOpen(false); }}
         className={cn(
-          'relative flex items-center rounded-lg transition-colors duration-100 select-none touch-manipulation',
-          height, padding, textSize,
+          'relative flex items-center gap-2.5 rounded-md transition-colors duration-100 select-none touch-manipulation overflow-hidden',
+          height, px, textSize,
           active
-            ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            ? 'bg-sidebar-accent text-white font-semibold'
+            : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         )}
       >
-        <item.icon className={cn('shrink-0', iconSize)} />
+        {/* Left accent bar for active item */}
+        {active && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-sidebar-primary" />
+        )}
+        <item.icon className={cn('shrink-0', iconSize, active ? 'text-sidebar-primary' : '')} />
         {(!collapsed || isMobileDrawer) && (
-          <span className="whitespace-nowrap overflow-hidden flex-1 leading-none">
+          <span className="whitespace-nowrap overflow-hidden flex-1 leading-none tracking-[-0.01em]">
             {item.label}
           </span>
         )}
         {(!collapsed || isMobileDrawer) && item.badge !== undefined && item.badge > 0 && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none bg-destructive text-destructive-foreground">
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[16px] text-center leading-none bg-destructive text-destructive-foreground ml-auto">
             {item.badge > 99 ? '99+' : item.badge}
           </span>
         )}
       </Link>
     );
 
-    // Show tooltip when collapsed on desktop (not in mobile drawer)
     if (collapsed && !isMobileDrawer) {
       return (
         <Tooltip>
           <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-          <TooltipContent side="right" className="text-sm">
+          <TooltipContent side="right" className="text-sm font-medium">
             {item.label}
           </TooltipContent>
         </Tooltip>
@@ -302,34 +305,44 @@ export default function AppSidebar() {
   /* ─── Build sidebar inner content ─── */
   const buildSidebarContent = (isMobileDrawer: boolean) => (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border shrink-0 bg-sidebar">
+      {/* Logo area */}
+      <div className={cn(
+        'flex items-center border-b border-sidebar-border shrink-0',
+        collapsed && !isMobileDrawer ? 'justify-center h-14 px-0' : 'gap-3 h-14 px-4'
+      )}>
         <img
           src={telaLogo}
           alt="TELA ERP"
           className={cn(
             'shrink-0 object-contain transition-all duration-150',
-            collapsed && !isMobileDrawer ? 'h-7 w-7' : 'h-8 w-auto max-w-[140px]'
+            collapsed && !isMobileDrawer ? 'h-6 w-6' : 'h-7 w-auto max-w-[130px]'
           )}
         />
+        {(!collapsed || isMobileDrawer) && (
+          <div className="flex-1 min-w-0">
+            <span className="text-[11px] font-semibold text-sidebar-foreground/40 tracking-widest uppercase">
+              ERP
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 py-2 px-2 overflow-y-auto overflow-x-hidden scrollbar-thin overscroll-contain">
-        <TooltipProvider delayDuration={200}>
+      <nav className="flex-1 py-2 px-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin overscroll-contain">
+        <TooltipProvider delayDuration={150}>
           {filteredNavSections.map(section => (
-            <div key={section.title} className="mb-1">
+            <div key={section.title} className="mb-0.5">
               {(!collapsed || isMobileDrawer) && (
-                <div className="px-3 mb-1 mt-4 first:mt-1">
-                  <span className="text-[10px] font-semibold text-sidebar-muted uppercase tracking-widest">
+                <div className="px-2.5 pb-1 mt-5 first:mt-2">
+                  <span className="text-[9.5px] font-semibold text-sidebar-muted uppercase tracking-[0.15em]">
                     {section.title}
                   </span>
                 </div>
               )}
               {collapsed && !isMobileDrawer && (
-                <div className="my-2 mx-2 border-t border-sidebar-border" />
+                <div className="my-2.5 mx-1.5 border-t border-sidebar-border/60" />
               )}
-              <div className="space-y-[2px]">
+              <div className="space-y-px">
                 {section.items.map(item => (
                   <NavItemComponent key={item.path} item={item} isMobileDrawer={isMobileDrawer} />
                 ))}
@@ -339,33 +352,25 @@ export default function AppSidebar() {
         </TooltipProvider>
       </nav>
 
-      {/* Footer: Apps, Settings, User, Sign out */}
-      <div className="border-t border-sidebar-border p-2 shrink-0 space-y-[2px]">
-        <TooltipProvider delayDuration={200}>
-          {/* Apps */}
-          <NavItemComponent
-            item={{ label: 'Apps', icon: Grid3X3, path: '/apps' }}
-            isMobileDrawer={isMobileDrawer}
-          />
-          {/* Settings */}
-          <NavItemComponent
-            item={{ label: 'Settings', icon: Settings, path: '/settings' }}
-            isMobileDrawer={isMobileDrawer}
-          />
+      {/* Footer */}
+      <div className="border-t border-sidebar-border px-1.5 pt-1.5 pb-1 shrink-0 space-y-px">
+        <TooltipProvider delayDuration={150}>
+          <NavItemComponent item={{ label: 'Apps', icon: Grid3X3, path: '/apps' }} isMobileDrawer={isMobileDrawer} />
+          <NavItemComponent item={{ label: 'Settings', icon: Settings, path: '/settings' }} isMobileDrawer={isMobileDrawer} />
         </TooltipProvider>
 
-        {/* User profile */}
+        {/* User profile card */}
         <Link to="/profile" onClick={() => setMobileOpen(false)}>
           <div className={cn(
-            'flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-sidebar-accent transition-colors cursor-pointer touch-manipulation',
-            collapsed && !isMobileDrawer ? 'justify-center' : ''
+            'flex items-center gap-2.5 px-2.5 py-2 mt-1 rounded-md hover:bg-sidebar-accent/60 transition-colors cursor-pointer touch-manipulation',
+            collapsed && !isMobileDrawer ? 'justify-center px-0' : ''
           )}>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shrink-0 text-xs font-bold text-primary-foreground">
+            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 text-[10px] font-bold text-white">
               {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
             </div>
             {(!collapsed || isMobileDrawer) && (
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-sidebar-accent-foreground truncate leading-tight">{profile?.full_name ?? 'User'}</p>
+                <p className="text-[11.5px] font-medium text-sidebar-foreground/80 truncate leading-tight">{profile?.full_name ?? 'User'}</p>
                 <p className="text-[10px] text-sidebar-muted capitalize leading-tight">{role ?? 'user'}</p>
               </div>
             )}
@@ -376,24 +381,25 @@ export default function AppSidebar() {
         <button
           onClick={handleSignOut}
           className={cn(
-            'flex items-center gap-3 px-3 h-9 rounded-lg text-[13px] w-full transition-colors text-sidebar-muted hover:bg-destructive/10 hover:text-destructive touch-manipulation',
+            'flex items-center gap-2.5 px-2.5 h-8 rounded-md text-[12.5px] w-full transition-colors',
+            'text-sidebar-muted hover:bg-red-500/10 hover:text-red-400 touch-manipulation',
             collapsed && !isMobileDrawer ? 'justify-center' : ''
           )}
           title={collapsed && !isMobileDrawer ? 'Sign out' : undefined}
         >
-          <LogOut className="w-4 h-4 shrink-0" />
+          <LogOut className="w-[14px] h-[14px] shrink-0" />
           {(!collapsed || isMobileDrawer) && <span>Sign out</span>}
         </button>
       </div>
 
-      {/* Collapse toggle — desktop only */}
+      {/* Collapse toggle */}
       {!isMobileDrawer && (
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden md:flex items-center justify-center h-10 border-t border-sidebar-border text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          className="hidden md:flex items-center justify-center h-8 border-t border-sidebar-border/60 text-sidebar-muted/50 hover:text-sidebar-foreground/70 hover:bg-sidebar-accent/40 transition-colors"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
       )}
     </div>
@@ -449,7 +455,7 @@ export default function AppSidebar() {
 
       {/* Mobile bottom nav */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-border flex items-stretch justify-around"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-xl border-t border-border flex items-stretch justify-around shadow-[0_-1px_0_0_hsl(var(--border))]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {mobileBottomNav.map(item => {
@@ -459,27 +465,27 @@ export default function AppSidebar() {
               key={item.path}
               to={item.path}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 flex-1 h-14 touch-manipulation relative',
-                active ? 'text-primary' : 'text-muted-foreground'
+                'flex flex-col items-center justify-center gap-1 flex-1 h-14 touch-manipulation relative',
+                active ? 'text-primary' : 'text-muted-foreground/60'
               )}
             >
               {active && (
-                <span className="absolute top-0 left-1/4 right-1/4 h-0.5 rounded-b-full bg-primary" />
+                <span className="absolute top-0 inset-x-3 h-[2px] rounded-b-full bg-primary" />
               )}
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium mt-1">{item.label}</span>
+              <item.icon className={cn('w-[19px] h-[19px]', active && 'text-primary')} />
+              <span className={cn('text-[10px] font-medium tracking-tight', active ? 'text-primary' : '')}>{item.label}</span>
             </Link>
           );
         })}
         <button
           onClick={() => setMobileOpen(true)}
           className={cn(
-            'flex flex-col items-center justify-center gap-0.5 flex-1 h-14 touch-manipulation relative',
-            mobileOpen ? 'text-primary' : 'text-muted-foreground'
+            'flex flex-col items-center justify-center gap-1 flex-1 h-14 touch-manipulation relative',
+            mobileOpen ? 'text-primary' : 'text-muted-foreground/60'
           )}
         >
-          <MoreHorizontal className="w-5 h-5" />
-          <span className="text-[10px] font-medium mt-1">More</span>
+          <MoreHorizontal className="w-[19px] h-[19px]" />
+          <span className="text-[10px] font-medium tracking-tight">More</span>
         </button>
       </nav>
 
