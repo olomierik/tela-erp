@@ -220,6 +220,7 @@ const App = () => (
             </Routes>
               </Router>
           </SidebarProvider>
+          </PeriodProvider>
           </NetworkStatusProvider>
           </ModulesProvider>
           </StoreProvider>
