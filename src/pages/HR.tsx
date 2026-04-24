@@ -789,9 +789,28 @@ export default function HR() {
                 <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
                 <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Label htmlFor="payslip-month" className="text-xs text-muted-foreground">Month</Label>
+                  <Input
+                    id="payslip-month"
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
+                    className="h-8 w-[150px] text-xs"
+                  />
+                </div>
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
-                  <Download className="w-3.5 h-3.5" /> Download CSV
+                  <Download className="w-3.5 h-3.5" /> CSV
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  onClick={handleDownloadAllPayslips}
+                  disabled={payrollData.length === 0}
+                >
+                  <FileText className="w-3.5 h-3.5" /> All Payslips (PDF)
                 </Button>
                 <Button
                   size="sm"
