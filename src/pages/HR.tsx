@@ -21,6 +21,8 @@ import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } fro
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { onPayrollApproved } from '@/hooks/use-cross-module';
+import { usePeriod } from '@/contexts/PeriodContext';
+import { supabase } from '@/integrations/supabase/client';
 
 // CSV download helper
 function downloadCSV(filename: string, rows: (string | number)[][], headers: string[]) {
@@ -388,8 +390,10 @@ export default function HR() {
   const totalNet          = payrollData.reduce((s, e) => s + e.net, 0);
   const totalEmployerCost = payrollData.reduce((s, e) => s + e.totalEmployerCost, 0);
 
-  // ── Selected payslip month (YYYY-MM) ──────────────────────────────────────
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  // ── Selected payslip month: synced with global period selector ────────────
+  const { month: globalMonth, setMonth: setGlobalMonth } = usePeriod();
+  const selectedMonth = globalMonth;
+  const setSelectedMonth = setGlobalMonth;
   const monthLabel = (() => {
     const [y, m] = selectedMonth.split('-').map(Number);
     return new Date(y, (m || 1) - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
