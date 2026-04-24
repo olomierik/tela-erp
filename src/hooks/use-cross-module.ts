@@ -29,6 +29,7 @@ const GL_ACCOUNTS: Record<string, { code: string; name: string; account_type: st
   wages_payable:        { code: '2100', name: 'Wages Payable',         account_type: 'liability' },
   tax_payable:          { code: '2200', name: 'Tax Payable',           account_type: 'liability' },
   revenue:              { code: '4000', name: 'Sales Revenue',         account_type: 'revenue' },
+  service_revenue:      { code: '4100', name: 'Service Revenue',       account_type: 'revenue' },
   cogs:                 { code: '5000', name: 'Cost of Goods Sold',    account_type: 'expense' },
   salary_expense:       { code: '5200', name: 'Salary Expense',        account_type: 'expense' },
   payroll_deductions:   { code: '5210', name: 'Payroll Deductions',    account_type: 'expense' },
@@ -37,13 +38,15 @@ const GL_ACCOUNTS: Record<string, { code: string; name: string; account_type: st
 
 /** Maps journal label to [debit account key, credit account key]. */
 const JOURNAL_MAP: Record<string, [string, string]> = {
-  debit_AR_credit_Revenue:               ['ar',                 'revenue'],
-  debit_COGS_credit_Inventory:           ['cogs',               'inventory_asset'],
-  debit_InventoryAsset_credit_AP:        ['inventory_asset',    'ap'],
-  debit_FinishedGoods_credit_WIP:        ['finished_goods',     'wip'],
-  debit_Revenue_credit_AR_reversal:      ['revenue',            'ar'],
-  debit_SalaryExpense_credit_PayableWages: ['salary_expense',   'wages_payable'],
+  debit_AR_credit_Revenue:                   ['ar',                 'revenue'],
+  debit_COGS_credit_Inventory:               ['cogs',               'inventory_asset'],
+  debit_InventoryAsset_credit_AP:            ['inventory_asset',    'ap'],
+  debit_FinishedGoods_credit_WIP:            ['finished_goods',     'wip'],
+  debit_Revenue_credit_AR_reversal:          ['revenue',            'ar'],
+  debit_SalaryExpense_credit_PayableWages:   ['salary_expense',     'wages_payable'],
   debit_PayrollDeductions_credit_TaxPayable: ['payroll_deductions', 'tax_payable'],
+  debit_AR_credit_ServiceRevenue:            ['ar',                 'service_revenue'],
+  debit_ServiceRevenue_credit_AR_reversal:   ['service_revenue',    'ar'],
 };
 
 /**
@@ -824,5 +827,76 @@ export async function onPayrollApproved(
   } catch (err) {
     console.error('[onPayrollApproved] error:', err);
     toast.error('Failed to post payroll to accounting');
+  }
+}
+
+// ─── Service Order Created ────────────────────────────────────────────────────
+/**
+ * SERVICE_ORDER_CREATED event
+ *
+ * Triggered when a new service order is confirmed (not just saved as pending).
+ * Actions:
+ *   1. Post service revenue entry (debit AR / credit Service Revenue).
+ *   2. Write audit log entry.
+ *
+ * No inventory impact — services are intangible. If a service order also
+ * includes physical parts, those should go through a separate sales order.
+ */
+export async function onServiceOrderCreated(
+  tenantId: string,
+  order: { id: string; order_number: string; customer_name: string; total_amount: number }
+) {
+  try {
+    await createAccountingEntry(tenantId, {
+      type: 'income',
+      category: 'Service Revenue',
+      amount: order.total_amount,
+      description: `Service Order ${order.order_number} — ${order.customer_name}`,
+      reference: order.order_number,
+      journal: 'debit_AR_credit_ServiceRevenue',
+      referenceType: 'service_order',
+    });
+
+    await writeAuditLog(tenantId, 'service_delivery', 'SERVICE_ORDER_CREATED', order.order_number, {
+      order_id: order.id,
+      customer: order.customer_name,
+      total: order.total_amount,
+    });
+
+    toast.info(`Service Order ${order.order_number}: revenue posted`);
+  } catch (err) {
+    console.error('[onServiceOrderCreated] error:', err);
+  }
+}
+
+// ─── Service Order Cancelled ──────────────────────────────────────────────────
+/**
+ * SERVICE_ORDER_CANCELLED event
+ *
+ * Reverses the revenue entry when a service order is cancelled.
+ */
+export async function onServiceOrderCancelled(
+  tenantId: string,
+  order: { id: string; order_number: string; total_amount: number }
+) {
+  try {
+    await createAccountingEntry(tenantId, {
+      type: 'expense',
+      category: 'Service Revenue Reversal',
+      amount: order.total_amount,
+      description: `Reversal for cancelled service order ${order.order_number}`,
+      reference: order.order_number,
+      journal: 'debit_ServiceRevenue_credit_AR_reversal',
+      referenceType: 'service_order',
+    });
+
+    await writeAuditLog(tenantId, 'service_delivery', 'SERVICE_ORDER_CANCELLED', order.order_number, {
+      order_id: order.id,
+      total: order.total_amount,
+    });
+
+    toast.info(`Service Order ${order.order_number} cancelled — revenue reversed`);
+  } catch (err) {
+    console.error('[onServiceOrderCancelled] error:', err);
   }
 }
