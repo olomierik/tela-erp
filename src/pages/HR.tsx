@@ -893,6 +893,17 @@ export default function HR() {
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.nssfEmployer).toLocaleString()}</td>
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.sdl).toLocaleString()}</td>
                             <td className="px-3 py-3 text-right text-amber-500">{Math.round(emp.wcf).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-center">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1.5"
+                                onClick={() => handleDownloadPayslip(emp)}
+                                title={`Download payslip for ${emp.full_name} — ${monthLabel}`}
+                              >
+                                <FileText className="w-3 h-3" /> PDF
+                              </Button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
