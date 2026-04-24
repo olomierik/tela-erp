@@ -43,18 +43,18 @@ export default function AppLayout({ children, title, subtitle }: AppLayoutProps)
         <TrialBanner />
         <TopBar title={title} subtitle={subtitle} />
         <motion.main
-          className="flex-1 p-3 sm:p-4 md:p-6 min-w-0 overflow-x-hidden"
+          className="flex-1 p-4 sm:p-5 md:p-7 min-w-0 overflow-x-hidden"
           variants={pageVariants}
           initial="initial"
           animate="animate"
           exit="exit"
-          transition={{ duration: 0.15, ease: 'easeOut' }}
+          transition={{ duration: 0.12, ease: 'easeOut' }}
         >
           {children}
         </motion.main>
-        <footer className="hidden md:flex border-t border-border px-6 py-3 text-[11px] text-muted-foreground items-center justify-between">
-          <span>&copy; 2026 Erick Elibariki Olomi — TELA-ERP</span>
-          <span className="text-muted-foreground/60">v2.0.0</span>
+        <footer className="hidden md:flex border-t border-border/60 px-7 py-3 text-[11px] text-muted-foreground/50 items-center justify-between bg-card/30">
+          <span className="tracking-tight">&copy; 2026 Erick Elibariki Olomi — TELA-ERP</span>
+          <span className="text-muted-foreground/30 font-mono text-[10px]">v2.0.0</span>
         </footer>
       </div>
     </div>

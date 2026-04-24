@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @import './styles/mobile.css';
 
 @tailwind base;
@@ -17,98 +17,101 @@ a[href*="lovable.app"] {
 
 @layer base {
   :root {
-    /* ── Core palette — Warm Navy + Amber ── */
-    --background:       220 20% 98%;
-    --foreground:       222 20% 12%;
+    /* ── Background: cool slate-gray ── */
+    --background:       220 16% 96%;
+    --foreground:       222 47% 8%;
     --card:             0 0% 100%;
-    --card-foreground:  222 20% 12%;
+    --card-foreground:  222 47% 8%;
     --popover:          0 0% 100%;
-    --popover-foreground: 222 20% 12%;
+    --popover-foreground: 222 47% 8%;
 
-    /* Brand: warm navy-indigo */
-    --primary:          230 65% 52%;
+    /* Brand: indigo-violet */
+    --primary:          246 80% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary:        225 15% 95%;
-    --secondary-foreground: 222 20% 18%;
+    --secondary:        220 14% 92%;
+    --secondary-foreground: 222 25% 20%;
 
-    --muted:            225 15% 95%;
-    --muted-foreground: 222 10% 50%;
+    --muted:            220 14% 92%;
+    --muted-foreground: 220 10% 50%;
 
-    --accent:           32 95% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent:           220 14% 92%;
+    --accent-foreground: 222 47% 8%;
 
-    --destructive:      4 76% 56%;
+    --destructive:      0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:          160 60% 40%;
+    --success:          142 71% 42%;
     --success-foreground: 0 0% 100%;
 
     --warning:          38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info:             205 85% 50%;
+    --info:             211 100% 50%;
     --info-foreground:  0 0% 100%;
 
-    --border:           225 14% 91%;
-    --input:            225 14% 91%;
-    --ring:             230 65% 52%;
-    --radius:           0.625rem;
+    --border:           220 13% 90%;
+    --input:            220 13% 90%;
+    --ring:             246 80% 60%;
+    --radius:           0.5rem;
 
-    /* Sidebar — clean light theme */
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 210 25% 10%;
-    --sidebar-primary:    172 66% 40%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:     210 15% 92%;
-    --sidebar-accent-foreground: 210 25% 10%;
-    --sidebar-border:     210 15% 88%;
-    --sidebar-ring:       172 66% 40%;
-    --sidebar-muted:      210 10% 45%;
+    /* ── Sidebar: dark navy ── */
+    --sidebar-background:          224 71% 4%;
+    --sidebar-foreground:          215 28% 88%;
+    --sidebar-primary:             246 80% 65%;
+    --sidebar-primary-foreground:  0 0% 100%;
+    --sidebar-accent:              222 50% 9%;
+    --sidebar-accent-foreground:   215 28% 96%;
+    --sidebar-border:              222 38% 11%;
+    --sidebar-ring:                246 80% 60%;
+    --sidebar-muted:               218 12% 48%;
   }
 
   .dark {
-    --background:       228 22% 7%;
-    --foreground:       220 15% 92%;
-    --card:             228 20% 11%;
-    --card-foreground:  220 15% 92%;
-    --popover:          228 20% 11%;
-    --popover-foreground: 220 15% 92%;
+    --background:       222 47% 6%;
+    --foreground:       215 28% 92%;
+    --card:             222 47% 8%;
+    --card-foreground:  215 28% 92%;
+    --popover:          222 47% 9%;
+    --popover-foreground: 215 28% 92%;
 
-    --primary:          230 65% 62%;
-    --primary-foreground: 228 28% 8%;
+    --primary:          246 80% 65%;
+    --primary-foreground: 224 71% 4%;
 
-    --secondary:        228 18% 16%;
-    --secondary-foreground: 225 15% 85%;
+    --secondary:        222 38% 12%;
+    --secondary-foreground: 215 20% 80%;
 
-    --muted:            228 18% 16%;
-    --muted-foreground: 220 10% 58%;
+    --muted:            222 38% 12%;
+    --muted-foreground: 218 12% 54%;
 
-    --accent:           32 90% 55%;
-    --accent-foreground: 228 28% 8%;
+    --accent:           222 38% 13%;
+    --accent-foreground: 215 28% 92%;
 
-    --destructive:      4 68% 50%;
+    --destructive:      0 72% 54%;
     --destructive-foreground: 0 0% 100%;
 
-    --success:          160 50% 42%;
+    --success:          142 60% 42%;
     --success-foreground: 0 0% 100%;
 
     --warning:          38 85% 52%;
-    --warning-foreground: 228 28% 8%;
+    --warning-foreground: 222 47% 6%;
 
-    --border:           228 16% 18%;
-    --input:            228 18% 18%;
-    --ring:             230 65% 62%;
+    --info:             211 90% 56%;
+    --info-foreground:  0 0% 100%;
 
-    /* Sidebar — 2-4% lighter than page bg so it's distinguishable */
-    --sidebar-background: 228 22% 10%;
-    --sidebar-foreground: 220 15% 92%;
-    --sidebar-primary:    172 60% 52%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent:     228 18% 18%;
-    --sidebar-accent-foreground: 220 15% 95%;
-    --sidebar-border:     228 16% 16%;
-    --sidebar-muted:      220 10% 58%;
+    --border:           222 38% 14%;
+    --input:            222 38% 14%;
+    --ring:             246 80% 65%;
+
+    /* Dark sidebar — slightly deeper than page */
+    --sidebar-background:          224 71% 3%;
+    --sidebar-foreground:          215 28% 88%;
+    --sidebar-primary:             246 80% 65%;
+    --sidebar-primary-foreground:  0 0% 100%;
+    --sidebar-accent:              222 50% 7%;
+    --sidebar-accent-foreground:   215 28% 96%;
+    --sidebar-border:              222 38% 9%;
+    --sidebar-muted:               218 12% 44%;
   }
 
   * {
@@ -128,15 +131,21 @@ a[href*="lovable.app"] {
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    letter-spacing: -0.01em;
   }
 
-  /* Premium scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+
+  /* Refined scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { @apply bg-border rounded-full; }
-  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/30; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-muted-foreground/25; }
 
   .font-mono { font-family: 'JetBrains Mono', monospace; }
 }
@@ -146,28 +155,40 @@ a[href*="lovable.app"] {
     @apply bg-white/80 dark:bg-card/80 backdrop-blur-xl border border-white/60 dark:border-white/5;
   }
 
+  /* Stat / KPI cards — subtle shadow, top-line accent on hover */
   .stat-card {
-    @apply relative overflow-hidden rounded-xl border bg-card p-5 transition-all duration-200 hover:shadow-md;
+    @apply relative overflow-hidden rounded-xl bg-card border border-border p-5
+           shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
   }
   .stat-card::before {
     content: '';
-    @apply absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary/60 via-primary to-primary/60 opacity-0 transition-opacity duration-200;
+    @apply absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent
+           opacity-0 transition-opacity duration-200;
   }
   .stat-card:hover::before { @apply opacity-100; }
 
+  /* Sidebar nav items */
   .sidebar-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70
-           transition-all duration-150 cursor-pointer select-none;
+    @apply relative flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium
+           text-sidebar-foreground/55 transition-all duration-100 cursor-pointer select-none;
   }
-  .sidebar-item:hover { @apply bg-sidebar-accent text-sidebar-foreground; }
-  .sidebar-item.active { @apply bg-sidebar-accent text-sidebar-primary; }
+  .sidebar-item:hover {
+    @apply bg-sidebar-accent/70 text-sidebar-foreground;
+  }
+  .sidebar-item.active {
+    @apply bg-sidebar-accent text-sidebar-primary-foreground font-semibold;
+  }
+  .sidebar-item.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-sidebar-primary rounded-r-full;
+  }
 
   .module-badge {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 
   .data-row {
-    @apply border-b border-border/50 transition-colors duration-100 hover:bg-muted/40;
+    @apply border-b border-border/50 transition-colors duration-100 hover:bg-muted/30;
   }
 
   .chat-bubble-user {
@@ -182,38 +203,37 @@ a[href*="lovable.app"] {
   .kpi-neutral  { @apply text-muted-foreground; }
 
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-blue-500 to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-violet-400 to-primary/70 bg-clip-text text-transparent;
   }
-
-  /* Also alias used by Landing/public pages */
   .text-gradient {
-    @apply bg-gradient-to-r from-primary via-blue-500 to-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-violet-400 to-primary/70 bg-clip-text text-transparent;
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(230 65% 52%), hsl(230 65% 42%));
+    background: linear-gradient(135deg, hsl(246 80% 60%), hsl(246 80% 50%));
     color: hsl(var(--primary-foreground));
   }
   .gradient-primary:hover {
-    background: linear-gradient(135deg, hsl(230 65% 48%), hsl(230 65% 38%));
+    background: linear-gradient(135deg, hsl(246 80% 56%), hsl(246 80% 46%));
   }
 
-  .pill-draft     { @apply bg-muted text-muted-foreground; }
-  .pill-pending   { @apply bg-warning/10 text-warning; }
-  .pill-active    { @apply bg-success/10 text-success; }
-  .pill-paid      { @apply bg-primary/10 text-primary; }
-  .pill-overdue   { @apply bg-destructive/10 text-destructive; }
-  .pill-cancelled { @apply bg-muted text-muted-foreground line-through; }
+  /* Status pills */
+  .pill-draft     { @apply bg-slate-100 text-slate-600 dark:bg-slate-800/60 dark:text-slate-400; }
+  .pill-pending   { @apply bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400; }
+  .pill-active    { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400; }
+  .pill-paid      { @apply bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400; }
+  .pill-overdue   { @apply bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400; }
+  .pill-cancelled { @apply bg-slate-100 text-slate-400 dark:bg-slate-800/60 dark:text-slate-500 line-through; }
 
-  /* Responsive table wrapper — horizontal scroll on mobile */
+  /* Responsive table wrapper */
   .table-responsive {
-    @apply w-full overflow-x-auto -mx-0 rounded-xl;
+    @apply w-full overflow-x-auto rounded-xl;
   }
   .table-responsive table {
     @apply min-w-full;
   }
 
-  /* Page content container — prevents overflow on mobile */
+  /* Page content container */
   .page-container {
     @apply w-full max-w-full overflow-x-hidden;
   }
@@ -221,10 +241,10 @@ a[href*="lovable.app"] {
 
 @layer utilities {
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(12px); }
+    from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
   }
-  .animate-fade-in-up { animation: fadeInUp 0.35s ease-out both; }
+  .animate-fade-in-up { animation: fadeInUp 0.3s ease-out both; }
   .animation-delay-100 { animation-delay: 0.1s; }
   .animation-delay-200 { animation-delay: 0.2s; }
   .animation-delay-300 { animation-delay: 0.3s; }
@@ -235,7 +255,7 @@ a[href*="lovable.app"] {
     to   { background-position:  200% 0; }
   }
   .shimmer {
-    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground)/0.1) 50%, hsl(var(--muted)) 75%);
+    background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--muted-foreground)/0.08) 50%, hsl(var(--muted)) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
@@ -244,7 +264,7 @@ a[href*="lovable.app"] {
   .cursor-blink { animation: blink 1s step-end infinite; }
 
   @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary)/0.3); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary)/0.25); }
     50%       { box-shadow: 0 0 0 8px hsl(var(--primary)/0); }
   }
   .glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
@@ -252,13 +272,11 @@ a[href*="lovable.app"] {
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* ── Custom thin scrollbar for sidebar ── */
   .scrollbar-thin { scrollbar-width: thin; }
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+  .scrollbar-thin::-webkit-scrollbar { width: 3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--sidebar-border)); border-radius: 2px; }
 
-  /* ── Safe area support for notched phones ── */
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .safe-top    { padding-top:    env(safe-area-inset-top); }
 }

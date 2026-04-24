@@ -162,132 +162,124 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
 
   return (
     <>
-      {/* Mobile: h-14, Desktop: h-12 */}
-      <header className="h-14 sm:h-12 border-b border-border bg-card/95 backdrop-blur-sm flex items-center justify-between px-3 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
-        {/* Left side */}
-        <div className="min-w-0 flex items-center gap-2">
-          {/* Mobile hamburger in topbar */}
+      <header className="h-13 sm:h-12 border-b border-border bg-card flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 min-w-0 overflow-x-hidden">
+        {/* Left */}
+        <div className="min-w-0 flex items-center gap-2.5">
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden h-10 w-10 shrink-0 touch-manipulation -ml-1"
+            className="md:hidden h-9 w-9 shrink-0 touch-manipulation -ml-1 text-muted-foreground hover:text-foreground"
             onClick={openMobileSidebar}
             aria-label="Open menu"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-[18px] h-[18px]" />
           </Button>
 
           <div className="min-w-0 flex flex-col justify-center">
-            {/* Breadcrumbs: hidden on mobile, shown on md+ */}
             {crumbs.length > 1 ? (
               <>
                 <Breadcrumb className="hidden md:flex">
                   <BreadcrumbList className="text-[11px]">
                     {crumbs.slice(0, -1).map((crumb, i) => (
                       <BreadcrumbItem key={i}>
-                        <BreadcrumbLink className="text-muted-foreground/70 hover:text-muted-foreground transition-colors text-[11px]">
+                        <BreadcrumbLink className="text-muted-foreground/60 hover:text-muted-foreground transition-colors text-[11px]">
                           {crumb}
                         </BreadcrumbLink>
                         <BreadcrumbSeparator />
                       </BreadcrumbItem>
                     ))}
                     <BreadcrumbItem>
-                      <BreadcrumbPage className="text-foreground font-semibold text-[11px]">
+                      <BreadcrumbPage className="text-foreground font-semibold text-[11px] tracking-tight">
                         {crumbs[crumbs.length - 1]}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
-                {/* Mobile: show only page title */}
-                <h2 className="md:hidden text-sm font-semibold text-foreground truncate leading-tight">
+                <h2 className="md:hidden text-[13.5px] font-semibold text-foreground truncate leading-tight tracking-tight">
                   {crumbs[crumbs.length - 1]}
                 </h2>
-                {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5 hidden md:block">{subtitle}</p>}
+                {subtitle && (
+                  <p className="text-[11px] text-muted-foreground/70 truncate leading-tight hidden md:block mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
               </>
             ) : (
               <>
-                <h2 className="text-sm md:text-base font-semibold text-foreground truncate leading-tight">{title}</h2>
-                {subtitle && <p className="text-xs text-muted-foreground truncate leading-tight hidden md:block">{subtitle}</p>}
+                <h2 className="text-[13.5px] md:text-sm font-semibold text-foreground truncate leading-tight tracking-tight">{title}</h2>
+                {subtitle && (
+                  <p className="text-[11px] text-muted-foreground/70 truncate leading-tight hidden md:block mt-0.5">
+                    {subtitle}
+                  </p>
+                )}
               </>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Company Switcher — hidden on mobile */}
+        {/* Right */}
+        <div className="flex items-center gap-1 shrink-0">
           <div className="hidden sm:block">
             <CompanySwitcher />
           </div>
 
-          {/* ⌘K Search trigger — desktop */}
+          {/* Search — desktop */}
           <button
             onClick={() => setCmdOpen(true)}
-            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors text-xs text-muted-foreground group"
+            className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-muted/40 hover:bg-muted transition-colors text-[12px] text-muted-foreground/70 hover:text-muted-foreground group min-w-[160px]"
           >
-            <Search className="w-3.5 h-3.5" />
-            <span>Search...</span>
-            <kbd className="ml-2 flex items-center gap-0.5 font-mono text-[10px] bg-background border border-border rounded px-1 py-0.5 group-hover:border-primary/30 transition-colors">
-              <span>⌘</span><span>K</span>
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="flex-1 text-left">Search...</span>
+            <kbd className="flex items-center gap-px font-mono text-[10px] bg-card border border-border/70 rounded px-1.5 py-0.5 group-hover:border-primary/30 transition-colors leading-none">
+              ⌘K
             </kbd>
           </button>
 
-          {/* Mobile search button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden h-10 w-10 touch-manipulation"
-            onClick={() => setCmdOpen(true)}
-          >
-            <Search className="w-5 h-5" />
+          {/* Search — mobile */}
+          <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-manipulation text-muted-foreground" onClick={() => setCmdOpen(true)}>
+            <Search className="w-[17px] h-[17px]" />
           </Button>
 
-          {/* Dark / Light mode toggle */}
+          {/* Dark/light toggle */}
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 sm:h-8 sm:w-8 touch-manipulation"
+            className="h-9 w-9 touch-manipulation text-muted-foreground hover:text-foreground"
             onClick={toggleDarkMode}
-            aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={darkMode ? 'Light mode' : 'Dark mode'}
           >
-            {darkMode ? <Sun className="w-5 h-5 sm:w-4 sm:h-4" /> : <Moon className="w-5 h-5 sm:w-4 sm:h-4" />}
+            {darkMode
+              ? <Sun className="w-[16px] h-[16px]" />
+              : <Moon className="w-[16px] h-[16px]" />}
           </Button>
 
-          {/* Store Switcher — hidden on small screens */}
+          {/* Store switcher */}
           {stores.length > 0 && (
             <Select value={selectedStoreId ?? 'all'} onValueChange={v => setSelectedStoreId(v === 'all' ? null : v)}>
-              <SelectTrigger className="hidden sm:flex h-8 text-xs border-border bg-background min-w-[100px] max-w-[140px]">
+              <SelectTrigger className="hidden sm:flex h-8 text-[12px] border-border bg-transparent hover:bg-muted/50 min-w-[96px] max-w-[136px] rounded-md">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <div className={cn(
-                    'w-2 h-2 rounded-full shrink-0',
-                    selectedStoreId ? 'bg-emerald-500' : 'bg-blue-500'
-                  )} />
+                  <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', selectedStoreId ? 'bg-emerald-500' : 'bg-violet-500')} />
                   <span className="truncate">{selectedStoreName}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
                 {isStoreAdmin && (
                   <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-500" />
-                      All Stores
-                    </div>
+                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-violet-500" />All Stores</div>
                   </SelectItem>
                 )}
                 {stores.map(s => (
                   <SelectItem key={s.id} value={s.id}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      {s.name}
-                    </div>
+                    <div className="flex items-center gap-2"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{s.name}</div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           )}
 
-          {/* Currency — hidden on small screens */}
+          {/* Currency */}
           <Select value={displayCurrency} onValueChange={setDisplayCurrency}>
-            <SelectTrigger className="hidden sm:flex w-[76px] h-8 text-xs border-border">
+            <SelectTrigger className="hidden sm:flex w-[72px] h-8 text-[12px] border-border bg-transparent hover:bg-muted/50 rounded-md">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -297,39 +289,39 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
             </SelectContent>
           </Select>
 
-          {/* Network / sync status */}
           <NetworkStatusIndicator />
 
-          {/* Notifications Bell */}
+          {/* Notifications */}
           <Popover open={notifOpen} onOpenChange={setNotifOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative h-10 w-10 sm:h-8 sm:w-8 touch-manipulation">
-                <Bell className="w-5 h-5 sm:w-4 sm:h-4" />
+              <Button variant="ghost" size="icon" className="relative h-9 w-9 touch-manipulation text-muted-foreground hover:text-foreground">
+                <Bell className="w-[16px] h-[16px]" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold leading-none">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-[7px] h-[7px] rounded-full bg-destructive ring-2 ring-card" />
                 )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-[calc(100vw-24px)] sm:w-80 p-0 shadow-xl border-border">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <PopoverContent align="end" className="w-[calc(100vw-24px)] sm:w-80 p-0 shadow-xl border-border rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm">Notifications</span>
-                  {unreadCount > 0 && <Badge variant="destructive" className="text-[10px] h-4 px-1.5">{unreadCount}</Badge>}
+                  <span className="font-semibold text-[13px] tracking-tight">Notifications</span>
+                  {unreadCount > 0 && (
+                    <span className="text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full px-1.5 py-0.5 leading-none">
+                      {unreadCount}
+                    </span>
+                  )}
                 </div>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-primary hover:underline flex items-center gap-1 touch-manipulation py-1 px-2 -mr-2">
+                  <button onClick={markAllRead} className="text-[11px] text-primary hover:text-primary/80 flex items-center gap-1 touch-manipulation">
                     <Check className="w-3 h-3" /> Mark all read
                   </button>
                 )}
               </div>
-
-              <div className="divide-y divide-border max-h-72 overflow-y-auto overscroll-contain">
+              <div className="divide-y divide-border/50 max-h-72 overflow-y-auto overscroll-contain">
                 {notifications.length === 0 ? (
-                  <div className="px-4 py-8 text-center">
-                    <Bell className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">All caught up!</p>
+                  <div className="px-4 py-10 text-center">
+                    <Bell className="w-7 h-7 text-muted-foreground/20 mx-auto mb-2" />
+                    <p className="text-[13px] text-muted-foreground">All caught up</p>
                   </div>
                 ) : (
                   notifications.slice(0, 10).map(n => (
@@ -337,16 +329,16 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                       key={n.id}
                       onClick={() => markRead(n.id)}
                       className={cn(
-                        'px-4 py-3 text-sm cursor-pointer hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation',
-                        !n.read && 'bg-primary/5 hover:bg-primary/10'
+                        'px-4 py-3 text-[13px] cursor-pointer hover:bg-muted/40 transition-colors touch-manipulation',
+                        !n.read && 'bg-primary/[0.03]'
                       )}
                     >
                       <div className="flex items-start gap-2.5">
-                        <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', typeColors[n.type] ?? 'bg-blue-500')} />
+                        <div className={cn('w-1.5 h-1.5 rounded-full mt-1.5 shrink-0', typeColors[n.type] ?? 'bg-blue-500')} />
                         <div className="flex-1 min-w-0">
-                          <p className={cn('font-medium text-foreground', !n.read && 'font-semibold')}>{n.title}</p>
-                          <p className="text-muted-foreground text-xs mt-0.5 line-clamp-2">{n.message}</p>
-                          <p className="text-muted-foreground/50 text-[10px] mt-1">
+                          <p className={cn('font-medium text-foreground text-[12.5px]', !n.read && 'font-semibold')}>{n.title}</p>
+                          <p className="text-muted-foreground text-[11.5px] mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                          <p className="text-muted-foreground/40 text-[10px] mt-1">
                             {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                           </p>
                         </div>
@@ -356,66 +348,48 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                   ))
                 )}
               </div>
-              <div className="px-4 py-2.5 border-t border-border">
-                <Link
-                  to="/settings"
-                  onClick={() => setNotifOpen(false)}
-                  className="text-xs text-primary hover:underline w-full text-center block touch-manipulation py-1"
-                >
+              <div className="px-4 py-2.5 border-t border-border bg-muted/20">
+                <Link to="/settings" onClick={() => setNotifOpen(false)} className="text-[11.5px] text-primary hover:text-primary/80 w-full text-center block touch-manipulation">
                   Notification settings
                 </Link>
               </div>
             </PopoverContent>
           </Popover>
 
-          {/* User Avatar Menu */}
+          {/* User menu */}
           <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-10 sm:h-8 gap-2 px-2 rounded-lg touch-manipulation">
-                <div className="w-8 h-8 sm:w-7 sm:h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-sm">
+              <Button variant="ghost" size="sm" className="h-9 gap-2 px-2 rounded-lg touch-manipulation">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white shadow-sm">
                   {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                 </div>
-                <span className="hidden lg:block text-sm font-medium max-w-[90px] truncate">
+                <span className="hidden lg:block text-[12.5px] font-medium max-w-[80px] truncate text-foreground">
                   {profile?.full_name?.split(' ')[0] ?? 'User'}
                 </span>
-                <ChevronDown className="w-3 h-3 text-muted-foreground hidden lg:block" />
+                <ChevronDown className="w-3 h-3 text-muted-foreground/60 hidden lg:block" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-1.5 shadow-xl border-border">
-              <div className="px-3 py-2.5 border-b border-border mb-1.5">
+            <PopoverContent align="end" className="w-52 p-1.5 shadow-xl border-border rounded-xl overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-border mb-1">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-primary-foreground">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
                     {profile?.full_name?.charAt(0)?.toUpperCase() ?? 'U'}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate">{profile?.full_name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
+                    <p className="text-[12.5px] font-semibold truncate tracking-tight">{profile?.full_name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{profile?.email}</p>
                   </div>
                 </div>
               </div>
-              <Link
-                to="/profile"
-                onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation"
-              >
-                <User className="w-4 h-4 text-muted-foreground" />
-                My Profile
+              <Link to="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-[12.5px] rounded-md hover:bg-muted transition-colors touch-manipulation">
+                <User className="w-3.5 h-3.5 text-muted-foreground" />My Profile
               </Link>
-              <Link
-                to="/settings"
-                onClick={() => setUserMenuOpen(false)}
-                className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation"
-              >
-                <Settings className="w-4 h-4 text-muted-foreground" />
-                Settings
+              <Link to="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-[12.5px] rounded-md hover:bg-muted transition-colors touch-manipulation">
+                <Settings className="w-3.5 h-3.5 text-muted-foreground" />Settings
               </Link>
-              <div className="border-t border-border mt-1.5 pt-1.5">
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-950/30 text-red-600 w-full text-left transition-colors touch-manipulation"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
+              <div className="border-t border-border mt-1 pt-1">
+                <button onClick={handleSignOut} className="flex items-center gap-2 px-3 py-2 text-[12.5px] rounded-md hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 w-full text-left transition-colors touch-manipulation">
+                  <LogOut className="w-3.5 h-3.5" />Sign out
                 </button>
               </div>
             </PopoverContent>
