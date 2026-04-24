@@ -358,6 +358,9 @@ export default function HR() {
 
   const activeEmployees = (employees as any[]).filter(e => e.status === 'active');
 
+  // ── SDL liability: employer must have 10+ employees to be liable (TRA rule) ─
+  const isSdlLiable = activeEmployees.length >= 10;
+
   // ── Tanzania statutory payroll calculation ────────────────────────────────
   const payrollData = activeEmployees.map(e => {
     const basic = Number(e.salary) || 0;
@@ -367,11 +370,11 @@ export default function HR() {
     const paye = calculatePAYE(gross);            // PAYE on full gross
     const nssfEmployee = basic * 0.10;            // NSSF: 10% of basic, employee
     const nssfEmployer = basic * 0.10;            // NSSF: 10% of basic, employer
-    const sdl = gross * 0.035;                    // SDL: 3.5% of GROSS (basic + allowances)
+    const sdl = isSdlLiable ? gross * 0.035 : 0;  // SDL: 3.5% of GROSS — only if 10+ employees
     const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS (basic + allowances)
     const net = gross - paye - nssfEmployee;      // take-home
     const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
-    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost };
+    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost, isSdlLiable };
   });
 
   const totalBasic        = payrollData.reduce((s, e) => s + e.basic, 0);
