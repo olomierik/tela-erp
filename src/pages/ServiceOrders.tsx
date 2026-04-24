@@ -4,14 +4,13 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Wrench, Plus, Search, Trash2, FileDown, Clock, CheckCircle,
-  XCircle, PlayCircle, CalendarDays, Users, DollarSign, TrendingUp,
-  ChevronRight, MapPin, UserCheck, FileText,
+  XCircle, PlayCircle, CalendarDays, DollarSign, ChevronRight,
+  MapPin, UserCheck, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
@@ -22,11 +21,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { onServiceOrderCreated, onServiceOrderCancelled } from '@/hooks/use-cross-module';
 import { generatePDFReport } from '@/lib/pdf-reports';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// Service orders are stored in sales_orders with custom_fields.order_type = 'service'
+// Status values: pending | confirmed | in_progress | completed | cancelled
+// (sales_orders.status is a plain text column with no DB-level enum constraint)
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] as const;
 type OrderStatus = typeof ORDER_STATUSES[number];
@@ -81,7 +81,7 @@ function OrderTimeline({ status }: { status: string }) {
 
 // ─── Create Service Order Sheet ───────────────────────────────────────────────
 
-interface ServiceLineItem {
+interface ServiceLine {
   service_id: string;
   description: string;
   quantity: number;
@@ -89,10 +89,10 @@ interface ServiceLineItem {
 }
 
 function CreateServiceOrderSheet({
-  services, customers, onClose, isPending, onCreate,
+  catalogItems, customers, onClose, isPending, onCreate,
 }: {
-  services: any[]; customers: any[]; onClose: () => void;
-  isPending: boolean; onCreate: (row: Record<string, any>, lines: ServiceLineItem[]) => void;
+  catalogItems: any[]; customers: any[]; onClose: () => void;
+  isPending: boolean; onCreate: (row: Record<string, any>) => void;
 }) {
   const { formatMoney } = useCurrency();
   const [form, setForm] = useState({
@@ -101,7 +101,7 @@ function CreateServiceOrderSheet({
     scheduled_date: '', scheduled_time: '', assigned_to: '', location: '', notes: '',
     status: 'pending',
   });
-  const [lineItems, setLineItems] = useState<ServiceLineItem[]>([
+  const [lines, setLines] = useState<ServiceLine[]>([
     { service_id: '', description: '', quantity: 1, unit_price: 0 },
   ]);
 
@@ -109,49 +109,60 @@ function CreateServiceOrderSheet({
 
   const handleCustomer = (id: string) => {
     const c = customers.find((c: any) => c.id === id);
-    setForm(f => ({ ...f, customer_id: id, customer_name: c?.name ?? '', customer_email: c?.email ?? '', customer_phone: c?.phone ?? '' }));
+    setForm(f => ({
+      ...f, customer_id: id,
+      customer_name: c?.name ?? '',
+      customer_email: c?.email ?? '',
+      customer_phone: c?.phone ?? '',
+    }));
   };
 
-  const handleServiceChange = (i: number, serviceId: string) => {
-    const svc = services.find((s: any) => s.id === serviceId);
-    setLineItems(prev => prev.map((li, idx) => idx === i ? {
-      ...li, service_id: serviceId,
+  const handleServiceSelect = (i: number, serviceId: string) => {
+    const svc = catalogItems.find((s: any) => s.id === serviceId);
+    setLines(prev => prev.map((li, idx) => idx === i ? {
+      ...li,
+      service_id: serviceId,
       description: svc?.name ?? '',
-      unit_price: svc ? Number(svc.price) : 0,
+      unit_price: svc ? Number(svc.selling_price) : 0,
     } : li));
   };
 
-  const updateLine = (i: number, field: keyof ServiceLineItem, value: any) =>
-    setLineItems(prev => prev.map((li, idx) => idx === i ? { ...li, [field]: value } : li));
+  const updateLine = (i: number, field: keyof ServiceLine, value: any) =>
+    setLines(prev => prev.map((li, idx) => idx === i ? { ...li, [field]: value } : li));
 
-  const addLine = () => setLineItems(prev => [...prev, { service_id: '', description: '', quantity: 1, unit_price: 0 }]);
-  const removeLine = (i: number) => setLineItems(prev => prev.filter((_, idx) => idx !== i));
+  const addLine = () => setLines(prev => [...prev, { service_id: '', description: '', quantity: 1, unit_price: 0 }]);
+  const removeLine = (i: number) => setLines(prev => prev.filter((_, idx) => idx !== i));
 
-  const total = lineItems.reduce((s, li) => s + li.quantity * li.unit_price, 0);
-  const activeServices = services.filter((s: any) => s.is_active);
+  const total = lines.reduce((s, li) => s + li.quantity * li.unit_price, 0);
 
   const handleSubmit = () => {
     if (!form.customer_name.trim() && !form.customer_id) { toast.error('Customer is required'); return; }
-    const validLines = lineItems.filter(li => li.description.trim());
+    const validLines = lines.filter(li => li.description.trim());
     if (validLines.length === 0) { toast.error('Add at least one service line'); return; }
-    onCreate(
-      {
-        order_number: form.order_number,
-        customer_id: form.customer_id || null,
-        customer_name: form.customer_name,
-        customer_email: form.customer_email,
-        customer_phone: form.customer_phone,
-        status: form.status,
+
+    onCreate({
+      order_number: form.order_number,
+      customer_id: form.customer_id || null,
+      customer_name: form.customer_name,
+      customer_email: form.customer_email,
+      status: form.status,
+      total_amount: total,
+      custom_fields: {
+        order_type: 'service',
+        customer_phone: form.customer_phone || null,
         scheduled_date: form.scheduled_date || null,
         scheduled_time: form.scheduled_time || null,
         assigned_to: form.assigned_to || null,
         location: form.location || null,
         notes: form.notes || null,
-        total_amount: total,
-        custom_fields: { line_items: validLines },
+        line_items: validLines.map(li => ({
+          service_id: li.service_id || null,
+          description: li.description,
+          quantity: li.quantity,
+          unit_price: li.unit_price,
+        })),
       },
-      validLines
-    );
+    });
     onClose();
   };
 
@@ -222,10 +233,10 @@ function CreateServiceOrderSheet({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Assigned To</Label>
-              <Input value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} placeholder="Staff / technician name" />
+              <Input value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)} placeholder="Staff / technician" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Location / Address</Label>
+              <Label className="text-xs">Location</Label>
               <Input value={form.location} onChange={e => set('location', e.target.value)} placeholder="Site address" />
             </div>
           </div>
@@ -235,16 +246,25 @@ function CreateServiceOrderSheet({
         <div>
           <Label className="mb-2 block">Services</Label>
           <div className="space-y-2">
-            {lineItems.map((li, i) => (
+            {lines.map((li, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg border border-border bg-muted/20">
                 <div className="col-span-5">
-                  {activeServices.length > 0 ? (
-                    <Select value={li.service_id} onValueChange={v => handleServiceChange(i, v)}>
+                  {catalogItems.length > 0 ? (
+                    <Select
+                      value={li.service_id}
+                      onValueChange={v => {
+                        if (v === '__custom__') {
+                          setLines(prev => prev.map((l, idx) => idx === i ? { ...l, service_id: '__custom__', description: '', unit_price: 0 } : l));
+                        } else {
+                          handleServiceSelect(i, v);
+                        }
+                      }}
+                    >
                       <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select service" /></SelectTrigger>
                       <SelectContent>
-                        {activeServices.map((svc: any) => (
+                        {catalogItems.map((svc: any) => (
                           <SelectItem key={svc.id} value={svc.id}>
-                            {svc.name} — {formatMoney(Number(svc.price))}
+                            {svc.name} — {formatMoney(Number(svc.selling_price))}
                           </SelectItem>
                         ))}
                         <SelectItem value="__custom__">Custom / Other</SelectItem>
@@ -259,18 +279,19 @@ function CreateServiceOrderSheet({
                     />
                   )}
                 </div>
-                {/* Show description field when "custom" or after service selected */}
-                {(li.service_id === '__custom__' || !li.service_id) && activeServices.length > 0 ? (
-                  <div className="col-span-5">
-                    <Input
-                      className="h-8 text-xs"
-                      placeholder="Description"
-                      value={li.description}
-                      onChange={e => updateLine(i, 'description', e.target.value)}
-                    />
-                  </div>
-                ) : null}
-                <div className={cn(li.service_id === '__custom__' || !li.service_id ? 'col-span-1' : 'col-span-2')}>
+                {/* Show description field when service is custom or when selected from catalog */}
+                <div className={cn(li.service_id && li.service_id !== '__custom__' && catalogItems.length > 0 ? 'col-span-2 hidden' : 'col-span-2')}>
+                  <Input
+                    className="h-8 text-xs"
+                    placeholder="Description"
+                    value={li.description}
+                    onChange={e => updateLine(i, 'description', e.target.value)}
+                  />
+                </div>
+                {li.service_id && li.service_id !== '__custom__' && catalogItems.length > 0 && (
+                  <div className="col-span-2 text-xs text-muted-foreground truncate">{li.description}</div>
+                )}
+                <div className="col-span-2">
                   <Input
                     type="number"
                     value={li.quantity}
@@ -281,7 +302,7 @@ function CreateServiceOrderSheet({
                     step="0.5"
                   />
                 </div>
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <Input
                     type="number"
                     value={li.unit_price}
@@ -290,11 +311,11 @@ function CreateServiceOrderSheet({
                     placeholder="Price"
                   />
                 </div>
-                <div className="col-span-1 text-xs font-semibold text-right text-foreground">
+                <div className="col-span-1 text-xs font-semibold text-right">
                   {formatMoney(li.quantity * li.unit_price)}
                 </div>
                 <div className="col-span-1 flex justify-end">
-                  {lineItems.length > 1 && (
+                  {lines.length > 1 && (
                     <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-400" onClick={() => removeLine(i)}>×</Button>
                   )}
                 </div>
@@ -339,20 +360,28 @@ export default function ServiceOrders() {
   const navigate = useNavigate();
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
-  const { data, isLoading } = useTenantQuery('service_orders');
-  const { data: servicesData } = useTenantQuery('services');
+
+  // Both tables already exist in the database — no migration needed
+  const { data: rawOrders, isLoading } = useTenantQuery('sales_orders');
+  const { data: rawItems } = useTenantQuery('inventory_items');
   const { data: customersData } = useTenantQuery('customers');
-  const insertMutation = useTenantInsert('service_orders');
-  const updateMutation = useTenantUpdate('service_orders');
-  const remove = useTenantDelete('service_orders');
-  useRealtimeSync('service_orders' as any);
+  const insertMutation = useTenantInsert('sales_orders');
+  const updateMutation = useTenantUpdate('sales_orders');
+  const remove = useTenantDelete('sales_orders');
+  useRealtimeSync('sales_orders');
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const orders: any[] = data ?? [];
-  const services: any[] = servicesData ?? [];
+  // Filter to service orders only (exclude product sales orders)
+  const allOrders: any[] = rawOrders ?? [];
+  const orders = allOrders.filter((o: any) => o.custom_fields?.order_type === 'service');
+
+  // Filter catalog to service items only
+  const allItems: any[] = rawItems ?? [];
+  const catalogItems = allItems.filter((i: any) => i.custom_fields?.item_type === 'service' && i.custom_fields?.is_active !== false);
+
   const customers: any[] = customersData ?? [];
 
   // Stats
@@ -362,34 +391,20 @@ export default function ServiceOrders() {
   const completedCount = orders.filter((o: any) => o.status === 'completed').length;
 
   const filtered = orders.filter((o: any) => {
+    const cf = o.custom_fields ?? {};
     const matchSearch = !search
       || o.order_number?.toLowerCase().includes(search.toLowerCase())
       || o.customer_name?.toLowerCase().includes(search.toLowerCase())
-      || o.assigned_to?.toLowerCase().includes(search.toLowerCase());
+      || cf.assigned_to?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const handleCreate = (row: Record<string, any>, lines: ServiceLineItem[]) => {
+  const handleCreate = (row: Record<string, any>) => {
     insertMutation.mutate(row, {
       onSuccess: async (data: any) => {
         if (!tenant?.id || !data?.id) return;
-
-        // Persist line items
-        if (lines.length > 0) {
-          const lineRows = lines.map(li => ({
-            tenant_id: tenant.id,
-            service_order_id: data.id,
-            service_id: (li.service_id && li.service_id !== '__custom__') ? li.service_id : null,
-            description: li.description,
-            quantity: li.quantity,
-            unit_price: li.unit_price,
-            line_total: li.quantity * li.unit_price,
-          }));
-          await (supabase as any).from('service_order_lines').insert(lineRows);
-        }
-
-        // Post revenue when confirmed (not just pending)
+        // Post service revenue when order is confirmed immediately
         if (row.status === 'confirmed') {
           await onServiceOrderCreated(tenant.id, {
             id: data.id,
@@ -403,34 +418,63 @@ export default function ServiceOrders() {
   };
 
   const handleStatusChange = async (order: any, newStatus: string) => {
-    await updateMutation.mutateAsync({ id: order.id, status: newStatus, ...(newStatus === 'completed' ? { completed_date: new Date().toISOString().split('T')[0] } : {}) });
-
-    if (!tenant?.id) return;
-
-    if (newStatus === 'confirmed' && order.status === 'pending') {
-      // Post revenue when transitioning from pending → confirmed
-      await onServiceOrderCreated(tenant.id, {
-        id: order.id,
-        order_number: order.order_number,
-        customer_name: order.customer_name,
-        total_amount: Number(order.total_amount),
-      });
+    const updates: Record<string, any> = { id: order.id, status: newStatus };
+    if (newStatus === 'completed') {
+      updates.custom_fields = {
+        ...(order.custom_fields ?? {}),
+        completed_date: new Date().toISOString().split('T')[0],
+      };
     }
+    updateMutation.mutate(updates, {
+      onSuccess: async () => {
+        if (!tenant?.id) return;
+        // Post revenue when transitioning to confirmed for the first time
+        if (newStatus === 'confirmed' && order.status === 'pending') {
+          await onServiceOrderCreated(tenant.id, {
+            id: order.id,
+            order_number: order.order_number,
+            customer_name: order.customer_name,
+            total_amount: Number(order.total_amount),
+          });
+        }
+        // Reverse revenue if cancelling a confirmed/active order
+        if (newStatus === 'cancelled' && ['confirmed', 'in_progress', 'completed'].includes(order.status)) {
+          await onServiceOrderCancelled(tenant.id, {
+            id: order.id,
+            order_number: order.order_number,
+            total_amount: Number(order.total_amount),
+          });
+        }
+      },
+    });
+  };
 
-    if (newStatus === 'cancelled') {
-      // Reverse revenue only if it was already confirmed/in_progress/completed
-      if (['confirmed', 'in_progress', 'completed'].includes(order.status)) {
-        await onServiceOrderCancelled(tenant.id, {
-          id: order.id,
-          order_number: order.order_number,
-          total_amount: Number(order.total_amount),
-        });
-      }
-    }
+  const handleExportPDF = () => {
+    generatePDFReport({
+      title: 'Service Orders Report',
+      subtitle: tenant?.name,
+      tenantName: tenant?.name,
+      headers: ['Order #', 'Customer', 'Scheduled', 'Assigned To', 'Amount', 'Status'],
+      rows: filtered.map((o: any) => {
+        const cf = o.custom_fields ?? {};
+        return [
+          o.order_number,
+          o.customer_name,
+          cf.scheduled_date ? new Date(cf.scheduled_date).toLocaleDateString() : '—',
+          cf.assigned_to || '—',
+          formatMoney(Number(o.total_amount)),
+          STATUS_CONFIG[o.status as OrderStatus]?.label ?? o.status,
+        ];
+      }),
+      stats: [
+        { label: 'Total Revenue', value: formatMoney(totalRevenue) },
+        { label: 'Completed', value: String(completedCount) },
+        { label: 'In Progress', value: String(inProgressCount) },
+      ],
+    });
   };
 
   const handleGenerateInvoice = (order: any) => {
-    // Navigate to invoices with prefilled query params (invoices page handles this gracefully)
     navigate('/invoices', {
       state: {
         prefill: {
@@ -438,11 +482,10 @@ export default function ServiceOrders() {
           customer_email: order.customer_email,
           reference: order.order_number,
           amount: order.total_amount,
-          description: `Service Order ${order.order_number}`,
         },
       },
     });
-    toast.info('Create an invoice for this service order in Invoices');
+    toast.info('Create an invoice for this service order in the Invoices module');
   };
 
   return (
@@ -489,23 +532,7 @@ export default function ServiceOrders() {
           </div>
           <div className="flex gap-2">
             {!isDemo && (
-              <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5" onClick={() => generatePDFReport({
-                title: 'Service Orders Report',
-                subtitle: tenant?.name,
-                tenantName: tenant?.name,
-                headers: ['Order #', 'Customer', 'Scheduled', 'Assigned To', 'Amount', 'Status'],
-                rows: orders.map((o: any) => [
-                  o.order_number, o.customer_name,
-                  o.scheduled_date ? new Date(o.scheduled_date).toLocaleDateString() : '—',
-                  o.assigned_to || '—',
-                  formatMoney(Number(o.total_amount)),
-                  STATUS_CONFIG[o.status as OrderStatus]?.label ?? o.status,
-                ]),
-                stats: [
-                  { label: 'Total Revenue', value: formatMoney(totalRevenue) },
-                  { label: 'Completed', value: String(completedCount) },
-                ],
-              })} disabled={orders.length === 0}>
+              <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5" onClick={handleExportPDF} disabled={filtered.length === 0}>
                 <FileDown className="w-3.5 h-3.5" /> Export PDF
               </Button>
             )}
@@ -535,68 +562,69 @@ export default function ServiceOrders() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((o: any) => (
-                  <motion.tr key={o.id} className="hover:bg-accent/40 transition-colors" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <td className="px-4 py-3 font-mono font-semibold text-foreground">{o.order_number}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium text-foreground">{o.customer_name}</p>
-                      {o.customer_phone && <p className="text-xs text-muted-foreground">{o.customer_phone}</p>}
-                      {o.location && (
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3" />{o.location}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      {o.scheduled_date ? (
-                        <div>
-                          <p className="text-xs font-medium text-foreground flex items-center gap-1">
-                            <CalendarDays className="w-3 h-3 text-muted-foreground" />
-                            {new Date(o.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                {filtered.map((o: any) => {
+                  const cf = o.custom_fields ?? {};
+                  return (
+                    <motion.tr key={o.id} className="hover:bg-accent/40 transition-colors" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                      <td className="px-4 py-3 font-mono font-semibold text-foreground">{o.order_number}</td>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-foreground">{o.customer_name}</p>
+                        {cf.customer_phone && <p className="text-xs text-muted-foreground">{cf.customer_phone}</p>}
+                        {cf.location && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <MapPin className="w-3 h-3" />{cf.location}
                           </p>
-                          {o.scheduled_time && <p className="text-xs text-muted-foreground ml-4">{o.scheduled_time.slice(0, 5)}</p>}
-                          {o.assigned_to && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <UserCheck className="w-3 h-3" />{o.assigned_to}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Not scheduled</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 hidden lg:table-cell"><OrderTimeline status={o.status} /></td>
-                    <td className="px-4 py-3 text-right font-bold text-foreground">{formatMoney(Number(o.total_amount))}</td>
-                    <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
-                    {!isDemo && (
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Invoice shortcut */}
-                          {['confirmed', 'in_progress', 'completed'].includes(o.status) && (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-700" title="Create Invoice" onClick={() => handleGenerateInvoice(o)}>
-                              <FileText className="w-3.5 h-3.5" />
-                            </Button>
-                          )}
-                          {/* Status updater */}
-                          {!['completed', 'cancelled'].includes(o.status) && (
-                            <Select onValueChange={(v) => handleStatusChange(o, v)}>
-                              <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
-                              <SelectContent>
-                                {o.status === 'pending'     && <SelectItem value="confirmed">Confirm</SelectItem>}
-                                {o.status === 'confirmed'   && <SelectItem value="in_progress">Start Work</SelectItem>}
-                                {o.status === 'in_progress' && <SelectItem value="completed">Mark Complete</SelectItem>}
-                                <SelectItem value="cancelled">Cancel</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => remove.mutate(o.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
+                        )}
                       </td>
-                    )}
-                  </motion.tr>
-                ))}
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {cf.scheduled_date ? (
+                          <div>
+                            <p className="text-xs font-medium text-foreground flex items-center gap-1">
+                              <CalendarDays className="w-3 h-3 text-muted-foreground" />
+                              {new Date(cf.scheduled_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </p>
+                            {cf.scheduled_time && <p className="text-xs text-muted-foreground ml-4">{cf.scheduled_time.slice(0, 5)}</p>}
+                            {cf.assigned_to && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <UserCheck className="w-3 h-3" />{cf.assigned_to}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Not scheduled</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell"><OrderTimeline status={o.status} /></td>
+                      <td className="px-4 py-3 text-right font-bold text-foreground">{formatMoney(Number(o.total_amount))}</td>
+                      <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
+                      {!isDemo && (
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {['confirmed', 'in_progress', 'completed'].includes(o.status) && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-700" title="Create Invoice" onClick={() => handleGenerateInvoice(o)}>
+                                <FileText className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {!['completed', 'cancelled'].includes(o.status) && (
+                              <Select onValueChange={v => handleStatusChange(o, v)}>
+                                <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
+                                <SelectContent>
+                                  {o.status === 'pending'     && <SelectItem value="confirmed">Confirm</SelectItem>}
+                                  {o.status === 'confirmed'   && <SelectItem value="in_progress">Start Work</SelectItem>}
+                                  {o.status === 'in_progress' && <SelectItem value="completed">Mark Complete</SelectItem>}
+                                  <SelectItem value="cancelled">Cancel</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => remove.mutate(o.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      )}
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
             {filtered.length === 0 && (
@@ -614,11 +642,10 @@ export default function ServiceOrders() {
         )}
       </div>
 
-      {/* Create Order Sheet */}
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
         <SheetContent className="w-full sm:max-w-[560px] flex flex-col p-0" side="right">
           <CreateServiceOrderSheet
-            services={services}
+            catalogItems={catalogItems}
             customers={customers}
             onClose={() => setCreateOpen(false)}
             isPending={insertMutation.isPending}

@@ -280,8 +280,9 @@ export default function Sales() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const orders = data ?? [];
-  const inventoryItems = inventoryData ?? [];
+  // Exclude service orders — those are managed in /service-orders
+  const orders = (data ?? []).filter((o: any) => o.custom_fields?.order_type !== 'service');
+  const inventoryItems = (inventoryData ?? []).filter((i: any) => i.custom_fields?.item_type !== 'service');
   const customers = customersData ?? [];
 
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
