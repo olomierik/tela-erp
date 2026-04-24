@@ -358,6 +358,9 @@ export default function HR() {
 
   const activeEmployees = (employees as any[]).filter(e => e.status === 'active');
 
+  // ── SDL liability: employer must have 10+ employees to be liable (TRA rule) ─
+  const isSdlLiable = activeEmployees.length >= 10;
+
   // ── Tanzania statutory payroll calculation ────────────────────────────────
   const payrollData = activeEmployees.map(e => {
     const basic = Number(e.salary) || 0;
@@ -367,11 +370,11 @@ export default function HR() {
     const paye = calculatePAYE(gross);            // PAYE on full gross
     const nssfEmployee = basic * 0.10;            // NSSF: 10% of basic, employee
     const nssfEmployer = basic * 0.10;            // NSSF: 10% of basic, employer
-    const sdl = gross * 0.035;                    // SDL: 3.5% of GROSS (basic + allowances)
+    const sdl = isSdlLiable ? gross * 0.035 : 0;  // SDL: 3.5% of GROSS — only if 10+ employees
     const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS (basic + allowances)
     const net = gross - paye - nssfEmployee;      // take-home
     const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
-    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost };
+    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost, isSdlLiable };
   });
 
   const totalBasic        = payrollData.reduce((s, e) => s + e.basic, 0);
@@ -491,7 +494,9 @@ export default function HR() {
       head: [['Employer Contributions (not deducted from employee)', 'Amount']],
       body: [
         ['NSSF (Employer 10%)', fmt(emp.nssfEmployer)],
-        ['SDL (3.5% of gross)', fmt(emp.sdl)],
+        emp.isSdlLiable
+          ? ['SDL (3.5% of gross)', fmt(emp.sdl)]
+          : ['SDL (exempt — under 10 employees)', fmt(0)],
         ['WCF (0.5% of gross)', fmt(emp.wcf)],
         [{ content: 'Total Employer Cost', styles: { fontStyle: 'bold' } }, { content: fmt(emp.totalEmployerCost), styles: { fontStyle: 'bold' } }],
       ],
@@ -840,6 +845,12 @@ export default function HR() {
                 </Card>
               ))}
             </div>
+
+            {!isSdlLiable && activeEmployees.length > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                <strong>SDL exempt:</strong> Employer has {activeEmployees.length} active employee{activeEmployees.length === 1 ? '' : 's'}. Skills Development Levy (SDL) only applies when the employer has 10 or more employees (per TRA).
+              </div>
+            )}
 
             {/* Main payroll table */}
             <Card className="rounded-xl border-border">
