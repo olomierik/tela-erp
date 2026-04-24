@@ -918,6 +918,7 @@ export default function HR() {
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalNssfEmpr).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalSDL).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right text-amber-500">{Math.round(totalWCF).toLocaleString()}</td>
+                          <td className="px-3 py-3" />
                         </tr>
                       </tfoot>
                     </table>
