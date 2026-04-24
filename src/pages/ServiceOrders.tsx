@@ -499,6 +499,16 @@ export default function ServiceOrders() {
   };
 
   const handleGenerateInvoice = (order: any) => {
+    const cf = order.custom_fields ?? {};
+    const lineItems = (cf.line_items ?? []).map((li: any) => {
+      const svcName = catalogItems.find((s: any) => s.id === li.service_id)?.name;
+      return {
+        description: svcName || li.description || 'Service',
+        quantity: li.quantity ?? 1,
+        unit_price: li.unit_price ?? 0,
+        discount_percent: 0,
+      };
+    });
     navigate('/invoices', {
       state: {
         prefill: {
@@ -506,10 +516,11 @@ export default function ServiceOrders() {
           customer_email: order.customer_email,
           reference: order.order_number,
           amount: order.total_amount,
+          line_items: lineItems.length > 0 ? lineItems : undefined,
         },
       },
     });
-    toast.info('Create an invoice for this service order in the Invoices module');
+    toast.info('Invoice pre-filled from service order — review and save');
   };
 
   return (

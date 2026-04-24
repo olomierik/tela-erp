@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
@@ -111,10 +112,12 @@ function LineItemRow({ item, index, onChange, onRemove }: {
 function InvoiceSheet({
   invoice,
   customers,
+  prefill,
   onClose,
 }: {
   invoice?: any;
   customers: any[];
+  prefill?: { customer_name?: string; customer_email?: string; reference?: string; line_items?: LineItem[] };
   onClose: () => void;
 }) {
   const { isDemo, tenant } = useAuth();
@@ -122,16 +125,23 @@ function InvoiceSheet({
   const update = useTenantUpdate('invoices');
   const insertLine = useTenantInsert('invoice_lines');
 
-  const [customerId, setCustomerId] = useState(invoice?.customer_id || '');
+  // Resolve prefill customer to an existing customer record if possible
+  const prefillCustomer = prefill?.customer_name
+    ? customers.find((c: any) => c.name?.toLowerCase() === prefill.customer_name?.toLowerCase())
+    : null;
+
+  const [customerId, setCustomerId] = useState(invoice?.customer_id || prefillCustomer?.id || '');
   const [dueDate, setDueDate] = useState(invoice?.due_date || '');
   const [issueDate, setIssueDate] = useState(invoice?.issue_date || new Date().toISOString().slice(0, 10));
   const [taxRate, setTaxRate] = useState(invoice?.tax_rate || 0);
-  const [notes, setNotes] = useState(invoice?.notes || '');
+  const [notes, setNotes] = useState(invoice?.notes || (prefill?.reference ? `Service Order: ${prefill.reference}` : ''));
   const [saving, setSaving] = useState(false);
   const [items, setItems] = useState<LineItem[]>(
     invoice?.lines?.length
       ? invoice.lines
-      : [{ description: '', quantity: 1, unit_price: 0, discount_percent: 0 }]
+      : prefill?.line_items?.length
+        ? prefill.line_items
+        : [{ description: '', quantity: 1, unit_price: 0, discount_percent: 0 }]
   );
 
   const updateItem = (i: number, field: keyof LineItem, value: string | number) => {
@@ -322,10 +332,23 @@ function InvoiceSheet({
 export default function Invoices() {
   const { formatMoney } = useCurrency();
   const { isDemo, tenant } = useAuth();
+  const location = useLocation();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [editInvoice, setEditInvoice] = useState<any>(null);
+  const [prefill, setPrefill] = useState<any>(null);
+
+  // Auto-open create sheet when navigated from service orders with prefill data
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.prefill) {
+      setPrefill(state.prefill);
+      setCreateOpen(true);
+      // Clear the state so navigating back doesn't re-open
+      window.history.replaceState({}, '', location.pathname);
+    }
+  }, []);
 
   const { data: invoices = [], isLoading } = useTenantQuery('invoices');
   const { data: customers = [] } = useTenantQuery('customers');
@@ -580,9 +603,9 @@ export default function Invoices() {
       </div>
 
       {/* Create Invoice Sheet */}
-      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+      <Sheet open={createOpen} onOpenChange={v => { setCreateOpen(v); if (!v) setPrefill(null); }}>
         <SheetContent className="w-full sm:max-w-[560px] flex flex-col p-0" side="right">
-          <InvoiceSheet customers={customers as any[]} onClose={() => setCreateOpen(false)} />
+          <InvoiceSheet customers={customers as any[]} prefill={prefill ?? undefined} onClose={() => { setCreateOpen(false); setPrefill(null); }} />
         </SheetContent>
       </Sheet>
 
