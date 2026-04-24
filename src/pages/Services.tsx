@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
   Wrench, Plus, Search, Trash2, Edit2, CheckCircle, XCircle,
-  DollarSign, ListChecks, Tag, Clock,
+  DollarSign, Tag, Clock, FileDown, ListChecks,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,8 +19,11 @@ import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } fro
 import { useRealtimeSync } from '@/hooks/use-realtime';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { generatePDFReport } from '@/lib/pdf-reports';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+// Service items are stored as inventory_items with custom_fields.item_type = 'service'
 
 const SERVICE_UNITS = ['visit', 'hour', 'day', 'project', 'item'] as const;
 const SERVICE_UNIT_LABELS: Record<string, string> = {
@@ -47,14 +50,15 @@ interface ServiceFormProps {
 }
 
 function ServiceForm({ initial, onClose, onSave, isPending }: ServiceFormProps) {
+  const cf = initial?.custom_fields ?? {};
   const [form, setForm] = useState({
     name: initial?.name ?? '',
     description: initial?.description ?? '',
     category: initial?.category ?? 'General',
-    price: initial?.price ?? '',
-    duration_minutes: initial?.duration_minutes ?? 60,
-    unit: initial?.unit ?? 'visit',
-    is_active: initial?.is_active ?? true,
+    price: initial?.selling_price ?? '',
+    duration_minutes: cf.duration_minutes ?? 60,
+    unit: cf.service_unit ?? 'visit',
+    is_active: cf.is_active !== false,
   });
 
   const set = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
@@ -63,7 +67,23 @@ function ServiceForm({ initial, onClose, onSave, isPending }: ServiceFormProps) 
     if (!form.name.trim()) { toast.error('Service name is required'); return; }
     const price = parseFloat(String(form.price));
     if (isNaN(price) || price < 0) { toast.error('Enter a valid price'); return; }
-    onSave({ ...form, price, duration_minutes: Number(form.duration_minutes) || 60 });
+    onSave({
+      name: form.name.trim(),
+      description: form.description || null,
+      category: form.category,
+      selling_price: price,
+      unit_cost: 0,
+      quantity: 9999,
+      reorder_level: 0,
+      sku: initial?.sku ?? `SVC-${Date.now().toString(36).toUpperCase()}`,
+      custom_fields: {
+        ...((initial?.custom_fields as object) ?? {}),
+        item_type: 'service',
+        service_unit: form.unit,
+        duration_minutes: Number(form.duration_minutes) || 60,
+        is_active: form.is_active,
+      },
+    });
   };
 
   return (
@@ -102,9 +122,7 @@ function ServiceForm({ initial, onClose, onSave, isPending }: ServiceFormProps) 
           <div className="space-y-1.5">
             <Label>Price *</Label>
             <Input
-              type="number"
-              min="0"
-              step="0.01"
+              type="number" min="0" step="0.01"
               value={form.price}
               onChange={e => set('price', e.target.value)}
               placeholder="0.00"
@@ -113,8 +131,7 @@ function ServiceForm({ initial, onClose, onSave, isPending }: ServiceFormProps) 
           <div className="space-y-1.5">
             <Label>Duration (minutes)</Label>
             <Input
-              type="number"
-              min="0"
+              type="number" min="0"
               value={form.duration_minutes}
               onChange={e => set('duration_minutes', e.target.value)}
               placeholder="60"
@@ -160,25 +177,31 @@ function ServiceForm({ initial, onClose, onSave, isPending }: ServiceFormProps) 
 export default function Services() {
   const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
-  const { data, isLoading } = useTenantQuery('services');
-  const insertMutation = useTenantInsert('services');
-  const updateMutation = useTenantUpdate('services');
-  const remove = useTenantDelete('services');
-  useRealtimeSync('services' as any);
+  const { data: rawItems, isLoading } = useTenantQuery('inventory_items');
+  const insertMutation = useTenantInsert('inventory_items');
+  const updateMutation = useTenantUpdate('inventory_items');
+  const remove = useTenantDelete('inventory_items');
+  useRealtimeSync('inventory_items');
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [createOpen, setCreateOpen] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
 
-  const services: any[] = data ?? [];
+  // Service items are inventory_items tagged with custom_fields.item_type = 'service'
+  const allItems: any[] = rawItems ?? [];
+  const services = allItems.filter((i: any) => i.custom_fields?.item_type === 'service');
 
-  const activeCount = services.filter(s => s.is_active).length;
+  const activeCount = services.filter(s => s.custom_fields?.is_active !== false).length;
   const categories = Array.from(new Set(services.map((s: any) => s.category))).sort();
-  const avgPrice = services.length ? services.reduce((sum: number, s: any) => sum + Number(s.price), 0) / services.length : 0;
+  const avgPrice = services.length
+    ? services.reduce((sum: number, s: any) => sum + Number(s.selling_price), 0) / services.length
+    : 0;
 
   const filtered = services.filter((s: any) => {
-    const matchSearch = !search || s.name?.toLowerCase().includes(search.toLowerCase()) || s.description?.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search
+      || s.name?.toLowerCase().includes(search.toLowerCase())
+      || s.description?.toLowerCase().includes(search.toLowerCase());
     const matchCat = categoryFilter === 'all' || s.category === categoryFilter;
     return matchSearch && matchCat;
   });
@@ -192,7 +215,37 @@ export default function Services() {
   };
 
   const toggleActive = (service: any) => {
-    updateMutation.mutate({ id: service.id, is_active: !service.is_active });
+    const current = service.custom_fields?.is_active !== false;
+    updateMutation.mutate({
+      id: service.id,
+      custom_fields: { ...(service.custom_fields ?? {}), is_active: !current },
+    });
+  };
+
+  const handleExportPDF = () => {
+    generatePDFReport({
+      title: 'Service Catalog',
+      subtitle: tenant?.name,
+      tenantName: tenant?.name,
+      headers: ['Service', 'Category', 'Price', 'Unit', 'Duration', 'Status'],
+      rows: filtered.map((s: any) => [
+        s.name,
+        s.category ?? '—',
+        formatMoney(Number(s.selling_price)),
+        SERVICE_UNIT_LABELS[s.custom_fields?.service_unit] ?? s.custom_fields?.service_unit ?? '—',
+        s.custom_fields?.duration_minutes
+          ? s.custom_fields.duration_minutes < 60
+            ? `${s.custom_fields.duration_minutes} min`
+            : `${(s.custom_fields.duration_minutes / 60).toFixed(1)} hrs`
+          : '—',
+        s.custom_fields?.is_active !== false ? 'Active' : 'Inactive',
+      ]),
+      stats: [
+        { label: 'Total Services', value: String(services.length) },
+        { label: 'Active', value: String(activeCount) },
+        { label: 'Avg Price', value: formatMoney(avgPrice) },
+      ],
+    });
   };
 
   return (
@@ -201,7 +254,7 @@ export default function Services() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: 'Total Services', value: isDemo ? '12' : String(services.length), icon: Wrench, color: 'text-teal-600 bg-teal-50 dark:bg-teal-900/20' },
+            { label: 'Total Services', value: isDemo ? '12' : String(services.length), icon: ListChecks, color: 'text-teal-600 bg-teal-50 dark:bg-teal-900/20' },
             { label: 'Active Services', value: isDemo ? '10' : String(activeCount), icon: CheckCircle, color: 'text-green-600 bg-green-50 dark:bg-green-900/20' },
             { label: 'Categories', value: isDemo ? '5' : String(categories.length), icon: Tag, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' },
             { label: 'Avg Price', value: isDemo ? formatMoney(85) : formatMoney(avgPrice), icon: DollarSign, color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/20' },
@@ -237,11 +290,18 @@ export default function Services() {
               </SelectContent>
             </Select>
           </div>
-          {!isDemo && (
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white gap-2" onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4" /> New Service
-            </Button>
-          )}
+          <div className="flex gap-2">
+            {!isDemo && (
+              <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5" onClick={handleExportPDF} disabled={filtered.length === 0}>
+                <FileDown className="w-3.5 h-3.5" /> Export PDF
+              </Button>
+            )}
+            {!isDemo && (
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white gap-2" onClick={() => setCreateOpen(true)}>
+                <Plus className="w-4 h-4" /> New Service
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Service Grid */}
@@ -262,77 +322,77 @@ export default function Services() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((service: any) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -2 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className={cn('rounded-xl border-border h-full', !service.is_active && 'opacity-60')}>
-                  <CardContent className="p-4 flex flex-col gap-3 h-full">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground truncate">{service.name}</p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{service.category}</Badge>
-                          {service.is_active
-                            ? <Badge className="text-[10px] px-1.5 py-0 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0">Active</Badge>
-                            : <Badge className="text-[10px] px-1.5 py-0 bg-gray-100 text-gray-500 border-0">Inactive</Badge>
-                          }
+            {filtered.map((service: any) => {
+              const cf = service.custom_fields ?? {};
+              const isActive = cf.is_active !== false;
+              return (
+                <motion.div
+                  key={service.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{ y: -2 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className={cn('rounded-xl border-border h-full', !isActive && 'opacity-60')}>
+                    <CardContent className="p-4 flex flex-col gap-3 h-full">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-foreground truncate">{service.name}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{service.category}</Badge>
+                            {isActive
+                              ? <Badge className="text-[10px] px-1.5 py-0 bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400 border-0">Active</Badge>
+                              : <Badge className="text-[10px] px-1.5 py-0 bg-gray-100 text-gray-500 border-0">Inactive</Badge>
+                            }
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-lg font-bold text-teal-600">{formatMoney(Number(service.selling_price))}</p>
+                          <p className="text-[10px] text-muted-foreground">{SERVICE_UNIT_LABELS[cf.service_unit] ?? cf.service_unit ?? 'Per Visit'}</p>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-lg font-bold text-teal-600">{formatMoney(Number(service.price))}</p>
-                        <p className="text-[10px] text-muted-foreground">{SERVICE_UNIT_LABELS[service.unit] ?? service.unit}</p>
-                      </div>
-                    </div>
 
-                    {/* Description */}
-                    {service.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">{service.description}</p>
-                    )}
+                      {service.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">{service.description}</p>
+                      )}
 
-                    {/* Duration */}
-                    {service.duration_minutes > 0 && (
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>~{service.duration_minutes < 60
-                          ? `${service.duration_minutes} min`
-                          : `${(service.duration_minutes / 60).toFixed(1)} hrs`
-                        }</span>
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    {!isDemo && (
-                      <div className="flex items-center justify-between pt-1 mt-auto border-t border-border">
-                        <button
-                          onClick={() => toggleActive(service)}
-                          className={cn(
-                            'text-xs flex items-center gap-1 transition-colors',
-                            service.is_active ? 'text-green-600 hover:text-red-500' : 'text-muted-foreground hover:text-green-600'
-                          )}
-                        >
-                          {service.is_active ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                          {service.is_active ? 'Active' : 'Inactive'}
-                        </button>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setEditItem(service)}>
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => remove.mutate(service.id)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                      {cf.duration_minutes > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>~{cf.duration_minutes < 60
+                            ? `${cf.duration_minutes} min`
+                            : `${(cf.duration_minutes / 60).toFixed(1)} hrs`
+                          }</span>
                         </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
+                      )}
+
+                      {!isDemo && (
+                        <div className="flex items-center justify-between pt-1 mt-auto border-t border-border">
+                          <button
+                            onClick={() => toggleActive(service)}
+                            className={cn(
+                              'text-xs flex items-center gap-1 transition-colors',
+                              isActive ? 'text-green-600 hover:text-red-500' : 'text-muted-foreground hover:text-green-600'
+                            )}
+                          >
+                            {isActive ? <CheckCircle className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                            {isActive ? 'Active' : 'Inactive'}
+                          </button>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => setEditItem(service)}>
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => remove.mutate(service.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

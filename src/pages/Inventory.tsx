@@ -242,7 +242,8 @@ export default function Inventory() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [tab, setTab] = useState('all');
 
-  const items = data ?? [];
+  // Exclude service catalog items — those are managed in /services
+  const items = (data ?? []).filter((i: any) => i.custom_fields?.item_type !== 'service');
 
   const totalValue = items.reduce((s: number, i: any) => s + i.quantity * Number(i.unit_cost), 0);
   const lowStock = items.filter((i: any) => i.quantity <= i.reorder_level);
