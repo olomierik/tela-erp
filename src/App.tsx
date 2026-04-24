@@ -88,6 +88,8 @@ import TRAEFiling from "./pages/TRAEFiling";
 import FilingAuditLog from "./pages/FilingAuditLog";
 import AutomationExecutionLog from "./pages/AutomationExecutionLog";
 import AnomalyAlerts from "./pages/AnomalyAlerts";
+import Services from "./pages/Services";
+import ServiceOrders from "./pages/ServiceOrders";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -184,6 +186,10 @@ const App = () => (
               <Route path="/deduction-optimizer" element={<ProtectedRoute><DeductionOptimizer /></ProtectedRoute>} />
               <Route path="/tra-filing" element={<ProtectedRoute><TRAEFiling /></ProtectedRoute>} />
               <Route path="/filing-audit-log" element={<ProtectedRoute><FilingAuditLog /></ProtectedRoute>} />
+
+              {/* Service Delivery routes */}
+              <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+              <Route path="/service-orders" element={<ProtectedRoute><ServiceOrders /></ProtectedRoute>} />
 
               {/* Automation routes */}
               <Route path="/automation-log" element={<ProtectedRoute><AutomationExecutionLog /></ProtectedRoute>} />

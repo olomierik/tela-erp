@@ -248,6 +248,17 @@ export const APP_CATALOG: AppDefinition[] = [
 
   // ─── Services ────────────────────────────────────────────────
   {
+    key: 'service-delivery',
+    name: 'Service Delivery',
+    summary: 'Service catalog, orders & scheduling',
+    description: 'Manage your service catalog, create service orders with scheduling, track delivery progress, assign staff, and auto-post service revenue to accounting. Ideal for consultants, cleaners, clinics, contractors, and any business that sells services rather than (or alongside) physical products.',
+    category: 'services',
+    icon: 'Wrench',
+    color: 'bg-teal-600',
+    routes: ['/services', '/service-orders'],
+    tags: ['appointments', 'scheduling', 'work-orders', 'field-service'],
+  },
+  {
     key: 'projects',
     name: 'Projects',
     summary: 'Task & project management',
@@ -428,6 +439,7 @@ const MODULE_TO_APP_KEY: Record<string, string> = {
   pos: 'pos',
   subscriptions: 'subscriptions',
   ai: 'ai-assistant',
+  service_delivery: 'service-delivery',
 };
 
 /** Convert onboarding module keys to app catalog keys */

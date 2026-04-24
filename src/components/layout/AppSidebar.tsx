@@ -12,6 +12,7 @@ import {
   Car, Wrench, ShoppingBag, RefreshCw, Lightbulb,
   Scale, CalendarDays, TrendingDown, ClipboardList,
   Upload, AlertTriangle, Zap, FileSearch, Building2,
+  ListChecks,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -61,6 +62,13 @@ const navSections: NavSection[] = [
       { label: 'Marketing', icon: Megaphone, path: '/marketing', module: 'marketing' },
       { label: 'Subscriptions', icon: RefreshCw, path: '/subscriptions', module: 'subscriptions' },
       { label: 'Point of Sale', icon: ShoppingBag, path: '/pos', module: 'pos' },
+    ],
+  },
+  {
+    title: 'Service Delivery',
+    items: [
+      { label: 'Service Orders', icon: Wrench, path: '/service-orders', module: 'service_delivery' },
+      { label: 'Service Catalog', icon: ListChecks, path: '/services', module: 'service_delivery' },
     ],
   },
   {
@@ -165,6 +173,7 @@ const MODULE_TO_APP_KEY: Partial<Record<ModuleKey, string>> = {
   pos: 'pos',
   subscriptions: 'subscriptions',
   ai: 'ai-assistant',
+  service_delivery: 'service-delivery',
 };
 
 export default function AppSidebar() {

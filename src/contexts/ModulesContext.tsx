@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 export type ModuleKey =
   | 'production' | 'inventory' | 'sales' | 'marketing' | 'accounting'
   | 'procurement' | 'hr' | 'crm' | 'projects' | 'assets' | 'expenses'
-  | 'budgets' | 'fleet' | 'maintenance' | 'pos' | 'subscriptions' | 'ai';
+  | 'budgets' | 'fleet' | 'maintenance' | 'pos' | 'subscriptions' | 'ai'
+  | 'service_delivery';
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
   production: 'Production',
@@ -24,6 +25,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   pos: 'Point of Sale',
   subscriptions: 'Subscriptions',
   ai: 'AI Intelligence',
+  service_delivery: 'Service Delivery',
 };
 
 export const ALL_MODULES: ModuleKey[] = Object.keys(MODULE_LABELS) as ModuleKey[];
@@ -34,7 +36,7 @@ export type SubscriptionTier = 'starter' | 'premium' | 'enterprise';
 
 /** Modules available per subscription tier */
 export const TIER_MODULES: Record<SubscriptionTier, ModuleKey[]> = {
-  starter: ['sales', 'inventory'],       // + reports/dashboard always
+  starter: ['sales', 'inventory', 'service_delivery'],  // + reports/dashboard always
   premium: ALL_MODULES,
   enterprise: ALL_MODULES,
 };
@@ -85,8 +87,8 @@ export const INDUSTRY_PRESETS: Record<string, {
     label: 'Professional Services',
     description: 'Consulting, legal, accounting, agencies, and other service businesses',
     icon: '💼',
-    modules: ['accounting', 'sales', 'projects', 'hr', 'crm', 'expenses', 'marketing', 'budgets'],
-    highlights: ['Project tracking', 'Client CRM', 'Time & expense logging'],
+    modules: ['accounting', 'sales', 'service_delivery', 'projects', 'hr', 'crm', 'expenses', 'marketing', 'budgets'],
+    highlights: ['Service orders & scheduling', 'Project tracking', 'Client CRM'],
   },
   hospitality: {
     label: 'Hospitality & Restaurant',
@@ -99,15 +101,15 @@ export const INDUSTRY_PRESETS: Record<string, {
     label: 'Healthcare & Medical',
     description: 'Clinics, hospitals, pharmacies, and health service providers',
     icon: '🏥',
-    modules: ['accounting', 'hr', 'inventory', 'expenses', 'assets', 'crm'],
-    highlights: ['Patient records (CRM)', 'Medical supplies', 'Asset tracking'],
+    modules: ['accounting', 'service_delivery', 'hr', 'inventory', 'expenses', 'assets', 'crm'],
+    highlights: ['Appointment scheduling', 'Patient records (CRM)', 'Medical supplies'],
   },
   construction: {
     label: 'Construction & Engineering',
     description: 'Contractors, builders, civil engineering, and infrastructure firms',
     icon: '🏗️',
-    modules: ['accounting', 'projects', 'assets', 'hr', 'procurement', 'inventory', 'expenses', 'maintenance'],
-    highlights: ['Project cost tracking', 'Equipment maintenance', 'Site procurement'],
+    modules: ['accounting', 'service_delivery', 'projects', 'assets', 'hr', 'procurement', 'inventory', 'expenses', 'maintenance'],
+    highlights: ['Service work orders', 'Project cost tracking', 'Equipment maintenance'],
   },
   logistics: {
     label: 'Logistics & Transportation',
@@ -141,8 +143,8 @@ export const INDUSTRY_PRESETS: Record<string, {
     label: 'Real Estate & Property',
     description: 'Property developers, agents, landlords, and property managers',
     icon: '🏢',
-    modules: ['accounting', 'assets', 'sales', 'hr', 'expenses', 'maintenance', 'crm'],
-    highlights: ['Property assets', 'Maintenance requests', 'Client pipeline'],
+    modules: ['accounting', 'service_delivery', 'assets', 'sales', 'hr', 'expenses', 'maintenance', 'crm'],
+    highlights: ['Property service orders', 'Maintenance requests', 'Client pipeline'],
   },
   technology: {
     label: 'Technology & SaaS',
