@@ -846,6 +846,12 @@ export default function HR() {
               ))}
             </div>
 
+            {!isSdlLiable && activeEmployees.length > 0 && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                <strong>SDL exempt:</strong> Employer has {activeEmployees.length} active employee{activeEmployees.length === 1 ? '' : 's'}. Skills Development Levy (SDL) only applies when the employer has 10 or more employees (per TRA).
+              </div>
+            )}
+
             {/* Main payroll table */}
             <Card className="rounded-xl border-border">
               <CardContent className="p-0">
