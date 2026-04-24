@@ -12,6 +12,7 @@ import { StoreProvider } from "@/contexts/StoreContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { ModulesProvider } from "@/contexts/ModulesContext";
 import { NetworkStatusProvider } from "@/contexts/NetworkStatusContext";
+import { PeriodProvider } from "@/contexts/PeriodContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import ConflictInbox from "./pages/ConflictInbox";
 import DesktopSetup from "./pages/DesktopSetup";
@@ -115,6 +116,7 @@ const App = () => (
           <StoreProvider>
           <ModulesProvider>
           <NetworkStatusProvider>
+          <PeriodProvider>
           <SidebarProvider>
           <Toaster />
           <Sonner />
