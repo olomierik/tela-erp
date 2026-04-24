@@ -5229,7 +5229,10 @@ export type Database = {
       payroll_lines: {
         Row: {
           allowances: number | null
+          basic: number
+          department: string | null
           employee_id: string
+          employee_name: string | null
           gross_salary: number | null
           id: string
           net_salary: number | null
@@ -5237,12 +5240,19 @@ export type Database = {
           nssf_employee: number | null
           nssf_employer: number | null
           paye: number | null
+          paye_band: string | null
           payroll_run_id: string
+          position: string | null
           sdl: number | null
+          tenant_id: string | null
+          wcf: number
         }
         Insert: {
           allowances?: number | null
+          basic?: number
+          department?: string | null
           employee_id: string
+          employee_name?: string | null
           gross_salary?: number | null
           id?: string
           net_salary?: number | null
@@ -5250,12 +5260,19 @@ export type Database = {
           nssf_employee?: number | null
           nssf_employer?: number | null
           paye?: number | null
+          paye_band?: string | null
           payroll_run_id: string
+          position?: string | null
           sdl?: number | null
+          tenant_id?: string | null
+          wcf?: number
         }
         Update: {
           allowances?: number | null
+          basic?: number
+          department?: string | null
           employee_id?: string
+          employee_name?: string | null
           gross_salary?: number | null
           id?: string
           net_salary?: number | null
@@ -5263,8 +5280,12 @@ export type Database = {
           nssf_employee?: number | null
           nssf_employer?: number | null
           paye?: number | null
+          paye_band?: string | null
           payroll_run_id?: string
+          position?: string | null
           sdl?: number | null
+          tenant_id?: string | null
+          wcf?: number
         }
         Relationships: [
           {
@@ -5281,40 +5302,83 @@ export type Database = {
             referencedRelation: "payroll_runs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payroll_lines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payroll_runs: {
         Row: {
           created_at: string | null
+          employee_count: number
           id: string
+          is_auto: boolean
           month: number
+          notes: string | null
+          period: string
+          posted_at: string | null
+          posted_by: string | null
           status: string | null
           tenant_id: string
           total_deductions: number | null
+          total_employer_cost: number
           total_gross: number | null
           total_net: number | null
+          total_nssf_employee: number
+          total_nssf_employer: number
+          total_paye: number
+          total_sdl: number
+          total_wcf: number
           year: number
         }
         Insert: {
           created_at?: string | null
+          employee_count?: number
           id?: string
+          is_auto?: boolean
           month: number
+          notes?: string | null
+          period: string
+          posted_at?: string | null
+          posted_by?: string | null
           status?: string | null
           tenant_id: string
           total_deductions?: number | null
+          total_employer_cost?: number
           total_gross?: number | null
           total_net?: number | null
+          total_nssf_employee?: number
+          total_nssf_employer?: number
+          total_paye?: number
+          total_sdl?: number
+          total_wcf?: number
           year: number
         }
         Update: {
           created_at?: string | null
+          employee_count?: number
           id?: string
+          is_auto?: boolean
           month?: number
+          notes?: string | null
+          period?: string
+          posted_at?: string | null
+          posted_by?: string | null
           status?: string | null
           tenant_id?: string
           total_deductions?: number | null
+          total_employer_cost?: number
           total_gross?: number | null
           total_net?: number | null
+          total_nssf_employee?: number
+          total_nssf_employer?: number
+          total_paye?: number
+          total_sdl?: number
+          total_wcf?: number
           year?: number
         }
         Relationships: [
@@ -7143,6 +7207,7 @@ export type Database = {
         }
         Returns: string
       }
+      cron_post_monthly_payroll: { Args: never; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -7184,6 +7249,10 @@ export type Database = {
       }
       next_voucher_number: {
         Args: { _tenant_id: string; _type: string }
+        Returns: string
+      }
+      post_payroll_run: {
+        Args: { _is_auto?: boolean; _period: string; _tenant_id: string }
         Returns: string
       }
       read_email_batch: {
