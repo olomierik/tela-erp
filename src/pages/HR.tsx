@@ -576,7 +576,16 @@ export default function HR() {
     if (isDemo || !tenant?.id || payrollData.length === 0) return;
     setPostingPayroll(true);
     try {
-      const runId = `payroll-${new Date().toISOString().slice(0, 7)}`;
+      // 1. Snapshot the run for the selected month (idempotent — re-running the
+      //    same month returns the existing run id without creating duplicates).
+      const { data: runId, error: rpcErr } = await (supabase as any).rpc('post_payroll_run', {
+        _tenant_id: tenant.id,
+        _period: selectedMonth,
+        _is_auto: false,
+      });
+      if (rpcErr) throw rpcErr;
+
+      // 2. Also push the journal entries to accounting (existing behaviour).
       const lines = payrollData.map((e: any) => ({
         employee_id: e.id,
         gross_salary: e.gross,
@@ -587,12 +596,10 @@ export default function HR() {
         sdl: e.sdl,
         wcf: e.wcf,
       }));
-      await onPayrollApproved(
-        tenant.id,
-        { id: runId, month: new Date().getMonth() + 1, year: new Date().getFullYear() },
-        lines,
-      );
-      toast.success(`Payroll posted to accounting — ${formatMoney(totalNet)} net salaries + deductions`);
+      const [y, m] = selectedMonth.split('-').map(Number);
+      await onPayrollApproved(tenant.id, { id: String(runId), month: m, year: y }, lines);
+
+      toast.success(`Payroll posted for ${monthLabel} — ${formatMoney(totalNet)} net`);
     } catch (err: any) {
       toast.error(`Failed to post payroll: ${err?.message ?? 'Unknown error'}`);
     } finally {
@@ -826,9 +833,10 @@ export default function HR() {
                   className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
                   onClick={handlePostToAccounting}
                   disabled={payrollData.length === 0 || postingPayroll || isDemo}
+                  title="Saves a snapshot for this month and posts journal entries. Auto-runs on the 1st of each month for the previous month."
                 >
                   {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                  Post to Accounting
+                  Post Payroll ({monthLabel})
                 </Button>
               </div>
             </div>
