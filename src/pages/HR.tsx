@@ -865,6 +865,7 @@ export default function HR() {
                           <th className="text-right px-3 py-3 font-medium text-amber-500">NSSF Empr</th>
                           <th className="text-right px-3 py-3 font-medium text-amber-500">SDL 3.5%</th>
                           <th className="text-right px-3 py-3 font-medium text-amber-500">WCF 0.5%</th>
+                          <th className="text-center px-3 py-3 font-medium">Payslip</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
