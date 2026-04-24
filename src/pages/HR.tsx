@@ -494,7 +494,9 @@ export default function HR() {
       head: [['Employer Contributions (not deducted from employee)', 'Amount']],
       body: [
         ['NSSF (Employer 10%)', fmt(emp.nssfEmployer)],
-        ['SDL (3.5% of gross)', fmt(emp.sdl)],
+        emp.isSdlLiable
+          ? ['SDL (3.5% of gross)', fmt(emp.sdl)]
+          : ['SDL (exempt — under 10 employees)', fmt(0)],
         ['WCF (0.5% of gross)', fmt(emp.wcf)],
         [{ content: 'Total Employer Cost', styles: { fontStyle: 'bold' } }, { content: fmt(emp.totalEmployerCost), styles: { fontStyle: 'bold' } }],
       ],
