@@ -25,8 +25,10 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 // Service orders are stored in sales_orders with custom_fields.order_type = 'service'
-// Status values: pending | confirmed | in_progress | completed | cancelled
-// (sales_orders.status is a plain text column with no DB-level enum constraint)
+// Display statuses: pending | confirmed | in_progress | completed | cancelled
+// DB status column is constrained to: pending | confirmed | shipped | delivered | cancelled
+// Mapping: in_progress <-> shipped, completed <-> delivered
+// True display status is stored in custom_fields.service_status
 
 const ORDER_STATUSES = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'] as const;
 type OrderStatus = typeof ORDER_STATUSES[number];
@@ -38,6 +40,23 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; class: string; icon: a
   completed:   { label: 'Completed',   class: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',   icon: CheckCircle },
   cancelled:   { label: 'Cancelled',   class: 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400',           icon: XCircle },
 };
+
+// Map display status to the DB-allowed value
+function toDbStatus(displayStatus: string): string {
+  if (displayStatus === 'in_progress') return 'shipped';
+  if (displayStatus === 'completed') return 'delivered';
+  return displayStatus;
+}
+
+// Derive display status from an order row (prefers custom_fields.service_status)
+function getDisplayStatus(order: any): OrderStatus {
+  const svcStatus = order.custom_fields?.service_status;
+  if (svcStatus && ORDER_STATUSES.includes(svcStatus as OrderStatus)) return svcStatus as OrderStatus;
+  // Fallback: reverse-map DB status
+  if (order.status === 'shipped') return 'in_progress';
+  if (order.status === 'delivered') return 'completed';
+  return (order.status as OrderStatus) ?? 'pending';
+}
 
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_CONFIG[status as OrderStatus] ?? STATUS_CONFIG.pending;
@@ -145,10 +164,11 @@ function CreateServiceOrderSheet({
       customer_id: form.customer_id || null,
       customer_name: form.customer_name,
       customer_email: form.customer_email,
-      status: form.status,
+      status: toDbStatus(form.status),
       total_amount: total,
       custom_fields: {
         order_type: 'service',
+        service_status: form.status,
         customer_phone: form.customer_phone || null,
         scheduled_date: form.scheduled_date || null,
         scheduled_time: form.scheduled_time || null,
@@ -386,9 +406,9 @@ export default function ServiceOrders() {
 
   // Stats
   const totalRevenue = orders.reduce((s: number, o: any) => s + Number(o.total_amount), 0);
-  const pendingCount = orders.filter((o: any) => o.status === 'pending').length;
-  const inProgressCount = orders.filter((o: any) => o.status === 'in_progress').length;
-  const completedCount = orders.filter((o: any) => o.status === 'completed').length;
+  const pendingCount = orders.filter((o: any) => getDisplayStatus(o) === 'pending').length;
+  const inProgressCount = orders.filter((o: any) => getDisplayStatus(o) === 'in_progress').length;
+  const completedCount = orders.filter((o: any) => getDisplayStatus(o) === 'completed').length;
 
   const filtered = orders.filter((o: any) => {
     const cf = o.custom_fields ?? {};
@@ -396,7 +416,7 @@ export default function ServiceOrders() {
       || o.order_number?.toLowerCase().includes(search.toLowerCase())
       || o.customer_name?.toLowerCase().includes(search.toLowerCase())
       || cf.assigned_to?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || o.status === statusFilter;
+    const matchStatus = statusFilter === 'all' || getDisplayStatus(o) === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -405,7 +425,7 @@ export default function ServiceOrders() {
       onSuccess: async (data: any) => {
         if (!tenant?.id || !data?.id) return;
         // Post service revenue when order is confirmed immediately
-        if (row.status === 'confirmed') {
+        if (row.custom_fields?.service_status === 'confirmed' || row.status === 'confirmed') {
           await onServiceOrderCreated(tenant.id, {
             id: data.id,
             order_number: data.order_number,
@@ -418,18 +438,22 @@ export default function ServiceOrders() {
   };
 
   const handleStatusChange = async (order: any, newStatus: string) => {
-    const updates: Record<string, any> = { id: order.id, status: newStatus };
-    if (newStatus === 'completed') {
-      updates.custom_fields = {
-        ...(order.custom_fields ?? {}),
-        completed_date: new Date().toISOString().split('T')[0],
-      };
-    }
+    const currentDisplayStatus = getDisplayStatus(order);
+    const updatedCf = {
+      ...(order.custom_fields ?? {}),
+      service_status: newStatus,
+      ...(newStatus === 'completed' ? { completed_date: new Date().toISOString().split('T')[0] } : {}),
+    };
+    const updates: Record<string, any> = {
+      id: order.id,
+      status: toDbStatus(newStatus),
+      custom_fields: updatedCf,
+    };
     updateMutation.mutate(updates, {
       onSuccess: async () => {
         if (!tenant?.id) return;
         // Post revenue when transitioning to confirmed for the first time
-        if (newStatus === 'confirmed' && order.status === 'pending') {
+        if (newStatus === 'confirmed' && currentDisplayStatus === 'pending') {
           await onServiceOrderCreated(tenant.id, {
             id: order.id,
             order_number: order.order_number,
@@ -438,7 +462,7 @@ export default function ServiceOrders() {
           });
         }
         // Reverse revenue if cancelling a confirmed/active order
-        if (newStatus === 'cancelled' && ['confirmed', 'in_progress', 'completed'].includes(order.status)) {
+        if (newStatus === 'cancelled' && ['confirmed', 'in_progress', 'completed'].includes(currentDisplayStatus)) {
           await onServiceOrderCancelled(tenant.id, {
             id: order.id,
             order_number: order.order_number,
@@ -463,7 +487,7 @@ export default function ServiceOrders() {
           cf.scheduled_date ? new Date(cf.scheduled_date).toLocaleDateString() : '—',
           cf.assigned_to || '—',
           formatMoney(Number(o.total_amount)),
-          STATUS_CONFIG[o.status as OrderStatus]?.label ?? o.status,
+          STATUS_CONFIG[getDisplayStatus(o)]?.label ?? o.status,
         ];
       }),
       stats: [
@@ -564,6 +588,7 @@ export default function ServiceOrders() {
               <tbody className="divide-y divide-border">
                 {filtered.map((o: any) => {
                   const cf = o.custom_fields ?? {};
+                  const displayStatus = getDisplayStatus(o);
                   return (
                     <motion.tr key={o.id} className="hover:bg-accent/40 transition-colors" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       <td className="px-4 py-3 font-mono font-semibold text-foreground">{o.order_number}</td>
@@ -594,24 +619,24 @@ export default function ServiceOrders() {
                           <span className="text-xs text-muted-foreground">Not scheduled</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 hidden lg:table-cell"><OrderTimeline status={o.status} /></td>
+                      <td className="px-4 py-3 hidden lg:table-cell"><OrderTimeline status={displayStatus} /></td>
                       <td className="px-4 py-3 text-right font-bold text-foreground">{formatMoney(Number(o.total_amount))}</td>
-                      <td className="px-4 py-3"><StatusBadge status={o.status} /></td>
+                      <td className="px-4 py-3"><StatusBadge status={displayStatus} /></td>
                       {!isDemo && (
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {['confirmed', 'in_progress', 'completed'].includes(o.status) && (
+                            {['confirmed', 'in_progress', 'completed'].includes(displayStatus) && (
                               <Button variant="ghost" size="icon" className="h-7 w-7 text-indigo-500 hover:text-indigo-700" title="Create Invoice" onClick={() => handleGenerateInvoice(o)}>
                                 <FileText className="w-3.5 h-3.5" />
                               </Button>
                             )}
-                            {!['completed', 'cancelled'].includes(o.status) && (
+                            {!['completed', 'cancelled'].includes(displayStatus) && (
                               <Select onValueChange={v => handleStatusChange(o, v)}>
                                 <SelectTrigger className="h-7 w-28 text-xs"><SelectValue placeholder="Update" /></SelectTrigger>
                                 <SelectContent>
-                                  {o.status === 'pending'     && <SelectItem value="confirmed">Confirm</SelectItem>}
-                                  {o.status === 'confirmed'   && <SelectItem value="in_progress">Start Work</SelectItem>}
-                                  {o.status === 'in_progress' && <SelectItem value="completed">Mark Complete</SelectItem>}
+                                  {displayStatus === 'pending'     && <SelectItem value="confirmed">Confirm</SelectItem>}
+                                  {displayStatus === 'confirmed'   && <SelectItem value="in_progress">Start Work</SelectItem>}
+                                  {displayStatus === 'in_progress' && <SelectItem value="completed">Mark Complete</SelectItem>}
                                   <SelectItem value="cancelled">Cancel</SelectItem>
                                 </SelectContent>
                               </Select>
