@@ -26,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import SubscriptionAlertWidget from '@/components/dashboard/SubscriptionAlertWidget';
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────
@@ -322,6 +323,7 @@ export default function Dashboard() {
       subtitle={isDemo ? 'Demo Mode — Sample data shown' : `Overview for ${new Date().toLocaleDateString('en', { month: 'long', year: 'numeric' })}`}
     >
       <div className="space-y-5">
+        <SubscriptionAlertWidget />
 
         {/* ── KPI Strip ──────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
