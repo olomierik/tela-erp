@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot, Sun, Moon, Menu } from 'lucide-react';
+import { Bell, Store, ChevronDown, LogOut, Settings, User, Search, Check, Dot, Sun, Moon, Menu, AlertTriangle } from 'lucide-react';
+import { useSubscriptionAlerts } from '@/hooks/use-subscription-alerts';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -129,7 +130,8 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
     return () => { supabase.removeChannel(channel); };
   }, [tenant?.id, profile?.user_id, isDemo]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const subAlerts = useSubscriptionAlerts();
+  const unreadCount = notifications.filter(n => !n.read).length + subAlerts.overdueCount;
 
   const markAllRead = async () => {
     if (!tenant?.id) return;
