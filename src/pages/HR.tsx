@@ -1002,6 +1002,9 @@ export default function HR() {
                 </Card>
               );
             })()}
+
+            {/* History browser — open & edit any prior month's snapshot */}
+            <SavedPayrollRuns />
           </div>
         </TabsContent>
 
