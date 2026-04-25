@@ -323,7 +323,24 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
                 )}
               </div>
               <div className="divide-y divide-border/50 max-h-72 overflow-y-auto overscroll-contain">
-                {notifications.length === 0 ? (
+                {subAlerts.overdueCount > 0 && (
+                  <Link to="/subscriptions" onClick={() => setNotifOpen(false)}
+                    className="block px-4 py-3 bg-red-50/60 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[12.5px] text-red-700 dark:text-red-300">
+                          {subAlerts.overdueCount} overdue subscription invoice{subAlerts.overdueCount !== 1 ? 's' : ''}
+                        </p>
+                        <p className="text-[11px] text-red-600/80 dark:text-red-400/80 line-clamp-2">
+                          {subAlerts.customers.slice(0, 3).map(c => c.customer_name).join(', ')}
+                          {subAlerts.customers.length > 3 && ` +${subAlerts.customers.length - 3} more`}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                )}
+                {notifications.length === 0 && subAlerts.overdueCount === 0 ? (
                   <div className="px-4 py-10 text-center">
                     <Bell className="w-7 h-7 text-muted-foreground/20 mx-auto mb-2" />
                     <p className="text-[13px] text-muted-foreground">All caught up</p>
