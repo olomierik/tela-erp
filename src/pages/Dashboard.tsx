@@ -322,6 +322,7 @@ export default function Dashboard() {
       subtitle={isDemo ? 'Demo Mode — Sample data shown' : `Overview for ${new Date().toLocaleDateString('en', { month: 'long', year: 'numeric' })}`}
     >
       <div className="space-y-5">
+        <SubscriptionAlertWidget />
 
         {/* ── KPI Strip ──────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
