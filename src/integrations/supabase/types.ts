@@ -6280,6 +6280,75 @@ export type Database = {
           },
         ]
       }
+      subscription_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          due_date: string
+          id: string
+          invoice_number: string
+          notes: string
+          paid_at: string | null
+          period: string
+          period_end: string
+          period_start: string
+          status: string
+          subscription_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          due_date: string
+          id?: string
+          invoice_number: string
+          notes?: string
+          paid_at?: string | null
+          period: string
+          period_end: string
+          period_start: string
+          status?: string
+          subscription_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          notes?: string
+          paid_at?: string | null
+          period?: string
+          period_end?: string
+          period_start?: string
+          status?: string
+          subscription_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           billing_period: string
@@ -7216,6 +7285,10 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      generate_subscription_invoices: {
+        Args: { _subscription_id: string }
+        Returns: number
+      }
       get_profiles_count: { Args: never; Returns: number }
       get_tenant_secret: {
         Args: { _tenant_id: string }
@@ -7263,8 +7336,17 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_payroll_run_totals: {
+        Args: { _run_id: string }
+        Returns: undefined
+      }
+      refresh_subscription_invoice_overdue: { Args: never; Returns: number }
       seed_company_coa: {
         Args: { _business_type?: string; _tenant_id: string }
+        Returns: undefined
+      }
+      set_subscription_invoice_status: {
+        Args: { _invoice_id: string; _status: string }
         Returns: undefined
       }
     }
