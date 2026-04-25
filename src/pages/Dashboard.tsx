@@ -26,6 +26,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import SubscriptionAlertWidget from '@/components/dashboard/SubscriptionAlertWidget';
 import { supabase } from '@/integrations/supabase/client';
 
 // ─── KPI Card ───────────────────────────────────────────────────────────────
