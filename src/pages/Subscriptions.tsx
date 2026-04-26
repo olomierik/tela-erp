@@ -69,9 +69,11 @@ export default function Subscriptions() {
 
   const { data: rawSubs, isLoading, refetch } = useTenantQuery('subscriptions' as any);
   const { data: services = [] } = useTenantQuery('inventory_items' as any);
+  const { data: customers = [] } = useTenantQuery('customers' as any);
   const insert = useTenantInsert('subscriptions' as any);
 
   const subs: any[] = (rawSubs as any[]) ?? [];
+  const customerList: any[] = ((customers as any[]) ?? []).filter((c: any) => c?.is_active !== false);
 
   // Service catalog: inventory items whose category indicates a service
   const serviceCatalog = useMemo(() => {
