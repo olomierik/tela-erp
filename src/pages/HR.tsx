@@ -367,8 +367,9 @@ export default function HR() {
 
   // ── Tanzania statutory payroll calculation ────────────────────────────────
   const payrollData = activeEmployees.map(e => {
-    const basic = Number(e.salary) || 0;
+    const baseBasic = Number(e.salary) || 0;
     const baseAllowances = Number(e.allowances) || 0;
+    const basic = runBasic[e.id] ?? baseBasic;
     const allowances = runAllowances[e.id] ?? baseAllowances;
     const gross = basic + allowances;             // Gross = Basic + Allowances
     const paye = calculatePAYE(gross);            // PAYE on full gross
