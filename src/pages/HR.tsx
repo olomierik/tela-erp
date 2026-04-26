@@ -889,6 +889,16 @@ export default function HR() {
                   size="sm"
                   variant="outline"
                   className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  onClick={handleDownloadPayrollPDF}
+                  disabled={payrollData.length === 0}
+                  title={`Download the full payroll report for ${monthLabel} as a PDF`}
+                >
+                  <Download className="w-3.5 h-3.5" /> Payroll PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                   onClick={handleDownloadAllPayslips}
                   disabled={payrollData.length === 0}
                 >
@@ -899,10 +909,10 @@ export default function HR() {
                   className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
                   onClick={handlePostToAccounting}
                   disabled={payrollData.length === 0 || postingPayroll || isDemo}
-                  title="Saves a snapshot for this month and posts journal entries. Auto-runs on the 1st of each month for the previous month."
+                  title="Creates and saves a new payroll snapshot for the selected month, then posts journal entries. Auto-runs on the 1st of each month for the previous month."
                 >
-                  {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-                  Post Payroll ({monthLabel})
+                  {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                  Create / Save Payroll ({monthLabel})
                 </Button>
               </div>
             </div>
