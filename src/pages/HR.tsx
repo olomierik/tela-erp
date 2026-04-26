@@ -566,6 +566,71 @@ export default function HR() {
     toast.success('Payroll report downloaded');
   };
 
+  // ── Payroll PDF report for the selected month ──────────────────────────
+  const handleDownloadPayrollPDF = () => {
+    if (payrollData.length === 0) { toast.info('No employees to include in the report'); return; }
+    const fmt = (n: number) => Math.round(n).toLocaleString();
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(79, 70, 229);
+    doc.rect(0, 0, pageW, 56, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text('Payroll Report', 40, 28);
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text(`${monthLabel} · ${tenant?.name || 'Company'}`, 40, 46);
+    doc.text(new Date().toLocaleDateString(), pageW - 40, 46, { align: 'right' });
+
+    // KPI summary
+    autoTable(doc, {
+      startY: 76,
+      head: [['Summary', 'Amount']],
+      body: [
+        ['Active employees',          String(payrollData.length)],
+        ['Total gross salary',        fmt(totalGross)],
+        ['PAYE → TRA',                fmt(totalPAYE)],
+        ['NSSF total (20% of basic)', fmt(totalNssfEmp + totalNssfEmpr)],
+        ['SDL (3.5%)',                isSdlLiable ? fmt(totalSDL) : 'Exempt (<10 staff)'],
+        ['WCF (0.5%)',                fmt(totalWCF)],
+        ['Net pay (take-home)',       fmt(totalNet)],
+        ['Total employer cost',       fmt(totalEmployerCost)],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      columnStyles: { 1: { halign: 'right' } },
+      margin: { left: 40, right: 40 },
+    });
+
+    // Per-employee breakdown
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 16,
+      head: [['Employee', 'Position', 'Dept', 'Basic', 'Allow.', 'Gross', 'PAYE', 'NSSF E', 'Net', 'NSSF Empr', 'SDL', 'WCF', 'Empr Cost']],
+      body: payrollData.map(e => [
+        e.full_name, e.position || '—', e.department || '—',
+        fmt(e.basic), fmt(e.allowances), fmt(e.gross),
+        fmt(e.paye), fmt(e.nssfEmployee), fmt(e.net),
+        fmt(e.nssfEmployer), fmt(e.sdl), fmt(e.wcf), fmt(e.totalEmployerCost),
+      ]),
+      foot: [[
+        'TOTALS', '', '',
+        fmt(totalBasic), fmt(totalAllowances), fmt(totalGross),
+        fmt(totalPAYE), fmt(totalNssfEmp), fmt(totalNet),
+        fmt(totalNssfEmpr), fmt(totalSDL), fmt(totalWCF), fmt(totalEmployerCost),
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 8 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold', fontSize: 8 },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: Object.fromEntries([3,4,5,6,7,8,9,10,11,12].map(i => [i, { halign: 'right' as const }])),
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save(`payroll-${selectedMonth}.pdf`);
+    toast.success(`Payroll PDF for ${monthLabel} downloaded`);
+  };
+
   const handleLeaveAction = async (id: string, status: 'approved' | 'rejected') => {
     if (isDemo) return;
     await updateLeave.mutateAsync({ id, status });
