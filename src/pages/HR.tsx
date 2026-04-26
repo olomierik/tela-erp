@@ -638,22 +638,71 @@ export default function HR() {
     await updateLeave.mutateAsync({ id, status });
   };
 
+  const [savingPayroll, setSavingPayroll]   = useState(false);
   const [postingPayroll, setPostingPayroll] = useState(false);
+  const [savedRunId, setSavedRunId]         = useState<string | null>(null);
 
-  const handlePostToAccounting = async () => {
+  // STEP 1 — Create / Save the snapshot for the selected month.
+  // Idempotent: running again for the same month re-uses the existing run id.
+  const handleCreatePayroll = async () => {
     if (isDemo || !tenant?.id || payrollData.length === 0) return;
-    setPostingPayroll(true);
+    setSavingPayroll(true);
     try {
-      // 1. Snapshot the run for the selected month (idempotent — re-running the
-      //    same month returns the existing run id without creating duplicates).
-      const { data: runId, error: rpcErr } = await (supabase as any).rpc('post_payroll_run', {
+      const { data: runId, error } = await (supabase as any).rpc('post_payroll_run', {
         _tenant_id: tenant.id,
         _period: selectedMonth,
         _is_auto: false,
       });
-      if (rpcErr) throw rpcErr;
+      if (error) throw error;
 
-      // 2. Also push the journal entries to accounting (existing behaviour).
+      // Apply per-run salary/allowance edits to the saved snapshot
+      const updates = payrollData.map((e: any) => ({
+        payroll_run_id: runId,
+        employee_id:    e.id,
+        basic:          e.basic,
+        allowances:     e.allowances,
+        gross_salary:   e.gross,
+        paye:           e.paye,
+        paye_band:      e.band,
+        nssf_employee:  e.nssfEmployee,
+        nssf_employer:  e.nssfEmployer,
+        sdl:            e.sdl,
+        wcf:            e.wcf,
+        net_salary:     e.net,
+      }));
+      const { error: upErr } = await (supabase as any)
+        .from('payroll_lines')
+        .upsert(updates, { onConflict: 'payroll_run_id,employee_id' });
+      if (upErr) throw upErr;
+
+      await (supabase as any).rpc('recompute_payroll_run_totals', { _run_id: runId });
+      setSavedRunId(String(runId));
+      toast.success(`Payroll saved for ${monthLabel} — ready to post`);
+    } catch (err: any) {
+      toast.error(`Failed to save payroll: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSavingPayroll(false);
+    }
+  };
+
+  // STEP 2 — Post the saved snapshot to accounting (creates journal entries).
+  const handlePostToAccounting = async () => {
+    if (isDemo || !tenant?.id || payrollData.length === 0) return;
+    setPostingPayroll(true);
+    try {
+      // If snapshot wasn't explicitly saved yet, create it now (still idempotent)
+      let runId: string | null = savedRunId;
+      if (!runId) {
+        const { data: rid, error: rpcErr } = await (supabase as any).rpc('post_payroll_run', {
+          _tenant_id: tenant.id,
+          _period: selectedMonth,
+          _is_auto: false,
+        });
+        if (rpcErr) throw rpcErr;
+        runId = String(rid);
+        setSavedRunId(runId);
+      }
+
       const lines = payrollData.map((e: any) => ({
         employee_id: e.id,
         gross_salary: e.gross,
@@ -667,13 +716,20 @@ export default function HR() {
       const [y, m] = selectedMonth.split('-').map(Number);
       await onPayrollApproved(tenant.id, { id: String(runId), month: m, year: y }, lines);
 
-      toast.success(`Payroll posted for ${monthLabel} — ${formatMoney(totalNet)} net`);
+      toast.success(`Payroll posted to accounting — ${formatMoney(totalNet)} net for ${monthLabel}`);
     } catch (err: any) {
       toast.error(`Failed to post payroll: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setPostingPayroll(false);
     }
   };
+
+  // Reset saved-run flag when the user switches month (forces re-save before post)
+  const lastMonthRef = useState<string>(selectedMonth);
+  if (lastMonthRef[0] !== selectedMonth) {
+    lastMonthRef[1](selectedMonth);
+    if (savedRunId) setSavedRunId(null);
+  }
 
 
   return (
