@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Plus, Users, TrendingUp, XCircle, AlertTriangle, CheckCircle2, FileText, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Plus, Users, TrendingUp, XCircle, AlertTriangle, CheckCircle2, FileText, Loader2, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useTenantQuery, useTenantInsert } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -151,9 +153,10 @@ export default function Subscriptions() {
     if (!form.customer_name || !form.plan_name) { toast.error('Customer name and plan are required'); return; }
     if (isDemo) { toast.success('Demo mode — not saved'); setCreateOpen(false); return; }
     try {
-      const payload = {
+      const payload: any = {
         customer_name: form.customer_name,
         customer_email: form.customer_email,
+        plan_id: form.plan_id || null,
         plan_name: form.plan_name,
         price: parseFloat(form.price) || 0,
         currency: form.currency,
