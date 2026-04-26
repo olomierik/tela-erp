@@ -725,11 +725,7 @@ export default function HR() {
   };
 
   // Reset saved-run flag when the user switches month (forces re-save before post)
-  const lastMonthRef = useState<string>(selectedMonth);
-  if (lastMonthRef[0] !== selectedMonth) {
-    lastMonthRef[1](selectedMonth);
-    if (savedRunId) setSavedRunId(null);
-  }
+  useEffect(() => { setSavedRunId(null); }, [selectedMonth]);
 
 
   return (
