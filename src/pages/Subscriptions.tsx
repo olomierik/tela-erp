@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Plus, Users, TrendingUp, XCircle, AlertTriangle, CheckCircle2, FileText, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, Plus, Users, TrendingUp, XCircle, AlertTriangle, CheckCircle2, FileText, Loader2, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useTenantQuery, useTenantInsert } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
@@ -151,9 +153,10 @@ export default function Subscriptions() {
     if (!form.customer_name || !form.plan_name) { toast.error('Customer name and plan are required'); return; }
     if (isDemo) { toast.success('Demo mode — not saved'); setCreateOpen(false); return; }
     try {
-      const payload = {
+      const payload: any = {
         customer_name: form.customer_name,
         customer_email: form.customer_email,
+        plan_id: form.plan_id || null,
         plan_name: form.plan_name,
         price: parseFloat(form.price) || 0,
         currency: form.currency,
@@ -213,6 +216,93 @@ export default function Subscriptions() {
     { label: 'Cancelled', value: cancelled.length, icon: XCircle, color: 'text-red-500' },
   ];
 
+  // ── Export annual subscription revenue report (PDF) ──────────────────────
+  const exportRevenuePDF = () => {
+    const year = new Date().getFullYear();
+    const fmt = (n: number) => Math.round(n).toLocaleString();
+
+    // Per-customer annual expected revenue
+    const perCustomer = subs.map((s: any) => {
+      const monthly = s.billing_period === 'yearly'    ? (s.price ?? 0) / 12
+                    : s.billing_period === 'quarterly' ? (s.price ?? 0) / 3
+                    : s.billing_period === 'weekly'    ? (s.price ?? 0) * 4
+                    : (s.price ?? 0);
+      const annual = monthly * 12;
+      const list = invoices[s.id] || [];
+      const paid    = list.filter(i => i.status === 'paid').reduce((a, i) => a + Number(i.amount || 0), 0);
+      const overdue = list.filter(i => i.status === 'overdue').reduce((a, i) => a + Number(i.amount || 0), 0);
+      const pending = list.filter(i => i.status === 'pending').reduce((a, i) => a + Number(i.amount || 0), 0);
+      const collected_pct = annual > 0 ? (paid / annual) * 100 : 0;
+      return { ...s, monthly, annual, paid, overdue, pending, collected_pct };
+    });
+
+    const totalAnnual  = perCustomer.reduce((a, c) => a + c.annual, 0);
+    const totalPaid    = perCustomer.reduce((a, c) => a + c.paid, 0);
+    const totalOverdue = perCustomer.reduce((a, c) => a + c.overdue, 0);
+    const totalPending = perCustomer.reduce((a, c) => a + c.pending, 0);
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    doc.setFillColor(79, 70, 229);
+    doc.rect(0, 0, pageW, 56, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+    doc.text('Subscription Revenue Report', 40, 28);
+    doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+    doc.text(`Year ${year} · ${tenant?.name || 'Company'}`, 40, 46);
+    doc.text(new Date().toLocaleDateString(), pageW - 40, 46, { align: 'right' });
+
+    autoTable(doc, {
+      startY: 76,
+      head: [['Summary', 'Amount']],
+      body: [
+        ['Total expected annual revenue', fmt(totalAnnual)],
+        ['Collected (paid invoices)',     fmt(totalPaid)],
+        ['Pending',                        fmt(totalPending)],
+        ['Overdue',                        fmt(totalOverdue)],
+        ['Active subscriptions',           String(active.length)],
+        ['Total customers',                String(perCustomer.length)],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      columnStyles: { 1: { halign: 'right' } },
+      margin: { left: 40, right: 40 },
+    });
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 16,
+      head: [['Customer', 'Plan', 'Billing', 'Monthly', 'Annual Expected', 'Paid', 'Pending', 'Overdue', '% Collected', 'Status']],
+      body: perCustomer.map(c => [
+        c.customer_name || '—',
+        c.plan_name || '—',
+        c.billing_period || '—',
+        fmt(c.monthly),
+        fmt(c.annual),
+        fmt(c.paid),
+        fmt(c.pending),
+        fmt(c.overdue),
+        c.collected_pct.toFixed(0) + '%',
+        c.status || '—',
+      ]),
+      foot: [[
+        'TOTALS', '', '', '', fmt(totalAnnual), fmt(totalPaid), fmt(totalPending), fmt(totalOverdue),
+        totalAnnual > 0 ? ((totalPaid / totalAnnual) * 100).toFixed(0) + '%' : '0%', '',
+      ]],
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 9 },
+      footStyles: { fillColor: [241, 245, 249], textColor: 20, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: {
+        3: { halign: 'right' }, 4: { halign: 'right' }, 5: { halign: 'right' },
+        6: { halign: 'right' }, 7: { halign: 'right' }, 8: { halign: 'right' },
+      },
+      margin: { left: 40, right: 40 },
+    });
+
+    doc.save(`subscription-revenue-${year}.pdf`);
+    toast.success(`Subscription revenue report for ${year} downloaded`);
+  };
+
   return (
     <AppLayout title="Subscriptions" subtitle="Manage recurring customer subscriptions & 12-month billing">
       <div className="space-y-6">
@@ -259,7 +349,10 @@ export default function Subscriptions() {
               <SelectItem value="expired">Expired</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="ml-auto" onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
+          <Button variant="outline" className="ml-auto gap-2" onClick={exportRevenuePDF} disabled={subs.length === 0}>
+            <Download className="w-4 h-4" /> Export Revenue PDF
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
         </div>
 
         <Card>
