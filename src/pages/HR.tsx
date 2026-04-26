@@ -919,30 +919,87 @@ export default function HR() {
         <TabsContent value="payroll">
           <div className="space-y-4">
 
-            {/* Header + download */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
-                <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="payslip-month" className="text-xs text-muted-foreground">Month</Label>
-                  <Input
-                    id="payslip-month"
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
-                    className="h-8 w-[150px] text-xs"
-                  />
+            {/* ── Prominent Month Selector — primary control for the whole tab ── */}
+            <Card className="rounded-xl border-2 border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20">
+              <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="payslip-month" className="text-[11px] uppercase tracking-wide text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Payroll Month
+                    </Label>
+                    <p className="text-base font-bold text-foreground leading-tight truncate">{monthLabel}</p>
+                    <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
+                <Input
+                  id="payslip-month"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
+                  className="h-10 w-full md:w-[200px] text-sm font-medium"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-10"
+                    onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
+                    title="Jump to current month"
+                  >
+                    This month
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Action bar: Create / Post / Exports ── */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  onClick={handleCreatePayroll}
+                  disabled={payrollData.length === 0 || savingPayroll || isDemo}
+                  title={`Save a payroll snapshot for ${monthLabel} with the current edited basic salaries and allowances`}
+                >
+                  {savingPayroll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Create / Save Payroll
+                </Button>
+                <Button
+                  size="sm"
+                  variant={savedRunId ? 'default' : 'outline'}
+                  className={cn(
+                    'h-9 gap-1.5',
+                    savedRunId
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950'
+                  )}
+                  onClick={handlePostToAccounting}
+                  disabled={payrollData.length === 0 || postingPayroll || isDemo}
+                  title="Post the saved payroll to accounting (creates journal entries for PAYE, NSSF, SDL, WCF and Net pay)"
+                >
+                  {postingPayroll ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  {savedRunId ? 'Post to Accounting' : 'Post to Accounting'}
+                </Button>
+                {savedRunId && (
+                  <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium px-2">
+                    ✓ Saved — ready to post
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button size="sm" variant="outline" className="h-9 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
                   <Download className="w-3.5 h-3.5" /> CSV
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  className="h-9 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                   onClick={handleDownloadPayrollPDF}
                   disabled={payrollData.length === 0}
                   title={`Download the full payroll report for ${monthLabel} as a PDF`}
@@ -952,21 +1009,11 @@ export default function HR() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  className="h-9 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                   onClick={handleDownloadAllPayslips}
                   disabled={payrollData.length === 0}
                 >
                   <FileText className="w-3.5 h-3.5" /> All Payslips (PDF)
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-                  onClick={handlePostToAccounting}
-                  disabled={payrollData.length === 0 || postingPayroll || isDemo}
-                  title="Creates and saves a new payroll snapshot for the selected month, then posts journal entries. Auto-runs on the 1st of each month for the previous month."
-                >
-                  {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  Create / Save Payroll ({monthLabel})
                 </Button>
               </div>
             </div>
