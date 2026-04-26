@@ -347,7 +347,8 @@ export default function HR() {
   const updateLeave = useTenantUpdate('leave_requests');
   const insertLeave = useTenantInsert('leave_requests');
 
-  // Per-run allowance overrides (employee id → monthly allowance)
+  // Per-run salary overrides (employee id → editable monthly basic / allowance for THIS payroll)
+  const [runBasic, setRunBasic] = useState<Record<string, number>>({});
   const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
 
   const filtered = (employees as any[]).filter(e =>
