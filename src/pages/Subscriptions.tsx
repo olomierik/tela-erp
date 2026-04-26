@@ -151,6 +151,21 @@ export default function Subscriptions() {
     }));
   };
 
+  // ── Selecting a customer from Customers module auto-fills name & email ──
+  const onSelectCustomer = (customerId: string) => {
+    if (customerId === '__manual__') {
+      setForm(f => ({ ...f, customer_name: '', customer_email: '' }));
+      return;
+    }
+    const c = customerList.find((x: any) => x.id === customerId);
+    if (!c) return;
+    setForm(f => ({
+      ...f,
+      customer_name: c.name || '',
+      customer_email: c.email || '',
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!form.customer_name || !form.plan_name) { toast.error('Customer name and plan are required'); return; }
     if (isDemo) { toast.success('Demo mode — not saved'); setCreateOpen(false); return; }
