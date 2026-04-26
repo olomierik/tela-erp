@@ -498,6 +498,30 @@ export default function Subscriptions() {
           <SheetHeader><SheetTitle>New Subscription</SheetTitle></SheetHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
+              {/* Pick existing customer from CRM */}
+              <div className="col-span-2 space-y-1.5">
+                <Label>Customer (from Customers module)</Label>
+                {customerList.length > 0 ? (
+                  <Select
+                    value={customerList.find((c: any) => c.name === form.customer_name)?.id || ''}
+                    onValueChange={onSelectCustomer}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick a customer or type a new one below" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__manual__">— Enter manually —</SelectItem>
+                      {customerList.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.email ? ` · ${c.email}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">No customers in your Customers module yet — fill the fields below.</p>
+                )}
+              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Customer Name *</Label>
                 <Input value={form.customer_name} onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} placeholder="Acme Corp" />
