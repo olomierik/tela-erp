@@ -1075,13 +1075,22 @@ export default function HR() {
                               <p className="font-medium text-foreground">{emp.full_name}</p>
                               <p className="text-muted-foreground">{emp.position || '—'} {emp.department ? `· ${emp.department}` : ''}</p>
                             </td>
-                            <td className="px-3 py-3 text-right text-foreground">{Math.round(emp.gross).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right">
+                              <Input
+                                type="number"
+                                value={runBasic[emp.id] ?? emp.basic}
+                                onChange={e => setRunBasic(prev => ({ ...prev, [emp.id]: Number(e.target.value) }))}
+                                className="w-28 h-7 text-xs text-right ml-auto"
+                                title="Edit basic salary for this payroll run only"
+                              />
+                            </td>
                             <td className="px-3 py-3 text-right">
                               <Input
                                 type="number"
                                 value={runAllowances[emp.id] ?? emp.allowances}
                                 onChange={e => setRunAllowances(prev => ({ ...prev, [emp.id]: Number(e.target.value) }))}
                                 className="w-24 h-7 text-xs text-right ml-auto"
+                                title="Edit allowances for this payroll run only"
                               />
                             </td>
                             <td className="px-3 py-3 text-right text-red-500 font-medium">
