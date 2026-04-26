@@ -9,7 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Calendar, Eye, Save, Loader2, History } from 'lucide-react';
+import { Calendar, Eye, Save, Loader2, History, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { cn } from '@/lib/utils';
 
 interface PayrollRun {
@@ -190,6 +192,68 @@ export default function SavedPayrollRuns() {
 
   const openRunData = runs.find(r => r.id === openId);
 
+  // ── Download a saved run as PDF (no need to open the sheet) ──────────────
+  const downloadRunPDF = async (run: PayrollRun) => {
+    try {
+      const { data } = await (supabase as any)
+        .from('payroll_lines').select('*').eq('payroll_run_id', run.id).order('employee_name');
+      const list: PayrollLine[] = (data as PayrollLine[]) ?? [];
+      const fmt = (n: number) => Math.round(Number(n || 0)).toLocaleString();
+
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      doc.setFillColor(79, 70, 229);
+      doc.rect(0, 0, pageW, 56, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+      doc.text('Payroll Report', 40, 28);
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+      doc.text(`${periodLabel(run.period)} · ${tenant?.name || 'Company'}`, 40, 46);
+      doc.text(new Date().toLocaleDateString(), pageW - 40, 46, { align: 'right' });
+
+      autoTable(doc, {
+        startY: 76,
+        head: [['Summary', 'Amount']],
+        body: [
+          ['Employees', String(run.employee_count)],
+          ['Total gross', fmt(run.total_gross)],
+          ['PAYE', fmt(run.total_paye)],
+          ['NSSF (Emp + Empr)', fmt(Number(run.total_nssf_employee) + Number(run.total_nssf_employer))],
+          ['SDL', fmt(run.total_sdl)],
+          ['WCF', fmt(run.total_wcf)],
+          ['Net pay', fmt(run.total_net)],
+          ['Total employer cost', fmt(run.total_employer_cost)],
+          ['Source', run.is_auto ? 'Auto-posted' : 'Manual'],
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+        columnStyles: { 1: { halign: 'right' } },
+        margin: { left: 40, right: 40 },
+      });
+
+      autoTable(doc, {
+        startY: (doc as any).lastAutoTable.finalY + 16,
+        head: [['Employee', 'Position', 'Dept', 'Basic', 'Allow.', 'Gross', 'PAYE', 'NSSF E', 'Net', 'NSSF Empr', 'SDL', 'WCF']],
+        body: list.map(l => [
+          l.employee_name || '—', l.position || '—', l.department || '—',
+          fmt(l.basic), fmt(l.allowances), fmt(l.gross_salary),
+          fmt(l.paye), fmt(l.nssf_employee), fmt(l.net_salary),
+          fmt(l.nssf_employer), fmt(l.sdl), fmt(l.wcf),
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        columnStyles: Object.fromEntries([3,4,5,6,7,8,9,10,11].map(i => [i, { halign: 'right' as const }])),
+        margin: { left: 40, right: 40 },
+      });
+
+      doc.save(`payroll-${run.period}.pdf`);
+      toast.success(`Payroll PDF for ${periodLabel(run.period)} downloaded`);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to generate PDF');
+    }
+  };
+
   return (
     <Card className="rounded-xl border-border">
       <CardHeader className="pb-3">
@@ -254,9 +318,14 @@ export default function SavedPayrollRuns() {
                       {r.posted_at ? new Date(r.posted_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openRun(r)}>
-                        <Eye className="w-3 h-3" /> Open
-                      </Button>
+                      <div className="flex justify-center gap-1.5">
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openRun(r)}>
+                          <Eye className="w-3 h-3" /> Open
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => downloadRunPDF(r)} title={`Download payroll PDF for ${periodLabel(r.period)}`}>
+                          <Download className="w-3 h-3" /> PDF
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
