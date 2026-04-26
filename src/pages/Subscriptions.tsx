@@ -349,7 +349,10 @@ export default function Subscriptions() {
               <SelectItem value="expired">Expired</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="ml-auto" onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
+          <Button variant="outline" className="ml-auto gap-2" onClick={exportRevenuePDF} disabled={subs.length === 0}>
+            <Download className="w-4 h-4" /> Export Revenue PDF
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
         </div>
 
         <Card>
