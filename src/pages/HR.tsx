@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { motion } from 'framer-motion';
 import {
@@ -347,7 +347,8 @@ export default function HR() {
   const updateLeave = useTenantUpdate('leave_requests');
   const insertLeave = useTenantInsert('leave_requests');
 
-  // Per-run allowance overrides (employee id → monthly allowance)
+  // Per-run salary overrides (employee id → editable monthly basic / allowance for THIS payroll)
+  const [runBasic, setRunBasic] = useState<Record<string, number>>({});
   const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
 
   const filtered = (employees as any[]).filter(e =>
@@ -366,8 +367,9 @@ export default function HR() {
 
   // ── Tanzania statutory payroll calculation ────────────────────────────────
   const payrollData = activeEmployees.map(e => {
-    const basic = Number(e.salary) || 0;
+    const baseBasic = Number(e.salary) || 0;
     const baseAllowances = Number(e.allowances) || 0;
+    const basic = runBasic[e.id] ?? baseBasic;
     const allowances = runAllowances[e.id] ?? baseAllowances;
     const gross = basic + allowances;             // Gross = Basic + Allowances
     const paye = calculatePAYE(gross);            // PAYE on full gross
@@ -636,22 +638,71 @@ export default function HR() {
     await updateLeave.mutateAsync({ id, status });
   };
 
+  const [savingPayroll, setSavingPayroll]   = useState(false);
   const [postingPayroll, setPostingPayroll] = useState(false);
+  const [savedRunId, setSavedRunId]         = useState<string | null>(null);
 
-  const handlePostToAccounting = async () => {
+  // STEP 1 — Create / Save the snapshot for the selected month.
+  // Idempotent: running again for the same month re-uses the existing run id.
+  const handleCreatePayroll = async () => {
     if (isDemo || !tenant?.id || payrollData.length === 0) return;
-    setPostingPayroll(true);
+    setSavingPayroll(true);
     try {
-      // 1. Snapshot the run for the selected month (idempotent — re-running the
-      //    same month returns the existing run id without creating duplicates).
-      const { data: runId, error: rpcErr } = await (supabase as any).rpc('post_payroll_run', {
+      const { data: runId, error } = await (supabase as any).rpc('post_payroll_run', {
         _tenant_id: tenant.id,
         _period: selectedMonth,
         _is_auto: false,
       });
-      if (rpcErr) throw rpcErr;
+      if (error) throw error;
 
-      // 2. Also push the journal entries to accounting (existing behaviour).
+      // Apply per-run salary/allowance edits to the saved snapshot
+      const updates = payrollData.map((e: any) => ({
+        payroll_run_id: runId,
+        employee_id:    e.id,
+        basic:          e.basic,
+        allowances:     e.allowances,
+        gross_salary:   e.gross,
+        paye:           e.paye,
+        paye_band:      e.band,
+        nssf_employee:  e.nssfEmployee,
+        nssf_employer:  e.nssfEmployer,
+        sdl:            e.sdl,
+        wcf:            e.wcf,
+        net_salary:     e.net,
+      }));
+      const { error: upErr } = await (supabase as any)
+        .from('payroll_lines')
+        .upsert(updates, { onConflict: 'payroll_run_id,employee_id' });
+      if (upErr) throw upErr;
+
+      await (supabase as any).rpc('recompute_payroll_run_totals', { _run_id: runId });
+      setSavedRunId(String(runId));
+      toast.success(`Payroll saved for ${monthLabel} — ready to post`);
+    } catch (err: any) {
+      toast.error(`Failed to save payroll: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSavingPayroll(false);
+    }
+  };
+
+  // STEP 2 — Post the saved snapshot to accounting (creates journal entries).
+  const handlePostToAccounting = async () => {
+    if (isDemo || !tenant?.id || payrollData.length === 0) return;
+    setPostingPayroll(true);
+    try {
+      // If snapshot wasn't explicitly saved yet, create it now (still idempotent)
+      let runId: string | null = savedRunId;
+      if (!runId) {
+        const { data: rid, error: rpcErr } = await (supabase as any).rpc('post_payroll_run', {
+          _tenant_id: tenant.id,
+          _period: selectedMonth,
+          _is_auto: false,
+        });
+        if (rpcErr) throw rpcErr;
+        runId = String(rid);
+        setSavedRunId(runId);
+      }
+
       const lines = payrollData.map((e: any) => ({
         employee_id: e.id,
         gross_salary: e.gross,
@@ -665,13 +716,16 @@ export default function HR() {
       const [y, m] = selectedMonth.split('-').map(Number);
       await onPayrollApproved(tenant.id, { id: String(runId), month: m, year: y }, lines);
 
-      toast.success(`Payroll posted for ${monthLabel} — ${formatMoney(totalNet)} net`);
+      toast.success(`Payroll posted to accounting — ${formatMoney(totalNet)} net for ${monthLabel}`);
     } catch (err: any) {
       toast.error(`Failed to post payroll: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setPostingPayroll(false);
     }
   };
+
+  // Reset saved-run flag when the user switches month (forces re-save before post)
+  useEffect(() => { setSavedRunId(null); }, [selectedMonth]);
 
 
   return (
@@ -865,30 +919,87 @@ export default function HR() {
         <TabsContent value="payroll">
           <div className="space-y-4">
 
-            {/* Header + download */}
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <h2 className="text-base font-semibold text-foreground">Payroll Report — {month}</h2>
-                <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <Label htmlFor="payslip-month" className="text-xs text-muted-foreground">Month</Label>
-                  <Input
-                    id="payslip-month"
-                    type="month"
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
-                    className="h-8 w-[150px] text-xs"
-                  />
+            {/* ── Prominent Month Selector — primary control for the whole tab ── */}
+            <Card className="rounded-xl border-2 border-indigo-200 dark:border-indigo-900 bg-indigo-50/40 dark:bg-indigo-950/20">
+              <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <Label htmlFor="payslip-month" className="text-[11px] uppercase tracking-wide text-indigo-700 dark:text-indigo-400 font-semibold">
+                      Payroll Month
+                    </Label>
+                    <p className="text-base font-bold text-foreground leading-tight truncate">{monthLabel}</p>
+                    <p className="text-xs text-muted-foreground">{payrollData.length} active employee{payrollData.length !== 1 ? 's' : ''}</p>
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
+                <Input
+                  id="payslip-month"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value || new Date().toISOString().slice(0, 7))}
+                  className="h-10 w-full md:w-[200px] text-sm font-medium"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-10"
+                    onClick={() => setSelectedMonth(new Date().toISOString().slice(0, 7))}
+                    title="Jump to current month"
+                  >
+                    This month
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ── Action bar: Create / Post / Exports ── */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  onClick={handleCreatePayroll}
+                  disabled={payrollData.length === 0 || savingPayroll || isDemo}
+                  title={`Save a payroll snapshot for ${monthLabel} with the current edited basic salaries and allowances`}
+                >
+                  {savingPayroll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Create / Save Payroll
+                </Button>
+                <Button
+                  size="sm"
+                  variant={savedRunId ? 'default' : 'outline'}
+                  className={cn(
+                    'h-9 gap-1.5',
+                    savedRunId
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950'
+                  )}
+                  onClick={handlePostToAccounting}
+                  disabled={payrollData.length === 0 || postingPayroll || isDemo}
+                  title="Post the saved payroll to accounting (creates journal entries for PAYE, NSSF, SDL, WCF and Net pay)"
+                >
+                  {postingPayroll ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  {savedRunId ? 'Post to Accounting' : 'Post to Accounting'}
+                </Button>
+                {savedRunId && (
+                  <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium px-2">
+                    ✓ Saved — ready to post
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button size="sm" variant="outline" className="h-9 text-xs gap-1.5" onClick={handleDownload} disabled={payrollData.length === 0}>
                   <Download className="w-3.5 h-3.5" /> CSV
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  className="h-9 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                   onClick={handleDownloadPayrollPDF}
                   disabled={payrollData.length === 0}
                   title={`Download the full payroll report for ${monthLabel} as a PDF`}
@@ -898,21 +1009,11 @@ export default function HR() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
+                  className="h-9 text-xs gap-1.5 border-indigo-200 text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900 dark:text-indigo-400 dark:hover:bg-indigo-950"
                   onClick={handleDownloadAllPayslips}
                   disabled={payrollData.length === 0}
                 >
                   <FileText className="w-3.5 h-3.5" /> All Payslips (PDF)
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white"
-                  onClick={handlePostToAccounting}
-                  disabled={payrollData.length === 0 || postingPayroll || isDemo}
-                  title="Creates and saves a new payroll snapshot for the selected month, then posts journal entries. Auto-runs on the 1st of each month for the previous month."
-                >
-                  {postingPayroll ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                  Create / Save Payroll ({monthLabel})
                 </Button>
               </div>
             </div>
@@ -974,13 +1075,22 @@ export default function HR() {
                               <p className="font-medium text-foreground">{emp.full_name}</p>
                               <p className="text-muted-foreground">{emp.position || '—'} {emp.department ? `· ${emp.department}` : ''}</p>
                             </td>
-                            <td className="px-3 py-3 text-right text-foreground">{Math.round(emp.gross).toLocaleString()}</td>
+                            <td className="px-3 py-3 text-right">
+                              <Input
+                                type="number"
+                                value={runBasic[emp.id] ?? emp.basic}
+                                onChange={e => setRunBasic(prev => ({ ...prev, [emp.id]: Number(e.target.value) }))}
+                                className="w-28 h-7 text-xs text-right ml-auto"
+                                title="Edit basic salary for this payroll run only"
+                              />
+                            </td>
                             <td className="px-3 py-3 text-right">
                               <Input
                                 type="number"
                                 value={runAllowances[emp.id] ?? emp.allowances}
                                 onChange={e => setRunAllowances(prev => ({ ...prev, [emp.id]: Number(e.target.value) }))}
                                 className="w-24 h-7 text-xs text-right ml-auto"
+                                title="Edit allowances for this payroll run only"
                               />
                             </td>
                             <td className="px-3 py-3 text-right text-red-500 font-medium">

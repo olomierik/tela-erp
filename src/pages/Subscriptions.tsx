@@ -69,9 +69,11 @@ export default function Subscriptions() {
 
   const { data: rawSubs, isLoading, refetch } = useTenantQuery('subscriptions' as any);
   const { data: services = [] } = useTenantQuery('inventory_items' as any);
+  const { data: customers = [] } = useTenantQuery('customers' as any);
   const insert = useTenantInsert('subscriptions' as any);
 
   const subs: any[] = (rawSubs as any[]) ?? [];
+  const customerList: any[] = ((customers as any[]) ?? []).filter((c: any) => c?.is_active !== false);
 
   // Service catalog: inventory items whose category indicates a service
   const serviceCatalog = useMemo(() => {
@@ -146,6 +148,21 @@ export default function Subscriptions() {
       plan_id: plan.id,
       plan_name: plan.name,
       price: String(plan.selling_price || plan.unit_cost || ''),
+    }));
+  };
+
+  // ── Selecting a customer from Customers module auto-fills name & email ──
+  const onSelectCustomer = (customerId: string) => {
+    if (customerId === '__manual__') {
+      setForm(f => ({ ...f, customer_name: '', customer_email: '' }));
+      return;
+    }
+    const c = customerList.find((x: any) => x.id === customerId);
+    if (!c) return;
+    setForm(f => ({
+      ...f,
+      customer_name: c.name || '',
+      customer_email: c.email || '',
     }));
   };
 
@@ -481,6 +498,30 @@ export default function Subscriptions() {
           <SheetHeader><SheetTitle>New Subscription</SheetTitle></SheetHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
+              {/* Pick existing customer from CRM */}
+              <div className="col-span-2 space-y-1.5">
+                <Label>Customer (from Customers module)</Label>
+                {customerList.length > 0 ? (
+                  <Select
+                    value={customerList.find((c: any) => c.name === form.customer_name)?.id || ''}
+                    onValueChange={onSelectCustomer}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pick a customer or type a new one below" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__manual__">— Enter manually —</SelectItem>
+                      {customerList.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}{c.email ? ` · ${c.email}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">No customers in your Customers module yet — fill the fields below.</p>
+                )}
+              </div>
               <div className="col-span-2 space-y-1.5">
                 <Label>Customer Name *</Label>
                 <Input value={form.customer_name} onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} placeholder="Acme Corp" />
