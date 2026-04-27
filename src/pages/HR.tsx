@@ -475,7 +475,7 @@ export default function HR() {
       head: [['Deductions', 'Amount']],
       body: [
         [`PAYE (TRA — band ${emp.band})`, fmt(emp.paye)],
-        ['NSSF (Employee 10%)', fmt(emp.nssfEmployee)],
+        ['NSSF (Employee 10% of gross)', fmt(emp.nssfEmployee)],
         [{ content: 'Total Deductions', styles: { fontStyle: 'bold' } }, { content: fmt(emp.paye + emp.nssfEmployee), styles: { fontStyle: 'bold' } }],
       ],
       theme: 'striped',
@@ -501,7 +501,7 @@ export default function HR() {
       startY: afterDeductions + 68,
       head: [['Employer Contributions (not deducted from employee)', 'Amount']],
       body: [
-        ['NSSF (Employer 10%)', fmt(emp.nssfEmployer)],
+        ['NSSF (Employer 10% of gross)', fmt(emp.nssfEmployer)],
         emp.isSdlLiable
           ? ['SDL (3.5% of gross)', fmt(emp.sdl)]
           : ['SDL (exempt — under 10 employees)', fmt(0)],
@@ -594,7 +594,7 @@ export default function HR() {
         ['Active employees',          String(payrollData.length)],
         ['Total gross salary',        fmt(totalGross)],
         ['PAYE → TRA',                fmt(totalPAYE)],
-        ['NSSF total (20% of basic)', fmt(totalNssfEmp + totalNssfEmpr)],
+        ['NSSF total (20% of gross)', fmt(totalNssfEmp + totalNssfEmpr)],
         ['SDL (3.5%)',                isSdlLiable ? fmt(totalSDL) : 'Exempt (<10 staff)'],
         ['WCF (0.5%)',                fmt(totalWCF)],
         ['Net pay (take-home)',       fmt(totalNet)],
@@ -1191,7 +1191,7 @@ export default function HR() {
               const payables = [
                 { label: 'Net Salaries', sublabel: 'Pay to employees', value: totalNet, color: 'text-indigo-600' },
                 { label: 'PAYE', sublabel: 'Remit to TRA', value: totalPAYE, color: 'text-red-500' },
-                { label: 'NSSF (20% of basic)', sublabel: 'Employee 10% + Employer 10% — submit to NSSF', value: totalNssf, color: 'text-orange-500' },
+                { label: 'NSSF (20% of gross)', sublabel: 'Employee 10% + Employer 10% of (basic + allowances) — submit to NSSF', value: totalNssf, color: 'text-orange-500' },
                 { label: 'SDL (3.5% of gross)', sublabel: 'Skills & Dev. Levy — remit to VETA', value: totalSDL, color: 'text-amber-600' },
                 { label: 'WCF (0.5% of gross)', sublabel: "Workers' Comp. Fund — remit to WCF Board", value: totalWCF, color: 'text-amber-600' },
               ];
