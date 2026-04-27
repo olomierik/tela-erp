@@ -351,6 +351,8 @@ export default function HR() {
   // Per-run salary overrides (employee id → editable monthly basic / allowance for THIS payroll)
   const [runBasic, setRunBasic] = useState<Record<string, number>>({});
   const [runAllowances, setRunAllowances] = useState<Record<string, number>>({});
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionInitialized, setSelectionInitialized] = useState(false);
 
   const filtered = (employees as any[]).filter(e =>
     (e.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -363,11 +365,35 @@ export default function HR() {
 
   const activeEmployees = (employees as any[]).filter(e => e.status === 'active');
 
-  // ── SDL liability: employer must have 10+ employees to be liable (TRA rule) ─
-  const isSdlLiable = activeEmployees.length >= 10;
+  // Initialize selection: all active employees selected by default
+  useEffect(() => {
+    if (!selectionInitialized && activeEmployees.length > 0) {
+      setSelectedIds(new Set(activeEmployees.map((e: any) => e.id)));
+      setSelectionInitialized(true);
+    }
+  }, [activeEmployees, selectionInitialized]);
 
-  // ── Tanzania statutory payroll calculation ────────────────────────────────
-  const payrollData = activeEmployees.map(e => {
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleAll = () => {
+    setSelectedIds(prev =>
+      prev.size === activeEmployees.length
+        ? new Set()
+        : new Set(activeEmployees.map((e: any) => e.id))
+    );
+  };
+
+  // Selected employees drive SDL liability and all calculations
+  const selectedEmployees = activeEmployees.filter((e: any) => selectedIds.has(e.id));
+  const isSdlLiable = selectedEmployees.length >= 10;
+
+  // ── Tanzania statutory payroll calculation (only for selected employees) ──
+  const payrollData = selectedEmployees.map(e => {
     const baseBasic = Number(e.salary) || 0;
     const baseAllowances = Number(e.allowances) || 0;
     const basic = runBasic[e.id] ?? baseBasic;
@@ -381,6 +407,23 @@ export default function HR() {
     const net = gross - paye - nssfEmployee;      // take-home
     const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
     return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost, isSdlLiable };
+  });
+
+  // All active employee rows (for table display, including unselected)
+  const allPayrollRows = activeEmployees.map(e => {
+    const baseBasic = Number(e.salary) || 0;
+    const baseAllowances = Number(e.allowances) || 0;
+    const basic = runBasic[e.id] ?? baseBasic;
+    const allowances = runAllowances[e.id] ?? baseAllowances;
+    const gross = basic + allowances;
+    const paye = calculatePAYE(gross);
+    const nssfEmployee = gross * 0.10;
+    const nssfEmployer = gross * 0.10;
+    const sdl = isSdlLiable && selectedIds.has(e.id) ? gross * 0.035 : 0;
+    const wcf = gross * 0.005;
+    const net = gross - paye - nssfEmployee;
+    const totalEmployerCost = gross + nssfEmployer + sdl + wcf;
+    return { ...e, basic, allowances, gross, paye, band: payeBand(gross), nssfEmployee, nssfEmployer, sdl, wcf, net, totalEmployerCost, isSdlLiable, _selected: selectedIds.has(e.id) };
   });
 
   const totalBasic        = payrollData.reduce((s, e) => s + e.basic, 0);
