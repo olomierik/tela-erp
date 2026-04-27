@@ -266,8 +266,8 @@ export default function AppSidebar() {
           'relative flex items-center gap-2.5 rounded-md transition-colors duration-100 select-none touch-manipulation overflow-hidden',
           height, px, textSize,
           active
-            ? 'bg-sidebar-accent text-white font-semibold'
-            : 'text-sidebar-foreground/55 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
+            : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
         )}
       >
         {/* Left accent bar for active item */}
