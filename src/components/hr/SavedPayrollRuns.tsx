@@ -74,6 +74,8 @@ export default function SavedPayrollRuns() {
   const [linesLoading, setLinesLoading] = useState(false);
   const [edits, setEdits] = useState<Record<string, { basic: number; allowances: number }>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load runs for tenant
   useEffect(() => {
