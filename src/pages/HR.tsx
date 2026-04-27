@@ -374,8 +374,8 @@ export default function HR() {
     const allowances = runAllowances[e.id] ?? baseAllowances;
     const gross = basic + allowances;             // Gross = Basic + Allowances
     const paye = calculatePAYE(gross);            // PAYE on full gross
-    const nssfEmployee = basic * 0.10;            // NSSF: 10% of basic, employee
-    const nssfEmployer = basic * 0.10;            // NSSF: 10% of basic, employer
+    const nssfEmployee = gross * 0.10;            // NSSF: 10% of gross (basic + allowances), employee
+    const nssfEmployer = gross * 0.10;            // NSSF: 10% of gross (basic + allowances), employer
     const sdl = isSdlLiable ? gross * 0.035 : 0;  // SDL: 3.5% of GROSS — only if 10+ employees
     const wcf = gross * 0.005;                    // WCF: 0.5% of GROSS (basic + allowances)
     const net = gross - paye - nssfEmployee;      // take-home
