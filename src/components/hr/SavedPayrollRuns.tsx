@@ -9,7 +9,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Calendar, Eye, Save, Loader2, History, Download } from 'lucide-react';
+import { Calendar, Eye, Save, Loader2, History, Download, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { cn } from '@/lib/utils';
@@ -70,6 +74,8 @@ export default function SavedPayrollRuns() {
   const [linesLoading, setLinesLoading] = useState(false);
   const [edits, setEdits] = useState<Record<string, { basic: number; allowances: number }>>({});
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Load runs for tenant
   useEffect(() => {
@@ -254,6 +260,30 @@ export default function SavedPayrollRuns() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget || !tenant?.id) return;
+    setDeleting(true);
+    try {
+      // Remove child lines first (FK), then the run itself
+      const { error: linesErr } = await (supabase as any)
+        .from('payroll_lines').delete().eq('payroll_run_id', deleteTarget.id);
+      if (linesErr) throw linesErr;
+
+      const { error: runErr } = await (supabase as any)
+        .from('payroll_runs').delete().eq('id', deleteTarget.id).eq('tenant_id', tenant.id);
+      if (runErr) throw runErr;
+
+      setRuns(prev => prev.filter(r => r.id !== deleteTarget.id));
+      if (openId === deleteTarget.id) closeSheet();
+      toast.success(`Deleted payroll for ${periodLabel(deleteTarget.period)}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to delete payroll run');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <Card className="rounded-xl border-border">
       <CardHeader className="pb-3">
@@ -324,6 +354,16 @@ export default function SavedPayrollRuns() {
                         </Button>
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => downloadRunPDF(r)} title={`Download payroll PDF for ${periodLabel(r.period)}`}>
                           <Download className="w-3 h-3" /> PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          onClick={() => setDeleteTarget(r)}
+                          disabled={isDemo}
+                          title={`Delete payroll for ${periodLabel(r.period)}`}
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
                         </Button>
                       </div>
                     </td>
@@ -435,6 +475,31 @@ export default function SavedPayrollRuns() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && !deleting && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete saved payroll?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the payroll run for{' '}
+              <strong>{deleteTarget ? periodLabel(deleteTarget.period) : ''}</strong> and all of its
+              employee lines. This action cannot be undone. Posted journal vouchers (if any) are not
+              affected and must be reversed separately from Accounting.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmDelete(); }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Trash2 className="w-3.5 h-3.5 mr-1.5" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
