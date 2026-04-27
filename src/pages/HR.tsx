@@ -811,9 +811,12 @@ export default function HR() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input className="pl-9" placeholder="Search employees..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={openAdd}>
-                <Plus className="w-4 h-4" /> Add Employee
-              </Button>
+              <div className="flex items-center gap-2">
+                <BulkEmployeeUpload />
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2" onClick={openAdd}>
+                  <Plus className="w-4 h-4" /> Add Employee
+                </Button>
+              </div>
             </div>
 
             {isLoading ? (
