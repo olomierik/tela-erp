@@ -1148,6 +1148,13 @@ export default function HR() {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
+                          <th className="px-3 py-3 w-10">
+                            <Checkbox
+                              checked={selectedIds.size > 0 && selectedIds.size === activeEmployees.length}
+                              onCheckedChange={toggleAll}
+                              aria-label="Select all employees"
+                            />
+                          </th>
                           <th className="text-left px-4 py-3 font-medium">Employee</th>
                           <th className="text-right px-3 py-3 font-medium">Basic Salary</th>
                           <th className="text-right px-3 py-3 font-medium">Allowances</th>
@@ -1161,8 +1168,21 @@ export default function HR() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {payrollData.map((emp: any) => (
-                          <tr key={emp.id} className="hover:bg-accent/30 transition-colors">
+                        {allPayrollRows.map((emp: any) => (
+                          <tr
+                            key={emp.id}
+                            className={cn(
+                              'hover:bg-accent/30 transition-colors',
+                              !emp._selected && 'opacity-50'
+                            )}
+                          >
+                            <td className="px-3 py-3">
+                              <Checkbox
+                                checked={emp._selected}
+                                onCheckedChange={() => toggleOne(emp.id)}
+                                aria-label={`Select ${emp.full_name}`}
+                              />
+                            </td>
                             <td className="px-4 py-3">
                               <p className="font-medium text-foreground">{emp.full_name}</p>
                               <p className="text-muted-foreground">{emp.position || '—'} {emp.department ? `· ${emp.department}` : ''}</p>
@@ -1210,7 +1230,8 @@ export default function HR() {
                       </tbody>
                       <tfoot>
                         <tr className="border-t-2 border-border bg-muted/30 font-semibold">
-                          <td className="px-4 py-3 text-foreground">TOTALS ({payrollData.length} employees)</td>
+                          <td className="px-3 py-3" />
+                          <td className="px-4 py-3 text-foreground">TOTALS ({payrollData.length} of {activeEmployees.length} selected)</td>
                           <td className="px-3 py-3 text-right">{Math.round(totalGross).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right">{Math.round(totalAllowances).toLocaleString()}</td>
                           <td className="px-3 py-3 text-right text-red-500">{Math.round(totalPAYE).toLocaleString()}</td>
