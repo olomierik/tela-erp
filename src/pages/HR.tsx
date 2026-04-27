@@ -24,6 +24,7 @@ import { onPayrollApproved } from '@/hooks/use-cross-module';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { supabase } from '@/integrations/supabase/client';
 import SavedPayrollRuns from '@/components/hr/SavedPayrollRuns';
+import BulkEmployeeUpload from '@/components/hr/BulkEmployeeUpload';
 
 // CSV download helper
 function downloadCSV(filename: string, rows: (string | number)[][], headers: string[]) {
