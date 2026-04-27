@@ -355,6 +355,16 @@ export default function SavedPayrollRuns() {
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => downloadRunPDF(r)} title={`Download payroll PDF for ${periodLabel(r.period)}`}>
                           <Download className="w-3 h-3" /> PDF
                         </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-950/30"
+                          onClick={() => setDeleteTarget(r)}
+                          disabled={isDemo}
+                          title={`Delete payroll for ${periodLabel(r.period)}`}
+                        >
+                          <Trash2 className="w-3 h-3" /> Delete
+                        </Button>
                       </div>
                     </td>
                   </tr>
