@@ -197,7 +197,7 @@ export default function BulkEmployeeUpload({ onComplete }: { onComplete?: () => 
 
           {parsed && (
             <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-emerald-600">
+              <div className="flex items-center gap-2 text-success">
                 <CheckCircle className="w-4 h-4" />
                 {parsed.rows.length} employee{parsed.rows.length === 1 ? '' : 's'} ready to import
               </div>
