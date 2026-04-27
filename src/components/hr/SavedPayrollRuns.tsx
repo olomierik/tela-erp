@@ -260,6 +260,30 @@ export default function SavedPayrollRuns() {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget || !tenant?.id) return;
+    setDeleting(true);
+    try {
+      // Remove child lines first (FK), then the run itself
+      const { error: linesErr } = await (supabase as any)
+        .from('payroll_lines').delete().eq('payroll_run_id', deleteTarget.id);
+      if (linesErr) throw linesErr;
+
+      const { error: runErr } = await (supabase as any)
+        .from('payroll_runs').delete().eq('id', deleteTarget.id).eq('tenant_id', tenant.id);
+      if (runErr) throw runErr;
+
+      setRuns(prev => prev.filter(r => r.id !== deleteTarget.id));
+      if (openId === deleteTarget.id) closeSheet();
+      toast.success(`Deleted payroll for ${periodLabel(deleteTarget.period)}`);
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to delete payroll run');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   return (
     <Card className="rounded-xl border-border">
       <CardHeader className="pb-3">
