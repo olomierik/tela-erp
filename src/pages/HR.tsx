@@ -724,8 +724,52 @@ export default function HR() {
     }
   };
 
-  // Reset saved-run flag when the user switches month (forces re-save before post)
-  useEffect(() => { setSavedRunId(null); }, [selectedMonth]);
+  // Hydrate per-run basic/allowance overrides from the saved snapshot for the
+  // selected month, so previously-saved edits persist across reloads and month
+  // switches (instead of reverting to the employee master salary).
+  useEffect(() => {
+    if (isDemo || !tenant?.id || !selectedMonth) {
+      setSavedRunId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: run } = await (supabase as any)
+          .from('payroll_runs')
+          .select('id')
+          .eq('tenant_id', tenant.id)
+          .eq('period', selectedMonth)
+          .maybeSingle();
+        if (cancelled) return;
+        if (!run?.id) {
+          setRunBasic({});
+          setRunAllowances({});
+          setSavedRunId(null);
+          return;
+        }
+        const { data: lines } = await (supabase as any)
+          .from('payroll_lines')
+          .select('employee_id, basic, allowances')
+          .eq('payroll_run_id', run.id);
+        if (cancelled || !lines) return;
+        const b: Record<string, number> = {};
+        const a: Record<string, number> = {};
+        for (const l of lines as any[]) {
+          if (l.employee_id != null) {
+            b[l.employee_id] = Number(l.basic) || 0;
+            a[l.employee_id] = Number(l.allowances) || 0;
+          }
+        }
+        setRunBasic(b);
+        setRunAllowances(a);
+        setSavedRunId(String(run.id));
+      } catch {
+        /* ignore — fall back to employee master values */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tenant?.id, selectedMonth, isDemo, savingPayroll]);
 
 
   return (
