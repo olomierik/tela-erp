@@ -1,414 +1,505 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import PageHeader from '@/components/erp/PageHeader';
-import DataTable, { Column } from '@/components/erp/DataTable';
-import { ShoppingCart, Plus, DollarSign, Search } from 'lucide-react';
+import {
+  ShoppingCart, Plus, Search, Trash2, User, CreditCard, Banknote,
+  Smartphone, Wallet, Package, X, Minus, Receipt, ChevronDown, Power
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
-import { useTenantQuery, useTenantInsert, useTenantUpdate } from '@/hooks/use-tenant-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTenantQuery, useTenantInsert } from '@/hooks/use-tenant-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const STATUS_COLORS: Record<string, string> = {
-  open: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  closed: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-  paused: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  open: 'Open',
-  closed: 'Closed',
-  paused: 'Paused',
-};
-
-const STATUSES = ['open', 'paused', 'closed'];
-
-// ─── Quick Sale Line Item ─────────────────────────────────────────────
-interface POSLineItem {
+interface CartItem {
   item_id: string;
   item_name: string;
   quantity: number;
   unit_price: number;
+  stock: number;
 }
 
-function QuickSaleSheet({
-  inventoryItems,
-  sessionId,
-  tenantId,
-  onClose,
-  onSaleComplete,
-}: {
-  inventoryItems: any[];
-  sessionId: string;
-  tenantId: string;
-  onClose: () => void;
-  onSaleComplete: () => void;
-}) {
+const PAYMENT_METHODS = [
+  { value: 'cash', label: 'Cash', icon: Banknote },
+  { value: 'mobile_money', label: 'Mobile Money', icon: Smartphone },
+  { value: 'bank_transfer', label: 'Bank Transfer', icon: CreditCard },
+  { value: 'credit', label: 'Credit', icon: Wallet },
+];
+
+export default function PointOfSale() {
+  const { isDemo, tenant } = useAuth();
   const { formatMoney } = useCurrency();
+
+  const { data: rawSessions, isLoading: sessionsLoading, refetch: refetchSessions } = useTenantQuery('pos_sessions' as any);
+  const { data: inventoryData, isLoading: invLoading } = useTenantQuery('inventory_items');
+  const insertSession = useTenantInsert('pos_sessions' as any);
+
+  const demoSessions = [
+    { id: '1', session_number: 'POS-001', cashier: 'Alice Boateng', opening_cash: 500, total_sales: 4320, total_orders: 38, status: 'open', opened_at: new Date().toISOString() },
+    { id: '2', session_number: 'POS-002', cashier: 'James Asante', opening_cash: 500, total_sales: 2890, total_orders: 24, status: 'open', opened_at: new Date(Date.now() - 7200000).toISOString() },
+  ];
+  const sessions: any[] = (isDemo ? demoSessions : rawSessions) ?? [];
+  const openSessions = sessions.filter(s => s.status === 'open');
+
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activeSessionId && openSessions.length > 0) setActiveSessionId(openSessions[0].id);
+  }, [openSessions, activeSessionId]);
+  const activeSession = openSessions.find(s => s.id === activeSessionId);
+
+  const inventoryItems: any[] = inventoryData ?? [];
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    inventoryItems.forEach(i => i.category && set.add(i.category));
+    return ['All', ...Array.from(set)];
+  }, [inventoryItems]);
+
+  const [search, setSearch] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const filteredItems = useMemo(() => {
+    return inventoryItems.filter(it => {
+      if (Number(it.quantity ?? 0) <= 0) return false;
+      if (activeCategory !== 'All' && it.category !== activeCategory) return false;
+      if (search && !(`${it.name} ${it.sku ?? ''}`.toLowerCase().includes(search.toLowerCase()))) return false;
+      return true;
+    });
+  }, [inventoryItems, search, activeCategory]);
+
+  // Cart
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [lineItems, setLineItems] = useState<POSLineItem[]>([
-    { item_id: '', item_name: '', quantity: 1, unit_price: 0 },
-  ]);
+  const [discountPct, setDiscountPct] = useState(0);
+  const [taxPct, setTaxPct] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [itemSearch, setItemSearch] = useState('');
 
-  const handleItemChange = (i: number, id: string) => {
-    const item = inventoryItems.find((it: any) => it.id === id);
-    const price = item?.selling_price && Number(item.selling_price) > 0
-      ? Number(item.selling_price)
-      : (item?.unit_cost || 0);
-    setLineItems(prev => prev.map((li, idx) => idx === i ? {
-      ...li, item_id: id, item_name: item?.name || '', unit_price: price,
-    } : li));
+  const addToCart = (item: any) => {
+    const price = Number(item.selling_price) > 0 ? Number(item.selling_price) : Number(item.unit_cost ?? 0);
+    setCart(prev => {
+      const existing = prev.find(c => c.item_id === item.id);
+      if (existing) {
+        if (existing.quantity + 1 > item.quantity) {
+          toast.error(`Only ${item.quantity} in stock`);
+          return prev;
+        }
+        return prev.map(c => c.item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
+      }
+      return [...prev, { item_id: item.id, item_name: item.name, quantity: 1, unit_price: price, stock: Number(item.quantity) }];
+    });
   };
 
-  const updateLine = (i: number, field: keyof POSLineItem, value: any) => {
-    setLineItems(prev => prev.map((li, idx) => idx === i ? { ...li, [field]: value } : li));
+  const updateQty = (id: string, qty: number) => {
+    if (qty <= 0) { setCart(p => p.filter(c => c.item_id !== id)); return; }
+    setCart(p => p.map(c => c.item_id === id ? { ...c, quantity: Math.min(qty, c.stock) } : c));
   };
+  const removeFromCart = (id: string) => setCart(p => p.filter(c => c.item_id !== id));
+  const clearCart = () => { setCart([]); setDiscountPct(0); setTaxPct(0); setCustomerName('Walk-in Customer'); };
 
-  const addLine = () => setLineItems(prev => [...prev, { item_id: '', item_name: '', quantity: 1, unit_price: 0 }]);
-  const removeLine = (i: number) => setLineItems(prev => prev.filter((_, idx) => idx !== i));
+  const subtotal = cart.reduce((s, c) => s + c.quantity * c.unit_price, 0);
+  const discountAmt = subtotal * (discountPct / 100);
+  const taxableAmt = subtotal - discountAmt;
+  const taxAmt = taxableAmt * (taxPct / 100);
+  const total = taxableAmt + taxAmt;
+  const itemCount = cart.reduce((s, c) => s + c.quantity, 0);
 
-  const total = lineItems.reduce((s, li) => s + li.quantity * li.unit_price, 0);
-
-  const handleSubmit = async () => {
-    const validLines = lineItems.filter(li => li.item_id);
-    if (validLines.length === 0) { toast.error('Add at least one item'); return; }
-
+  const handleCheckout = async () => {
+    if (cart.length === 0) { toast.error('Cart is empty'); return; }
+    if (!activeSession) { toast.error('Open a POS session first'); return; }
+    if (isDemo) {
+      toast.success(`Sale completed — ${formatMoney(total)} (demo)`);
+      clearCart();
+      return;
+    }
+    if (!tenant?.id) return;
     setSubmitting(true);
     try {
       const orderNumber = `POS-${Date.now().toString(36).toUpperCase()}`;
-      const firstItem = validLines[0];
-
-      // Create a sales order linked to POS
       const { data: salesOrder, error } = await (supabase as any)
         .from('sales_orders')
         .insert({
-          tenant_id: tenantId,
+          tenant_id: tenant.id,
           order_number: orderNumber,
           customer_name: customerName,
           customer_email: '',
-          item_id: firstItem.item_id,
-          quantity: validLines.reduce((s, li) => s + li.quantity, 0),
+          item_id: cart[0].item_id,
+          quantity: itemCount,
           total_amount: total,
-          status: 'delivered', // POS sales are immediate delivery
+          status: 'delivered',
           custom_fields: {
             source: 'pos',
-            session_id: sessionId,
+            session_id: activeSession.id,
             payment_method: paymentMethod,
-            line_items: validLines,
+            discount_pct: discountPct,
+            tax_pct: taxPct,
+            line_items: cart,
           },
         })
         .select()
         .single();
-
       if (error) throw error;
-
-      // Insert sales order lines
       if (salesOrder) {
-        const lines = validLines.map(li => ({
-          tenant_id: tenantId,
+        const lines = cart.map(li => ({
+          tenant_id: tenant.id,
           sales_order_id: salesOrder.id,
-          item_id: li.item_id || null,
-          description: li.item_name || '',
+          item_id: li.item_id,
+          description: li.item_name,
           quantity: li.quantity,
           unit_price: li.unit_price,
         }));
         await (supabase as any).from('sales_order_lines').insert(lines);
       }
-
-      // Update POS session totals
-      await (supabase as any)
-        .from('pos_sessions')
-        .update({
-          total_sales: (supabase as any).rpc ? total : total, // increment handled below
-          total_orders: 1,
-        })
-        .eq('id', sessionId);
-
-      toast.success(`Sale ${orderNumber} completed — ${formatMoney(total)}`);
-      onSaleComplete();
-      onClose();
+      toast.success(`Sale ${orderNumber} — ${formatMoney(total)}`);
+      clearCart();
+      refetchSessions();
     } catch (err: any) {
-      toast.error('Failed to process sale: ' + err.message);
+      toast.error('Checkout failed: ' + err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const filteredItems = inventoryItems.filter((it: any) =>
-    it.quantity > 0 && (!itemSearch || it.name?.toLowerCase().includes(itemSearch.toLowerCase()))
-  );
-
-  return (
-    <>
-      <SheetHeader className="px-6 pt-6 pb-4 border-b border-border">
-        <SheetTitle className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-emerald-600" /> Quick POS Sale
-        </SheetTitle>
-      </SheetHeader>
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Customer Name</Label>
-            <Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in Customer" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Payment Method</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                <SelectItem value="credit">Credit</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div>
-          <Label className="mb-2 block">Items</Label>
-          <div className="space-y-2">
-            {lineItems.map((li, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-center p-2 rounded-lg border border-border bg-muted/20">
-                <div className="col-span-5">
-                  <Select value={li.item_id} onValueChange={v => handleItemChange(i, v)}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select item" /></SelectTrigger>
-                    <SelectContent>
-                      {filteredItems.map((item: any) => (
-                        <SelectItem key={item.id} value={item.id}>{item.name} ({item.quantity})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="col-span-2">
-                  <Input type="number" value={li.quantity} onChange={e => updateLine(i, 'quantity', parseInt(e.target.value) || 1)} className="h-8 text-xs text-center" min="1" />
-                </div>
-                <div className="col-span-3">
-                  <Input type="number" value={li.unit_price} onChange={e => updateLine(i, 'unit_price', parseFloat(e.target.value) || 0)} className="h-8 text-xs text-right" />
-                </div>
-                <div className="col-span-1 text-xs font-semibold text-right">{formatMoney(li.quantity * li.unit_price)}</div>
-                <div className="col-span-1 flex justify-end">
-                  {lineItems.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLine(i)}>×</Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          <Button type="button" variant="outline" size="sm" className="mt-2 h-8 text-xs gap-1.5 border-dashed" onClick={addLine}>
-            <Plus className="w-3.5 h-3.5" /> Add Item
-          </Button>
-        </div>
-
-        <div className="flex justify-between items-center p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-          <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Total</span>
-          <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{formatMoney(total)}</span>
-        </div>
-      </div>
-      <SheetFooter className="px-6 py-4 border-t border-border">
-        <Button variant="outline" onClick={onClose}>Cancel</Button>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2" onClick={handleSubmit} disabled={submitting}>
-          <ShoppingCart className="w-4 h-4" /> {submitting ? 'Processing...' : 'Complete Sale'}
-        </Button>
-      </SheetFooter>
-    </>
-  );
-}
-
-// ─── Main POS Page ─────────────────────────────────────────────────────
-
-export default function PointOfSale() {
-  const { isDemo, tenant } = useAuth();
-  const { formatMoney } = useCurrency();
+  // Open Session dialog
   const [createOpen, setCreateOpen] = useState(false);
-  const [saleOpen, setSaleOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<any>(null);
   const [form, setForm] = useState({
-    cashier_name: '',
-    opening_cash: '',
-    status: 'open',
-    opened_at: new Date().toISOString().slice(0, 16),
+    cashier_name: '', opening_cash: '', opened_at: new Date().toISOString().slice(0, 16),
   });
 
-  const { data: rawData, isLoading, refetch } = useTenantQuery('pos_sessions' as any);
-  const { data: inventoryData } = useTenantQuery('inventory_items');
-  const insertSession = useTenantInsert('pos_sessions' as any);
-
-  const inventoryItems = inventoryData ?? [];
-  const today = new Date().toISOString().slice(0, 10);
-
-  const demoData = [
-    { id: '1', session_number: 'POS-001', cashier: 'Alice Boateng', opening_cash: 500, total_sales: 4320, total_orders: 38, status: 'open', opened_at: new Date().toISOString() },
-    { id: '2', session_number: 'POS-002', cashier: 'James Asante', opening_cash: 500, total_sales: 2890, total_orders: 24, status: 'open', opened_at: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: '3', session_number: 'POS-003', cashier: 'Grace Mensah', opening_cash: 200, total_sales: 5100, total_orders: 51, status: 'closed', opened_at: new Date(Date.now() - 86400000).toISOString() },
-  ];
-
-  const sessions: any[] = (isDemo ? demoData : rawData) ?? [];
-
-  const openSessions = sessions.filter(s => s.status === 'open').length;
-  const totalSalesToday = sessions
-    .filter(s => s.opened_at?.slice(0, 10) === today)
-    .reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0);
-  const totalOrders = sessions.reduce((sum, s) => sum + Number(s.total_orders ?? 0), 0);
-  const avgOrderValue = totalOrders > 0
-    ? sessions.reduce((sum, s) => sum + Number(s.total_sales ?? 0), 0) / totalOrders
-    : 0;
-
-  const handleCreate = async () => {
-    if (isDemo) { toast.success('POS session opened (demo)'); setCreateOpen(false); return; }
-    if (!form.cashier_name.trim()) { toast.error('Cashier name is required'); return; }
+  const handleCreateSession = async () => {
+    if (isDemo) { toast.success('Session opened (demo)'); setCreateOpen(false); return; }
+    if (!form.cashier_name.trim()) { toast.error('Cashier name required'); return; }
     try {
       await insertSession.mutateAsync({
         cashier: form.cashier_name.trim(),
         opening_cash: Number(form.opening_cash) || 0,
-        status: form.status,
+        status: 'open',
         opened_at: form.opened_at,
         session_number: `POS-${Date.now().toString(36).toUpperCase()}`,
         total_sales: 0,
         total_orders: 0,
       });
-      toast.success('POS session opened');
+      toast.success('Session opened');
       setCreateOpen(false);
-      setForm({ cashier_name: '', opening_cash: '', status: 'open', opened_at: new Date().toISOString().slice(0, 16) });
+      setForm({ cashier_name: '', opening_cash: '', opened_at: new Date().toISOString().slice(0, 16) });
+      refetchSessions();
     } catch {
-      toast.error('Failed to open session.');
+      toast.error('Failed to open session');
     }
   };
 
-  const handleQuickSale = (session: any) => {
-    setSelectedSession(session);
-    setSaleOpen(true);
-  };
-
-  const columns: Column[] = [
-    { key: 'session_number', label: 'Session #', className: 'font-mono text-xs' },
-    { key: 'cashier', label: 'Cashier', render: v => <span className="font-medium">{v}</span> },
-    { key: 'opening_cash', label: 'Opening Cash', render: v => <span className="text-sm">{formatMoney(v)}</span> },
-    { key: 'total_sales', label: 'Total Sales', render: v => <span className="font-semibold">{formatMoney(v)}</span> },
-    { key: 'total_orders', label: 'Orders', className: 'text-sm text-center' },
-    {
-      key: 'status', label: 'Status',
-      render: v => (
-        <span className={cn('text-xs font-semibold px-2.5 py-1 rounded-full', STATUS_COLORS[v] ?? STATUS_COLORS.closed)}>
-          {STATUS_LABELS[v] ?? v}
-        </span>
-      ),
-    },
-    {
-      key: 'opened_at', label: 'Opened At',
-      render: v => <span className="text-sm">{v ? new Date(v).toLocaleString() : '—'}</span>,
-    },
-  ];
-
-  // Action column — always visible; "Sell" enabled only for open sessions
-  columns.push({
-    key: 'id',
-    label: 'Action',
-    render: (_v, row) => (
-      <Button
-        size="sm"
-        className="h-8 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm disabled:opacity-50"
-        onClick={() => row.status === 'open' && handleQuickSale(row)}
-        disabled={row.status !== 'open'}
-        title={row.status === 'open' ? 'Sell items in this session' : 'Open the session to sell'}
-      >
-        <DollarSign className="w-3.5 h-3.5" /> Sell
-      </Button>
-    ),
-  });
-
   return (
-    <AppLayout title="Point of Sale" subtitle="POS sessions and retail orders">
-      <div className="max-w-7xl">
-        <PageHeader
-          title="Point of Sale"
-          subtitle="Manage POS sessions and process walk-in sales (creates sales orders automatically)"
-          icon={ShoppingCart}
-          breadcrumb={[{ label: 'Sales' }, { label: 'Point of Sale' }]}
-          actions={[
-            { label: 'Open Session', icon: Plus, onClick: () => setCreateOpen(true) },
-          ]}
-          stats={[
-            { label: 'Open Sessions', value: openSessions, color: 'text-emerald-600' },
-            { label: "Today's Sales", value: formatMoney(totalSalesToday), color: 'text-indigo-600' },
-            { label: 'Total Orders', value: totalOrders },
-            { label: 'Avg Order Value', value: formatMoney(avgOrderValue) },
-          ]}
-        />
-
-        <DataTable
-          data={sessions}
-          columns={columns}
-          loading={isLoading && !isDemo}
-          searchPlaceholder="Search sessions..."
-          emptyTitle="No POS sessions yet"
-          emptyDescription="Open a new POS session to start processing sales."
-          emptyAction={{ label: 'Open Session', onClick: () => setCreateOpen(true) }}
-        />
-
-        {/* Create Session Sheet */}
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-          <SheetContent className="w-full sm:max-w-[420px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-indigo-600" /> Open POS Session
-              </SheetTitle>
-            </SheetHeader>
-            <div className="space-y-4 mt-6">
-              <div className="space-y-1.5">
-                <Label>Cashier Name *</Label>
-                <Input value={form.cashier_name} onChange={e => setForm(f => ({ ...f, cashier_name: e.target.value }))} placeholder="e.g. Alice Boateng" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Opening Cash</Label>
-                <Input type="number" value={form.opening_cash} onChange={e => setForm(f => ({ ...f, opening_cash: e.target.value }))} placeholder="0.00" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {STATUSES.map(s => (<SelectItem key={s} value={s}>{STATUS_LABELS[s] ?? s}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Opened At</Label>
-                <Input type="datetime-local" value={form.opened_at} onChange={e => setForm(f => ({ ...f, opened_at: e.target.value }))} />
+    <AppLayout title="Point of Sale" subtitle="Retail checkout">
+      <div className="flex flex-col h-[calc(100vh-9rem)] -m-4 sm:-m-5 md:-m-7">
+        {/* Top control bar */}
+        <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b border-border bg-card">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
+              <ShoppingCart className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold leading-tight">Point of Sale</div>
+              <div className="text-[11px] text-muted-foreground truncate">
+                {activeSession ? `${activeSession.session_number} · ${activeSession.cashier}` : 'No active session'}
               </div>
             </div>
-            <SheetFooter className="mt-6 flex-row gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button className="flex-1" disabled={insertSession.isPending} onClick={handleCreate}>
-                {insertSession.isPending ? 'Opening...' : 'Open Session'}
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
+          </div>
 
-        {/* Quick Sale Sheet */}
-        <Sheet open={saleOpen} onOpenChange={setSaleOpen}>
-          <SheetContent className="w-full sm:max-w-[520px] flex flex-col p-0" side="right">
-            {selectedSession && tenant?.id && (
-              <QuickSaleSheet
-                inventoryItems={inventoryItems}
-                sessionId={selectedSession.id}
-                tenantId={tenant.id}
-                onClose={() => setSaleOpen(false)}
-                onSaleComplete={() => refetch()}
-              />
+          <div className="flex items-center gap-2">
+            {openSessions.length > 0 && (
+              <Select value={activeSessionId ?? ''} onValueChange={setActiveSessionId}>
+                <SelectTrigger className="h-9 w-[200px] text-xs">
+                  <SelectValue placeholder="Select session" />
+                </SelectTrigger>
+                <SelectContent>
+                  {openSessions.map(s => (
+                    <SelectItem key={s.id} value={s.id} className="text-xs">
+                      {s.session_number} — {s.cashier}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </SheetContent>
-        </Sheet>
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant={openSessions.length === 0 ? 'default' : 'outline'} className="h-9 gap-1.5">
+                  <Power className="w-3.5 h-3.5" /> Open Session
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[420px]">
+                <DialogHeader><DialogTitle>Open POS Session</DialogTitle></DialogHeader>
+                <div className="space-y-4 mt-2">
+                  <div className="space-y-1.5">
+                    <Label>Cashier Name *</Label>
+                    <Input value={form.cashier_name} onChange={e => setForm(f => ({ ...f, cashier_name: e.target.value }))} placeholder="e.g. Alice Boateng" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Opening Cash</Label>
+                    <Input type="number" value={form.opening_cash} onChange={e => setForm(f => ({ ...f, opening_cash: e.target.value }))} placeholder="0.00" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Opened At</Label>
+                    <Input type="datetime-local" value={form.opened_at} onChange={e => setForm(f => ({ ...f, opened_at: e.target.value }))} />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setCreateOpen(false)}>Cancel</Button>
+                    <Button className="flex-1" onClick={handleCreateSession} disabled={insertSession.isPending}>
+                      {insertSession.isPending ? 'Opening...' : 'Open Session'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* Main split layout */}
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_400px] min-h-0 overflow-hidden">
+          {/* LEFT: Products */}
+          <div className="flex flex-col min-h-0 border-r border-border bg-muted/20">
+            {/* Search + categories */}
+            <div className="p-3 md:p-4 border-b border-border bg-card space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search items by name or SKU... (scan barcode)"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 h-10"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-hide">
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border',
+                      activeCategory === cat
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Item grid */}
+            <ScrollArea className="flex-1">
+              <div className="p-3 md:p-4">
+                {invLoading && !isDemo ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {Array.from({ length: 10 }).map((_, i) => (
+                      <div key={i} className="h-32 rounded-lg bg-muted animate-pulse" />
+                    ))}
+                  </div>
+                ) : filteredItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Package className="w-12 h-12 text-muted-foreground/40 mb-3" />
+                    <div className="text-sm font-medium">No items found</div>
+                    <div className="text-xs text-muted-foreground">Try a different search or category</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {filteredItems.map(item => {
+                      const price = Number(item.selling_price) > 0 ? Number(item.selling_price) : Number(item.unit_cost ?? 0);
+                      const inCart = cart.find(c => c.item_id === item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => addToCart(item)}
+                          className={cn(
+                            'group relative text-left p-3 rounded-lg border bg-card transition-all',
+                            'hover:border-primary hover:shadow-md hover:-translate-y-0.5',
+                            inCart && 'border-primary ring-1 ring-primary'
+                          )}
+                        >
+                          <div className="aspect-square rounded-md bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center mb-2 overflow-hidden">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Package className="w-8 h-8 text-muted-foreground/40" />
+                            )}
+                          </div>
+                          <div className="text-xs font-semibold leading-tight line-clamp-2 mb-1">{item.name}</div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-primary">{formatMoney(price)}</span>
+                            <span className="text-[10px] text-muted-foreground">{item.quantity} left</span>
+                          </div>
+                          {inCart && (
+                            <Badge className="absolute top-1.5 right-1.5 h-5 min-w-5 px-1.5 text-[10px] bg-primary">
+                              {inCart.quantity}
+                            </Badge>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
+          {/* RIGHT: Cart */}
+          <div className="flex flex-col min-h-0 bg-card">
+            {/* Customer */}
+            <div className="p-4 border-b border-border space-y-3">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  placeholder="Customer name"
+                  className="h-9 border-0 bg-transparent px-0 focus-visible:ring-0 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Cart lines */}
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                    <div className="text-sm font-medium text-muted-foreground">Cart is empty</div>
+                    <div className="text-xs text-muted-foreground/70 mt-1">Tap items on the left to add</div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {cart.map(item => (
+                      <div key={item.item_id} className="flex items-start gap-2 p-2.5 rounded-lg border border-border bg-muted/20 group">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-semibold truncate">{item.item_name}</div>
+                          <div className="text-[11px] text-muted-foreground mt-0.5">{formatMoney(item.unit_price)} each</div>
+                          <div className="flex items-center gap-1 mt-2">
+                            <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateQty(item.item_id, item.quantity - 1)}>
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={e => updateQty(item.item_id, parseInt(e.target.value) || 0)}
+                              className="h-6 w-12 text-center text-xs px-1"
+                            />
+                            <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => updateQty(item.item_id, item.quantity + 1)}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <button
+                            onClick={() => removeFromCart(item.item_id)}
+                            className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="text-xs font-bold">{formatMoney(item.quantity * item.unit_price)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+
+            {/* Totals + Checkout */}
+            <div className="border-t border-border p-4 space-y-3 bg-muted/20">
+              {/* Discount + Tax */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Discount %</Label>
+                  <Input type="number" value={discountPct} onChange={e => setDiscountPct(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))} className="h-8 text-xs" />
+                </div>
+                <div>
+                  <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">Tax %</Label>
+                  <Input type="number" value={taxPct} onChange={e => setTaxPct(Math.max(0, parseFloat(e.target.value) || 0))} className="h-8 text-xs" />
+                </div>
+              </div>
+
+              {/* Totals */}
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Subtotal ({itemCount} items)</span>
+                  <span className="font-medium text-foreground">{formatMoney(subtotal)}</span>
+                </div>
+                {discountPct > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Discount ({discountPct}%)</span>
+                    <span className="text-destructive">-{formatMoney(discountAmt)}</span>
+                  </div>
+                )}
+                {taxPct > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Tax ({taxPct}%)</span>
+                    <span>{formatMoney(taxAmt)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-2 mt-2 border-t border-border">
+                  <span className="text-sm font-semibold">Total</span>
+                  <span className="text-xl font-bold text-primary">{formatMoney(total)}</span>
+                </div>
+              </div>
+
+              {/* Payment methods */}
+              <div className="grid grid-cols-4 gap-1.5">
+                {PAYMENT_METHODS.map(m => {
+                  const Icon = m.icon;
+                  const active = paymentMethod === m.value;
+                  return (
+                    <button
+                      key={m.value}
+                      onClick={() => setPaymentMethod(m.value)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 p-2 rounded-lg border text-[10px] font-medium transition-colors',
+                        active
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10"
+                  onClick={clearCart}
+                  disabled={cart.length === 0}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear
+                </Button>
+                <Button
+                  className="flex-[2] h-10 gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={handleCheckout}
+                  disabled={submitting || cart.length === 0 || !activeSession}
+                >
+                  <Receipt className="w-4 h-4" />
+                  {submitting ? 'Processing...' : `Pay ${formatMoney(total)}`}
+                </Button>
+              </div>
+              {!activeSession && (
+                <p className="text-[10px] text-center text-amber-600 dark:text-amber-400">
+                  Open a POS session to start selling
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );
