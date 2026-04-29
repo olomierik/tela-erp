@@ -283,6 +283,15 @@ export default function Customers() {
           </CardContent>
         </Card>
 
+        <BulkActionBar
+          count={bulk.selectedCount}
+          onClear={bulk.clear}
+          onDelete={isDemo ? undefined : handleBulkDelete}
+          onExport={handleBulkExport}
+          deleting={bulkDeleting}
+          entityLabel="customer"
+        />
+
         {/* Table */}
         {isLoading && !isDemo ? (
           <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -291,13 +300,25 @@ export default function Customers() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2 w-10">
+                    <Checkbox
+                      checked={bulk.allSelected ? true : bulk.someSelected ? 'indeterminate' : false}
+                      onCheckedChange={bulk.toggleAll}
+                      aria-label={bulk.allSelected ? 'Deselect all' : 'Select all'}
+                    />
+                  </th>
                   {['Name', 'Company', 'Contact', 'Location', 'Credit Limit', 'Outstanding', 'Actions'].map((h, i) => (
                     <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                   ))}
                 </tr></thead>
                 <tbody>
-                  {filtered.map((c: any) => (
-                    <motion.tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setViewCustomer(c)}>
+                  {filtered.map((c: any) => {
+                    const checked = bulk.isSelected(c.id);
+                    return (
+                    <motion.tr key={c.id} className={cn('border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer', checked && 'bg-primary/5')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setViewCustomer(c)}>
+                      <td className="px-3 py-2.5 w-10" onClick={e => { e.stopPropagation(); bulk.toggle(c.id); }}>
+                        <Checkbox checked={checked} onCheckedChange={() => bulk.toggle(c.id)} aria-label={`Select ${c.name}`} />
+                      </td>
                       <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">{c.company || '—'}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
@@ -323,8 +344,8 @@ export default function Customers() {
                         )}
                       </td>
                     </motion.tr>
-                  ))}
-                  {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
+                  );})}
+                  {filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
                 </tbody>
               </table>
             </div>
