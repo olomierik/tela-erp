@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { usePeriod } from '@/contexts/PeriodContext';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import BulkActionBar, { downloadRowsAsCSV } from '@/components/erp/BulkActionBar';
 
 const STATUS_COLORS: Record<string, string> = {
   trial:     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -66,6 +69,7 @@ export default function Subscriptions() {
   const [invoices, setInvoices] = useState<Record<string, SubInvoice[]>>({});
   const [loadingInv, setLoadingInv] = useState<Record<string, boolean>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: rawSubs, isLoading, refetch } = useTenantQuery('subscriptions' as any);
   const { data: services = [] } = useTenantQuery('inventory_items' as any);
@@ -112,6 +116,54 @@ export default function Subscriptions() {
     const matchStatus = statusFilter === 'all' || s.status === statusFilter;
     return matchSearch && matchStatus;
   });
+
+  // Bulk selection across the filtered list
+  const bulk = useBulkSelection<any>(filtered);
+
+  const handleBulkDelete = async () => {
+    if (bulk.selectedCount === 0) return;
+    const ok = window.confirm(
+      `Delete ${bulk.selectedCount} subscription${bulk.selectedCount === 1 ? '' : 's'}? ` +
+      'This will also remove their generated invoices and cannot be undone.',
+    );
+    if (!ok) return;
+    if (isDemo) {
+      toast.success(`Demo mode — ${bulk.selectedCount} would be removed`);
+      bulk.clear();
+      return;
+    }
+    setDeleting(true);
+    try {
+      const ids = bulk.selectedIds;
+      // Best-effort: remove dependent invoices first to avoid FK constraint errors
+      await (supabase as any).from('subscription_invoices').delete().in('subscription_id', ids);
+      const { error } = await (supabase as any).from('subscriptions').delete().in('id', ids);
+      if (error) throw error;
+      toast.success(`Deleted ${ids.length} subscription${ids.length === 1 ? '' : 's'}`);
+      bulk.clear();
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBulkExport = () => {
+    const rows = bulk.selectedRows.map((s: any) => ({
+      subscription_number: s.subscription_number,
+      customer_name: s.customer_name,
+      customer_email: s.customer_email,
+      plan_name: s.plan_name,
+      price: s.price,
+      currency: s.currency,
+      billing_period: s.billing_period,
+      status: s.status,
+      start_date: s.start_date,
+    }));
+    downloadRowsAsCSV(rows, `subscriptions-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? '' : 's'}`);
+  };
 
   const active    = subs.filter(s => s.status === 'active');
   const trial     = subs.filter(s => s.status === 'trial');
@@ -372,12 +424,30 @@ export default function Subscriptions() {
           <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
         </div>
 
+        <BulkActionBar
+          count={bulk.selectedCount}
+          onClear={bulk.clear}
+          onDelete={handleBulkDelete}
+          onExport={handleBulkExport}
+          deleting={deleting}
+          entityLabel="subscription"
+        />
+
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={
+                          bulk.allSelected ? true : bulk.someSelected ? 'indeterminate' : false
+                        }
+                        onCheckedChange={bulk.toggleAll}
+                        aria-label={bulk.allSelected ? 'Deselect all' : 'Select all'}
+                      />
+                    </TableHead>
                     <TableHead>Sub #</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Plan</TableHead>
@@ -391,15 +461,29 @@ export default function Subscriptions() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && !isDemo ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No subscriptions found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No subscriptions found</TableCell></TableRow>
                   ) : filtered.map(s => {
                     const a = subAlerts(s.id);
                     const isOpen = expanded === s.id;
+                    const isChecked = bulk.isSelected(s.id);
                     return (
                       <>
-                        <TableRow key={s.id} className={cn(a.overdue > 0 && 'bg-red-50/40 dark:bg-red-950/10')}>
+                        <TableRow
+                          key={s.id}
+                          className={cn(
+                            a.overdue > 0 && 'bg-red-50/40 dark:bg-red-950/10',
+                            isChecked && 'bg-primary/5',
+                          )}
+                        >
+                          <TableCell className="w-10">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => bulk.toggle(s.id)}
+                              aria-label={`Select subscription ${s.subscription_number}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-mono text-xs font-medium">{s.subscription_number}</TableCell>
                           <TableCell><div className="font-medium">{s.customer_name}</div><div className="text-xs text-muted-foreground">{s.customer_email}</div></TableCell>
                           <TableCell>{s.plan_name}</TableCell>
@@ -443,7 +527,7 @@ export default function Subscriptions() {
                         </TableRow>
                         {isOpen && (
                           <TableRow key={s.id + '-inv'} className="bg-muted/30">
-                            <TableCell colSpan={9} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="px-6 py-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="text-sm font-semibold flex items-center gap-2">

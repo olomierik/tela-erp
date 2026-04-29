@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
@@ -18,6 +19,10 @@ import { generatePDFReport } from '@/lib/pdf-reports';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import BulkActionBar, { downloadRowsAsCSV } from '@/components/erp/BulkActionBar';
+import { supabase } from '@/integrations/supabase/client';
+
 
 // ─── Customer Form ─────────────────────────────────────────────────────────
 
@@ -196,6 +201,33 @@ export default function Customers() {
   const totalOutstanding = customers.reduce((s: number, c: any) => s + Number(c.outstanding_balance || 0), 0);
   const activeCount = customers.filter((c: any) => c.is_active !== false).length;
 
+  const bulk = useBulkSelection<any>(filtered);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (bulk.selectedCount === 0) return;
+    if (!window.confirm(`Delete ${bulk.selectedCount} customer${bulk.selectedCount === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    if (isDemo) { toast.success('Demo mode — not deleted'); bulk.clear(); return; }
+    setBulkDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('customers').delete().in('id', bulk.selectedIds).eq('tenant_id', tenant?.id);
+      if (error) throw error;
+      toast.success(`Deleted ${bulk.selectedCount} customer${bulk.selectedCount === 1 ? '' : 's'}`);
+      bulk.clear();
+    } catch (e: any) { toast.error(e.message || 'Delete failed'); }
+    finally { setBulkDeleting(false); }
+  };
+
+  const handleBulkExport = () => {
+    const rows = bulk.selectedRows.map((c: any) => ({
+      name: c.name, company: c.company, email: c.email, phone: c.phone,
+      city: c.city, country: c.country,
+      credit_limit: c.credit_limit, outstanding_balance: c.outstanding_balance,
+    }));
+    downloadRowsAsCSV(rows, `customers-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? '' : 's'}`);
+  };
+
   const handleCreate = async (row: Record<string, any>) => {
     const created = await insert.mutateAsync(row);
     void triggerAutomation('new_customer', {
@@ -251,6 +283,15 @@ export default function Customers() {
           </CardContent>
         </Card>
 
+        <BulkActionBar
+          count={bulk.selectedCount}
+          onClear={bulk.clear}
+          onDelete={isDemo ? undefined : handleBulkDelete}
+          onExport={handleBulkExport}
+          deleting={bulkDeleting}
+          entityLabel="customer"
+        />
+
         {/* Table */}
         {isLoading && !isDemo ? (
           <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
@@ -259,13 +300,25 @@ export default function Customers() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border bg-muted/40">
+                  <th className="px-3 py-2 w-10">
+                    <Checkbox
+                      checked={bulk.allSelected ? true : bulk.someSelected ? 'indeterminate' : false}
+                      onCheckedChange={bulk.toggleAll}
+                      aria-label={bulk.allSelected ? 'Deselect all' : 'Select all'}
+                    />
+                  </th>
                   {['Name', 'Company', 'Contact', 'Location', 'Credit Limit', 'Outstanding', 'Actions'].map((h, i) => (
                     <th key={i} className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">{h}</th>
                   ))}
                 </tr></thead>
                 <tbody>
-                  {filtered.map((c: any) => (
-                    <motion.tr key={c.id} className="border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setViewCustomer(c)}>
+                  {filtered.map((c: any) => {
+                    const checked = bulk.isSelected(c.id);
+                    return (
+                    <motion.tr key={c.id} className={cn('border-b border-border last:border-0 hover:bg-muted/20 cursor-pointer', checked && 'bg-primary/5')} initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setViewCustomer(c)}>
+                      <td className="px-3 py-2.5 w-10" onClick={e => { e.stopPropagation(); bulk.toggle(c.id); }}>
+                        <Checkbox checked={checked} onCheckedChange={() => bulk.toggle(c.id)} aria-label={`Select ${c.name}`} />
+                      </td>
                       <td className="px-4 py-2.5 font-medium text-foreground">{c.name}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">{c.company || '—'}</td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
@@ -291,8 +344,8 @@ export default function Customers() {
                         )}
                       </td>
                     </motion.tr>
-                  ))}
-                  {filtered.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
+                  );})}
+                  {filtered.length === 0 && <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-muted-foreground">No customers found</td></tr>}
                 </tbody>
               </table>
             </div>
