@@ -1150,9 +1150,24 @@ export default function HR() {
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                           <th className="px-3 py-3 w-10">
                             <Checkbox
-                              checked={selectedIds.size > 0 && selectedIds.size === activeEmployees.length}
+                              checked={
+                                activeEmployees.length > 0 && selectedIds.size === activeEmployees.length
+                                  ? true
+                                  : selectedIds.size > 0
+                                  ? 'indeterminate'
+                                  : false
+                              }
                               onCheckedChange={toggleAll}
-                              aria-label="Select all employees"
+                              aria-label={
+                                selectedIds.size === activeEmployees.length
+                                  ? 'Deselect all employees'
+                                  : 'Select all employees'
+                              }
+                              title={
+                                selectedIds.size === activeEmployees.length
+                                  ? 'Deselect all'
+                                  : 'Select all'
+                              }
                             />
                           </th>
                           <th className="text-left px-4 py-3 font-medium">Employee</th>
