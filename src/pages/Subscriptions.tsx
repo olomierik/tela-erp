@@ -527,7 +527,7 @@ export default function Subscriptions() {
                         </TableRow>
                         {isOpen && (
                           <TableRow key={s.id + '-inv'} className="bg-muted/30">
-                            <TableCell colSpan={9} className="p-0">
+                            <TableCell colSpan={10} className="p-0">
                               <div className="px-6 py-4">
                                 <div className="flex items-center justify-between mb-3">
                                   <h4 className="text-sm font-semibold flex items-center gap-2">
