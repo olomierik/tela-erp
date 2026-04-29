@@ -201,6 +201,33 @@ export default function Customers() {
   const totalOutstanding = customers.reduce((s: number, c: any) => s + Number(c.outstanding_balance || 0), 0);
   const activeCount = customers.filter((c: any) => c.is_active !== false).length;
 
+  const bulk = useBulkSelection<any>(filtered);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const handleBulkDelete = async () => {
+    if (bulk.selectedCount === 0) return;
+    if (!window.confirm(`Delete ${bulk.selectedCount} customer${bulk.selectedCount === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    if (isDemo) { toast.success('Demo mode — not deleted'); bulk.clear(); return; }
+    setBulkDeleting(true);
+    try {
+      const { error } = await (supabase as any).from('customers').delete().in('id', bulk.selectedIds).eq('tenant_id', tenant?.id);
+      if (error) throw error;
+      toast.success(`Deleted ${bulk.selectedCount} customer${bulk.selectedCount === 1 ? '' : 's'}`);
+      bulk.clear();
+    } catch (e: any) { toast.error(e.message || 'Delete failed'); }
+    finally { setBulkDeleting(false); }
+  };
+
+  const handleBulkExport = () => {
+    const rows = bulk.selectedRows.map((c: any) => ({
+      name: c.name, company: c.company, email: c.email, phone: c.phone,
+      city: c.city, country: c.country,
+      credit_limit: c.credit_limit, outstanding_balance: c.outstanding_balance,
+    }));
+    downloadRowsAsCSV(rows, `customers-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? '' : 's'}`);
+  };
+
   const handleCreate = async (row: Record<string, any>) => {
     const created = await insert.mutateAsync(row);
     void triggerAutomation('new_customer', {
