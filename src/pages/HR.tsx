@@ -1138,21 +1138,36 @@ export default function HR() {
               <CardContent className="p-0">
                 {isLoading ? (
                   <div className="p-6"><Skeleton className="h-32 w-full" /></div>
-                ) : payrollData.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p>Add active employees to generate payroll</p>
-                  </div>
-                ) : (
+                ) : activeEmployees.length === 0 ? (
+                   <div className="text-center py-12 text-muted-foreground">
+                     <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                     <p>Add active employees to generate payroll</p>
+                   </div>
+                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b border-border bg-muted/40 text-muted-foreground">
                           <th className="px-3 py-3 w-10">
                             <Checkbox
-                              checked={selectedIds.size > 0 && selectedIds.size === activeEmployees.length}
+                              checked={
+                                activeEmployees.length > 0 && selectedIds.size === activeEmployees.length
+                                  ? true
+                                  : selectedIds.size > 0
+                                  ? 'indeterminate'
+                                  : false
+                              }
                               onCheckedChange={toggleAll}
-                              aria-label="Select all employees"
+                              aria-label={
+                                selectedIds.size === activeEmployees.length
+                                  ? 'Deselect all employees'
+                                  : 'Select all employees'
+                              }
+                              title={
+                                selectedIds.size === activeEmployees.length
+                                  ? 'Deselect all'
+                                  : 'Select all'
+                              }
                             />
                           </th>
                           <th className="text-left px-4 py-3 font-medium">Employee</th>
