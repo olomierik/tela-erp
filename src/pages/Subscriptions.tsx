@@ -69,6 +69,7 @@ export default function Subscriptions() {
   const [invoices, setInvoices] = useState<Record<string, SubInvoice[]>>({});
   const [loadingInv, setLoadingInv] = useState<Record<string, boolean>>({});
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: rawSubs, isLoading, refetch } = useTenantQuery('subscriptions' as any);
   const { data: services = [] } = useTenantQuery('inventory_items' as any);
