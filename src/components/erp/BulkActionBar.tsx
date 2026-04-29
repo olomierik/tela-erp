@@ -88,12 +88,9 @@ export default function BulkActionBar({
  */
 export function downloadRowsAsCSV(rows: Record<string, any>[], filename: string) {
   if (!rows.length) return;
-  const headers = Array.from(
-    rows.reduce((set, r) => {
-      Object.keys(r).forEach(k => set.add(k));
-      return set;
-    }, new Set<string>()),
-  );
+  const headerSet = new Set<string>();
+  rows.forEach(r => Object.keys(r).forEach(k => headerSet.add(k)));
+  const headers = Array.from(headerSet);
   const escape = (v: any) => {
     if (v === null || v === undefined) return '';
     const s = typeof v === 'object' ? JSON.stringify(v) : String(v);
