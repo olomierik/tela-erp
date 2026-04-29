@@ -424,12 +424,30 @@ export default function Subscriptions() {
           <Button onClick={() => setCreateOpen(true)}><Plus className="w-4 h-4 mr-2" />New Subscription</Button>
         </div>
 
+        <BulkActionBar
+          count={bulk.selectedCount}
+          onClear={bulk.clear}
+          onDelete={handleBulkDelete}
+          onExport={handleBulkExport}
+          deleting={deleting}
+          entityLabel="subscription"
+        />
+
         <Card>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={
+                          bulk.allSelected ? true : bulk.someSelected ? 'indeterminate' : false
+                        }
+                        onCheckedChange={bulk.toggleAll}
+                        aria-label={bulk.allSelected ? 'Deselect all' : 'Select all'}
+                      />
+                    </TableHead>
                     <TableHead>Sub #</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Plan</TableHead>
@@ -443,15 +461,29 @@ export default function Subscriptions() {
                 </TableHeader>
                 <TableBody>
                   {isLoading && !isDemo ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                   ) : filtered.length === 0 ? (
-                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No subscriptions found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No subscriptions found</TableCell></TableRow>
                   ) : filtered.map(s => {
                     const a = subAlerts(s.id);
                     const isOpen = expanded === s.id;
+                    const isChecked = bulk.isSelected(s.id);
                     return (
                       <>
-                        <TableRow key={s.id} className={cn(a.overdue > 0 && 'bg-red-50/40 dark:bg-red-950/10')}>
+                        <TableRow
+                          key={s.id}
+                          className={cn(
+                            a.overdue > 0 && 'bg-red-50/40 dark:bg-red-950/10',
+                            isChecked && 'bg-primary/5',
+                          )}
+                        >
+                          <TableCell className="w-10">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => bulk.toggle(s.id)}
+                              aria-label={`Select subscription ${s.subscription_number}`}
+                            />
+                          </TableCell>
                           <TableCell className="font-mono text-xs font-medium">{s.subscription_number}</TableCell>
                           <TableCell><div className="font-medium">{s.customer_name}</div><div className="text-xs text-muted-foreground">{s.customer_email}</div></TableCell>
                           <TableCell>{s.plan_name}</TableCell>
