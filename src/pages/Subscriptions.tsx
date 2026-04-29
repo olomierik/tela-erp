@@ -117,6 +117,54 @@ export default function Subscriptions() {
     return matchSearch && matchStatus;
   });
 
+  // Bulk selection across the filtered list
+  const bulk = useBulkSelection<any>(filtered);
+
+  const handleBulkDelete = async () => {
+    if (bulk.selectedCount === 0) return;
+    const ok = window.confirm(
+      `Delete ${bulk.selectedCount} subscription${bulk.selectedCount === 1 ? '' : 's'}? ` +
+      'This will also remove their generated invoices and cannot be undone.',
+    );
+    if (!ok) return;
+    if (isDemo) {
+      toast.success(`Demo mode — ${bulk.selectedCount} would be removed`);
+      bulk.clear();
+      return;
+    }
+    setDeleting(true);
+    try {
+      const ids = bulk.selectedIds;
+      // Best-effort: remove dependent invoices first to avoid FK constraint errors
+      await (supabase as any).from('subscription_invoices').delete().in('subscription_id', ids);
+      const { error } = await (supabase as any).from('subscriptions').delete().in('id', ids);
+      if (error) throw error;
+      toast.success(`Deleted ${ids.length} subscription${ids.length === 1 ? '' : 's'}`);
+      bulk.clear();
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleBulkExport = () => {
+    const rows = bulk.selectedRows.map((s: any) => ({
+      subscription_number: s.subscription_number,
+      customer_name: s.customer_name,
+      customer_email: s.customer_email,
+      plan_name: s.plan_name,
+      price: s.price,
+      currency: s.currency,
+      billing_period: s.billing_period,
+      status: s.status,
+      start_date: s.start_date,
+    }));
+    downloadRowsAsCSV(rows, `subscriptions-${new Date().toISOString().slice(0, 10)}.csv`);
+    toast.success(`Exported ${rows.length} row${rows.length === 1 ? '' : 's'}`);
+  };
+
   const active    = subs.filter(s => s.status === 'active');
   const trial     = subs.filter(s => s.status === 'trial');
   const cancelled = subs.filter(s => s.status === 'cancelled');
