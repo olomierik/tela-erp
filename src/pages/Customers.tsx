@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { useTenantQuery, useTenantInsert, useTenantUpdate, useTenantDelete } from '@/hooks/use-tenant-query';
@@ -18,6 +19,10 @@ import { generatePDFReport } from '@/lib/pdf-reports';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useBulkSelection } from '@/hooks/use-bulk-selection';
+import BulkActionBar, { downloadRowsAsCSV } from '@/components/erp/BulkActionBar';
+import { supabase } from '@/integrations/supabase/client';
+
 
 // ─── Customer Form ─────────────────────────────────────────────────────────
 
