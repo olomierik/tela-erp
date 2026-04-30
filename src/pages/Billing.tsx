@@ -197,8 +197,8 @@ export default function Billing() {
                   <Button
                     className="w-full"
                     variant={tier === 'premium' ? 'default' : 'outline'}
-                    disabled={!PRICES.enterprise_monthly || loading === 'enterprise_monthly'}
-                    onClick={() => handleCheckout(PRICES.enterprise_monthly, 'enterprise_monthly')}
+                    disabled={loading === 'enterprise_monthly'}
+                    onClick={() => handleCheckout('enterprise_monthly', 'enterprise_monthly')}
                   >
                     {loading === 'enterprise_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $29 / month
@@ -206,8 +206,8 @@ export default function Billing() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    disabled={!PRICES.enterprise_yearly || loading === 'enterprise_yearly'}
-                    onClick={() => handleCheckout(PRICES.enterprise_yearly, 'enterprise_yearly')}
+                    disabled={loading === 'enterprise_yearly'}
+                    onClick={() => handleCheckout('enterprise_yearly', 'enterprise_yearly')}
                   >
                     {loading === 'enterprise_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $249 / year
