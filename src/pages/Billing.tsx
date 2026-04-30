@@ -13,14 +13,9 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModules, TIER_LABELS, type SubscriptionTier } from '@/contexts/ModulesContext';
 import { supabase } from '@/lib/supabase';
-
-// Stripe price IDs — set via VITE_ env vars so the frontend can pass them to the edge function
-const PRICES = {
-  premium_monthly:    import.meta.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID ?? '',
-  premium_yearly:     import.meta.env.VITE_STRIPE_PREMIUM_YEARLY_PRICE_ID ?? '',
-  enterprise_monthly: import.meta.env.VITE_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID ?? '',
-  enterprise_yearly:  import.meta.env.VITE_STRIPE_ENTERPRISE_YEARLY_PRICE_ID ?? '',
-};
+import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { getPaddleEnvironment } from '@/lib/paddle';
+import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
 
 const PLAN_INFO: Record<SubscriptionTier, { icon: typeof Star; color: string; description: string }> = {
   starter:    { icon: Zap,    color: 'text-muted-foreground', description: 'Sales & Inventory only, 1 user' },
@@ -35,31 +30,30 @@ function daysUntil(iso: string | null | undefined): number | null {
 }
 
 export default function Billing() {
-  const { tenant, isDemo, refreshProfile } = useAuth();
+  const { user, tenant, isDemo, refreshProfile } = useAuth();
   const { tier } = useModules();
   const [loading, setLoading] = useState<string | null>(null);
+  const { openCheckout } = usePaddleCheckout();
 
   const trialDays = daysUntil((tenant as any)?.trial_ends_at);
   const trialActive = trialDays !== null && trialDays > 0;
   const subEnds = daysUntil((tenant as any)?.subscription_ends_at);
-  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id;
+  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id || tier === 'premium' || tier === 'enterprise';
   const billingInterval: string = (tenant as any)?.billing_interval ?? 'month';
 
   async function handleCheckout(priceId: string, label: string) {
     if (isDemo) { toast.error('Sign in to subscribe'); return; }
-    if (!priceId) { toast.error('Stripe price not configured — add VITE_STRIPE_*_PRICE_ID to .env'); return; }
     setLoading(label);
     try {
-      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: {
-          priceId,
-          tenantId: tenant?.id,
-          successUrl: window.location.origin,
-          cancelUrl: window.location.origin + '/pricing',
+      await openCheckout({
+        priceId,
+        customerEmail: user?.email,
+        customData: {
+          userId: user?.id ?? '',
+          tenantId: tenant?.id ?? '',
         },
+        successUrl: window.location.origin + '/billing?checkout=success',
       });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message ?? 'Could not start checkout');
     } finally {
@@ -71,11 +65,11 @@ export default function Billing() {
     if (isDemo) { toast.error('Sign in first'); return; }
     setLoading('portal');
     try {
-      const { data, error } = await supabase.functions.invoke('stripe-portal', {
-        body: { tenantId: tenant?.id, returnUrl: window.location.origin + '/billing' },
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: { environment: getPaddleEnvironment() },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) window.open(data.url, '_blank');
     } catch (err: any) {
       toast.error(err.message ?? 'Could not open billing portal');
     } finally {
@@ -89,6 +83,7 @@ export default function Billing() {
     <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
       <Helmet><title>Billing — TELA-ERP</title></Helmet>
 
+      <PaymentTestModeBanner />
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Current plan card */}
@@ -170,8 +165,8 @@ export default function Billing() {
                   <div className="flex flex-col gap-2">
                     <Button
                       className="w-full gradient-primary"
-                      disabled={!PRICES.premium_monthly || loading === 'premium_monthly'}
-                      onClick={() => handleCheckout(PRICES.premium_monthly, 'premium_monthly')}
+                      disabled={loading === 'premium_monthly'}
+                      onClick={() => handleCheckout('premium_monthly', 'premium_monthly')}
                     >
                       {loading === 'premium_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $12 / month
@@ -179,8 +174,8 @@ export default function Billing() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      disabled={!PRICES.premium_yearly || loading === 'premium_yearly'}
-                      onClick={() => handleCheckout(PRICES.premium_yearly, 'premium_yearly')}
+                      disabled={loading === 'premium_yearly'}
+                      onClick={() => handleCheckout('premium_yearly', 'premium_yearly')}
                     >
                       {loading === 'premium_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $99 / year
@@ -203,8 +198,8 @@ export default function Billing() {
                   <Button
                     className="w-full"
                     variant={tier === 'premium' ? 'default' : 'outline'}
-                    disabled={!PRICES.enterprise_monthly || loading === 'enterprise_monthly'}
-                    onClick={() => handleCheckout(PRICES.enterprise_monthly, 'enterprise_monthly')}
+                    disabled={loading === 'enterprise_monthly'}
+                    onClick={() => handleCheckout('enterprise_monthly', 'enterprise_monthly')}
                   >
                     {loading === 'enterprise_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $29 / month
@@ -212,8 +207,8 @@ export default function Billing() {
                   <Button
                     variant="outline"
                     className="w-full"
-                    disabled={!PRICES.enterprise_yearly || loading === 'enterprise_yearly'}
-                    onClick={() => handleCheckout(PRICES.enterprise_yearly, 'enterprise_yearly')}
+                    disabled={loading === 'enterprise_yearly'}
+                    onClick={() => handleCheckout('enterprise_yearly', 'enterprise_yearly')}
                   >
                     {loading === 'enterprise_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $249 / year
@@ -230,12 +225,9 @@ export default function Billing() {
           <CardContent className="pt-4 pb-4 flex items-start gap-3">
             <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Secure payments via Stripe</p>
+              <p className="text-sm font-medium">Secure built-in payments</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your card is never stored on our servers. Cancel anytime from the billing portal.{' '}
-                <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                  Powered by Stripe <ArrowUpRight className="inline w-3 h-3" />
-                </a>
+                Your card is never stored on our servers. Cancel anytime from the billing portal.
               </p>
             </div>
           </CardContent>
