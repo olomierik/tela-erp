@@ -13,14 +13,9 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModules, TIER_LABELS, type SubscriptionTier } from '@/contexts/ModulesContext';
 import { supabase } from '@/lib/supabase';
-
-// Stripe price IDs — set via VITE_ env vars so the frontend can pass them to the edge function
-const PRICES = {
-  premium_monthly:    import.meta.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID ?? '',
-  premium_yearly:     import.meta.env.VITE_STRIPE_PREMIUM_YEARLY_PRICE_ID ?? '',
-  enterprise_monthly: import.meta.env.VITE_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID ?? '',
-  enterprise_yearly:  import.meta.env.VITE_STRIPE_ENTERPRISE_YEARLY_PRICE_ID ?? '',
-};
+import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
+import { getPaddleEnvironment } from '@/lib/paddle';
+import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
 
 const PLAN_INFO: Record<SubscriptionTier, { icon: typeof Star; color: string; description: string }> = {
   starter:    { icon: Zap,    color: 'text-muted-foreground', description: 'Sales & Inventory only, 1 user' },
