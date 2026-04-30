@@ -30,31 +30,30 @@ function daysUntil(iso: string | null | undefined): number | null {
 }
 
 export default function Billing() {
-  const { tenant, isDemo, refreshProfile } = useAuth();
+  const { user, tenant, isDemo, refreshProfile } = useAuth();
   const { tier } = useModules();
   const [loading, setLoading] = useState<string | null>(null);
+  const { openCheckout } = usePaddleCheckout();
 
   const trialDays = daysUntil((tenant as any)?.trial_ends_at);
   const trialActive = trialDays !== null && trialDays > 0;
   const subEnds = daysUntil((tenant as any)?.subscription_ends_at);
-  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id;
+  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id || tier === 'premium' || tier === 'enterprise';
   const billingInterval: string = (tenant as any)?.billing_interval ?? 'month';
 
   async function handleCheckout(priceId: string, label: string) {
     if (isDemo) { toast.error('Sign in to subscribe'); return; }
-    if (!priceId) { toast.error('Stripe price not configured — add VITE_STRIPE_*_PRICE_ID to .env'); return; }
     setLoading(label);
     try {
-      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: {
-          priceId,
-          tenantId: tenant?.id,
-          successUrl: window.location.origin,
-          cancelUrl: window.location.origin + '/pricing',
+      await openCheckout({
+        priceId,
+        customerEmail: user?.email,
+        customData: {
+          userId: user?.id ?? '',
+          tenantId: tenant?.id ?? '',
         },
+        successUrl: window.location.origin + '/billing?checkout=success',
       });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message ?? 'Could not start checkout');
     } finally {
@@ -66,11 +65,11 @@ export default function Billing() {
     if (isDemo) { toast.error('Sign in first'); return; }
     setLoading('portal');
     try {
-      const { data, error } = await supabase.functions.invoke('stripe-portal', {
-        body: { tenantId: tenant?.id, returnUrl: window.location.origin + '/billing' },
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        body: { environment: getPaddleEnvironment() },
       });
       if (error) throw error;
-      if (data?.url) window.location.href = data.url;
+      if (data?.url) window.open(data.url, '_blank');
     } catch (err: any) {
       toast.error(err.message ?? 'Could not open billing portal');
     } finally {
