@@ -164,8 +164,8 @@ export default function Billing() {
                   <div className="flex flex-col gap-2">
                     <Button
                       className="w-full gradient-primary"
-                      disabled={!PRICES.premium_monthly || loading === 'premium_monthly'}
-                      onClick={() => handleCheckout(PRICES.premium_monthly, 'premium_monthly')}
+                      disabled={loading === 'premium_monthly'}
+                      onClick={() => handleCheckout('premium_monthly', 'premium_monthly')}
                     >
                       {loading === 'premium_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $12 / month
@@ -173,8 +173,8 @@ export default function Billing() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      disabled={!PRICES.premium_yearly || loading === 'premium_yearly'}
-                      onClick={() => handleCheckout(PRICES.premium_yearly, 'premium_yearly')}
+                      disabled={loading === 'premium_yearly'}
+                      onClick={() => handleCheckout('premium_yearly', 'premium_yearly')}
                     >
                       {loading === 'premium_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $99 / year
