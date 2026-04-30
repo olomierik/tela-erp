@@ -83,6 +83,7 @@ export default function Billing() {
     <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
       <Helmet><title>Billing — TELA-ERP</title></Helmet>
 
+      <PaymentTestModeBanner />
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Current plan card */}
@@ -224,12 +225,9 @@ export default function Billing() {
           <CardContent className="pt-4 pb-4 flex items-start gap-3">
             <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium">Secure payments via Stripe</p>
+              <p className="text-sm font-medium">Secure built-in payments</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Your card is never stored on our servers. Cancel anytime from the billing portal.{' '}
-                <a href="https://stripe.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-                  Powered by Stripe <ArrowUpRight className="inline w-3 h-3" />
-                </a>
+                Your card is never stored on our servers. Cancel anytime from the billing portal.
               </p>
             </div>
           </CardContent>
