@@ -440,6 +440,9 @@ export default function Landing() {
               <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
               <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
               <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+              <Link to="/refund-policy" className="hover:text-foreground transition-colors">Refunds</Link>
               <a href="https://github.com/olomierik/tela-erp" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
             </div>
           </div>
