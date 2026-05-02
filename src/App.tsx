@@ -91,6 +91,9 @@ import AutomationExecutionLog from "./pages/AutomationExecutionLog";
 import AnomalyAlerts from "./pages/AnomalyAlerts";
 import Services from "./pages/Services";
 import ServiceOrders from "./pages/ServiceOrders";
+import Privacy from "./pages/legal/Privacy";
+import Terms from "./pages/legal/Terms";
+import RefundPolicy from "./pages/legal/RefundPolicy";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -141,6 +144,9 @@ const App = () => (
               <Route path="/join/:inviteId" element={<JoinInvite />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
