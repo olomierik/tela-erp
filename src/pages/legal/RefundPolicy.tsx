@@ -8,7 +8,7 @@ export default function RefundPolicy() {
     >
       <p>
         This Refund Policy applies to purchases of TELA ERP subscriptions and services from <strong>ERICK ELIBARIKI
-        OLOMI</strong>, trading as TELA ERP. Our reseller and Merchant of Record, <strong>Paddle.com</strong>,
+        OLOMI</strong>, trading as TELA HOLDINGS LIMITED. Our reseller and Merchant of Record, <strong>Paddle.com</strong>,
         processes all payments and refunds on our behalf.
       </p>
 
@@ -27,7 +27,7 @@ export default function RefundPolicy() {
           order using the email address you used at checkout, and submit a refund request directly to Paddle.
         </li>
         <li>
-          Contact our support team at <a href="mailto:contact@tela-erp.com">contact@tela-erp.com</a> and we will
+          Contact our support team at <a href="mailto:olomierik@gmail.com">olomierik@gmail.com</a> and we will
           coordinate the refund with Paddle on your behalf.
         </li>
       </ul>
@@ -51,7 +51,7 @@ export default function RefundPolicy() {
       <h2>Contact</h2>
       <p>
         For any questions about this Refund Policy, contact ERICK ELIBARIKI OLOMI at{" "}
-        <a href="mailto:contact@tela-erp.com">contact@tela-erp.com</a>.
+        <a href="mailto:olomierik@gmail.com">olomierik@gmail.com</a>.
       </p>
     </LegalLayout>
   );
