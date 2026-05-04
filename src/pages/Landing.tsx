@@ -434,7 +434,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} TELA-ERP by Erick Elibariki Olomi — Tanga, Tanzania</span>
+            <span>© {new Date().getFullYear()} TELA-ERP by TELA HOLDINGS LIMITED — Tanga, Tanzania</span>
             <div className="flex gap-4">
               <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
               <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
