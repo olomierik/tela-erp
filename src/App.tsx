@@ -94,6 +94,7 @@ import ServiceOrders from "./pages/ServiceOrders";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import RefundPolicy from "./pages/legal/RefundPolicy";
+import CookiePolicy from "./pages/legal/CookiePolicy";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -147,6 +148,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
 
               {/* Protected routes */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

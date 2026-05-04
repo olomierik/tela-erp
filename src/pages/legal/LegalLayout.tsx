@@ -21,6 +21,7 @@ export default function LegalLayout({ title, description, children }: Props) {
             <Link to="/privacy" className="hover:text-foreground">Privacy</Link>
             <Link to="/terms" className="hover:text-foreground">Terms</Link>
             <Link to="/refund-policy" className="hover:text-foreground">Refunds</Link>
+            <Link to="/cookie-policy" className="hover:text-foreground">Cookies</Link>
           </nav>
         </div>
       </header>
