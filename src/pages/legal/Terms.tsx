@@ -8,7 +8,7 @@ export default function Terms() {
     >
       <p>
         These Terms & Conditions ("Terms") govern your access to and use of the TELA ERP website, applications, and
-        services (the "Service") provided by <strong>ERICK ELIBARIKI OLOMI</strong>, trading as <strong>TELA ERP</strong>
+        services (the "Service") provided by <strong>ERICK ELIBARIKI OLOMI</strong>, trading as <strong>TELA HOLDINGS LIMITED</strong>
         ("we", "us", "our"). By creating an account or otherwise using the Service, you agree to be bound by these Terms.
       </p>
 
@@ -134,7 +134,7 @@ export default function Terms() {
       <h2>16. Contact</h2>
       <p>
         Questions about these Terms? Contact ERICK ELIBARIKI OLOMI at{" "}
-        <a href="mailto:contact@tela-erp.com">contact@tela-erp.com</a>.
+        <a href="mailto:olomierik@gmail.com">olomierik@gmail.com</a>.
       </p>
     </LegalLayout>
   );

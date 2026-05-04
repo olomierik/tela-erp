@@ -4,17 +4,17 @@ export default function Privacy() {
   return (
     <LegalLayout
       title="Privacy Notice"
-      description="How ERICK ELIBARIKI OLOMI (TELA ERP) collects, uses, and protects your personal data."
+      description="How ERICK ELIBARIKI OLOMI (TELA HOLDINGS LIMITED) collects, uses, and protects your personal data."
     >
       <p>
         This Privacy Notice explains how <strong>ERICK ELIBARIKI OLOMI</strong>, trading as
-        <strong> TELA ERP</strong> ("we", "us"), collects and processes personal data when you use our website,
+        <strong> TELA HOLDINGS LIMITED</strong> ("we", "us"), collects and processes personal data when you use our website,
         applications, and services (the "Service").
       </p>
 
       <h2>1. Data Controller</h2>
       <p>
-        ERICK ELIBARIKI OLOMI (trading as TELA ERP), based in Tanga, Tanzania, acts as the data controller for
+        ERICK ELIBARIKI OLOMI (trading as TELA HOLDINGS LIMITED), based in Tanga, Tanzania, acts as the data controller for
         personal data processed in connection with the Service.
       </p>
 
@@ -100,7 +100,7 @@ export default function Privacy() {
       <h2>12. Contact</h2>
       <p>
         For privacy questions or to exercise your rights, contact ERICK ELIBARIKI OLOMI at{" "}
-        <a href="mailto:contact@tela-erp.com">contact@tela-erp.com</a>.
+        <a href="mailto:olomierik@gmail.com">olomierik@gmail.com</a>.
       </p>
     </LegalLayout>
   );
