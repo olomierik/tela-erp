@@ -67,7 +67,7 @@ export default function About() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>About — TELA-ERP | Built in Tanzania for SMEs Worldwide</title>
-        <meta name="description" content="Meet Erick Elibariki Olomi, the founder of TELA-ERP. A tax consultant from Tanga, Tanzania who built a free, open source ERP to make enterprise software accessible to every small business." />
+        <meta name="description" content="Meet TELA HOLDINGS LIMITED, the founder of TELA-ERP. A tax consultant from Tanga, Tanzania who built a free, open source ERP to make enterprise software accessible to every small business." />
         <link rel="canonical" href="https://tela-erp.com/about" />
         <meta property="og:title" content="About TELA-ERP | Our Story & Mission" />
         <meta property="og:description" content="Built by a Tanzanian tax consultant, TELA-ERP exists to make world-class ERP software accessible to small businesses everywhere — free and open source." />
@@ -134,12 +134,12 @@ export default function About() {
               />
               <img
                 src={erickPhoto}
-                alt="Erick Elibariki Olomi — Founder of TELA-ERP"
+                alt="TELA HOLDINGS LIMITED — Founder of TELA-ERP"
                 className="relative w-64 h-72 object-cover object-top rounded-2xl shadow-xl border-2 border-white/20"
               />
             </div>
             <div className="mt-5 text-center md:text-left">
-              <p className="font-bold text-xl">Erick Elibariki Olomi</p>
+              <p className="font-bold text-xl">TELA HOLDINGS LIMITED</p>
               <p className="text-sm mt-0.5" style={{ color: P }}>Developer &amp; Founder</p>
               <p className="text-xs text-muted-foreground mt-1">Tax Consultant &amp; Finance Professional</p>
               <p className="text-xs text-muted-foreground">Prime Auditors — Tanga, Tanzania</p>
@@ -175,7 +175,7 @@ export default function About() {
             </h2>
             <div className="space-y-5 text-muted-foreground leading-relaxed">
               <p>
-                Erick Elibariki Olomi is a tax consultant and finance professional with years of experience at a reputable auditing firm in Tanga, Tanzania. Working closely with small and medium enterprises every day, he witnessed first-hand the challenges business owners face — not just with taxes, but with managing their operations.
+                TELA HOLDINGS LIMITED is a tax consultant and finance professional with years of experience at a reputable auditing firm in Tanga, Tanzania. Working closely with small and medium enterprises every day, he witnessed first-hand the challenges business owners face — not just with taxes, but with managing their operations.
               </p>
               <p>
                 Again and again, he encountered the same complaint from clients: <strong className="text-foreground">"Business software is too expensive."</strong> Most of the powerful ERP solutions available required large upfront licensing fees, expensive implementation consultants, and ongoing subscription costs that were simply out of reach for the small businesses that needed them most.
@@ -189,7 +189,7 @@ export default function About() {
               <p className="font-medium text-foreground border-l-4 pl-4" style={{ borderColor: P }}>
                 "I built this because I believe every business, regardless of size or location, deserves access to tools that help them succeed. Good software should not be a privilege."
                 <br />
-                <span className="text-sm font-normal text-muted-foreground">— Erick Elibariki Olomi, Founder of TELA-ERP</span>
+                <span className="text-sm font-normal text-muted-foreground">— TELA HOLDINGS LIMITED, Founder of TELA-ERP</span>
               </p>
             </div>
           </motion.div>
@@ -349,7 +349,7 @@ export default function About() {
       {/* FOOTER */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
+          <span>© 2026 TELA HOLDINGS LIMITED — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
           <div className="flex gap-4">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>

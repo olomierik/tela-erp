@@ -104,7 +104,7 @@ export default function Contact() {
     <div className="min-h-screen bg-background text-foreground">
       <Helmet>
         <title>Contact — TELA-ERP | Get in Touch</title>
-        <meta name="description" content="Contact TELA-ERP founder Erick Elibariki Olomi. Reach us by email at olomierik@gmail.com or WhatsApp +255 752 401 012. Based in Tanga, Tanzania." />
+        <meta name="description" content="Contact TELA-ERP founder TELA HOLDINGS LIMITED. Reach us by email at olomierik@gmail.com or WhatsApp +255 752 401 012. Based in Tanga, Tanzania." />
         <link rel="canonical" href="https://tela-erp.com/contact" />
         <meta property="og:title" content="Contact TELA-ERP | We'd Love to Hear from You" />
         <meta property="og:description" content="Have a question about TELA-ERP? Reach out to our team. We reply within 24 hours." />
@@ -321,7 +321,7 @@ export default function Contact() {
       {/* FOOTER */}
       <footer className="border-t border-border/60 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <span>© 2026 Erick Elibariki Olomi — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
+          <span>© 2026 TELA HOLDINGS LIMITED — +255 752 401 012 | Erick.olomi@primeauditors.co.tz</span>
           <div className="flex gap-4">
             <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
             <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
