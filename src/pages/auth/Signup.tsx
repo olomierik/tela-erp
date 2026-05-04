@@ -456,8 +456,9 @@ export default function Signup() {
 
                   <p className="text-[11px] text-muted-foreground text-center mt-4 leading-relaxed">
                     By creating an account, you agree to our{' '}
-                    <a href="/terms" className="underline hover:text-foreground">Terms of Service</a> and{' '}
-                    <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>.
+                    <a href="/terms" className="underline hover:text-foreground">Terms of Service</a>,{' '}
+                    <a href="/privacy" className="underline hover:text-foreground">Privacy Policy</a>, and{' '}
+                    <a href="/cookie-policy" className="underline hover:text-foreground">Cookie Policy</a>.
                   </p>
                 </motion.div>
               )}

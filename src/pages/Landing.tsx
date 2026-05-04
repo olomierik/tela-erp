@@ -443,6 +443,7 @@ export default function Landing() {
               <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
               <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
               <Link to="/refund-policy" className="hover:text-foreground transition-colors">Refunds</Link>
+              <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookies</Link>
               <a href="https://github.com/olomierik/tela-erp" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">GitHub</a>
             </div>
           </div>

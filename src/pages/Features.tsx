@@ -539,6 +539,7 @@ export default function Features() {
           <div className="flex gap-4">
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
             <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookies</Link>
             <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
           </div>
         </div>
