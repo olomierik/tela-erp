@@ -95,6 +95,7 @@ import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import RefundPolicy from "./pages/legal/RefundPolicy";
 import CookiePolicy from "./pages/legal/CookiePolicy";
+import PageTranslator from "@/components/i18n/PageTranslator";
 
 // Initialize error monitoring
 initErrorMonitoring();
@@ -126,6 +127,7 @@ const App = () => (
           <Sonner />
           <Router>
             <TelemetryTracker />
+            <PageTranslator />
             <WhatsAppButton />
             <ScrollButtons />
             <Routes>
