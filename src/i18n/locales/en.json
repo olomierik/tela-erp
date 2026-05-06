@@ -1,0 +1,40 @@
+{
+  "common": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "getStarted": "Get Started",
+    "signUp": "Sign Up",
+    "search": "Search...",
+    "language": "Language",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "modules": "Modules",
+    "features": "Features",
+    "pricing": "Pricing",
+    "blog": "Blog",
+    "about": "About",
+    "contact": "Contact",
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "landing": {
+    "badge": "Enterprise Resource Planning, Reimagined",
+    "heroTitle1": "The Complete ERP for",
+    "heroTitle2": "Modern Business",
+    "heroSubtitle": "17 integrated modules. 13 industry presets. Built for teams that demand precision, speed, and clarity at every level of operation.",
+    "ctaTrial": "Start 14-Day Free Trial",
+    "ctaSignIn": "Sign In"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "common": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "getStarted": "Loslegen",
+    "signUp": "Registrieren",
+    "search": "Suchen...",
+    "language": "Sprache",
+    "loading": "Wird geladen...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "submit": "Absenden",
+    "back": "Zurück",
+    "next": "Weiter",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "nav": {
+    "modules": "Module",
+    "features": "Funktionen",
+    "pricing": "Preise",
+    "blog": "Blog",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "dashboard": "Dashboard",
+    "settings": "Einstellungen",
+    "profile": "Profil"
+  },
+  "landing": {
+    "badge": "Enterprise Resource Planning, neu gedacht",
+    "heroTitle1": "Das komplette ERP für",
+    "heroTitle2": "moderne Unternehmen",
+    "heroSubtitle": "17 integrierte Module. 13 Branchenvorlagen. Entwickelt für Teams, die Präzision, Geschwindigkeit und Klarheit auf jeder Ebene fordern.",
+    "ctaTrial": "14-Tage kostenlos testen",
+    "ctaSignIn": "Anmelden"
+  }
+}

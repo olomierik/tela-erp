@@ -1,0 +1,40 @@
+{
+  "common": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "getStarted": "Comenzar",
+    "signUp": "Registrarse",
+    "search": "Buscar...",
+    "language": "Idioma",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "submit": "Enviar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "nav": {
+    "modules": "Módulos",
+    "features": "Características",
+    "pricing": "Precios",
+    "blog": "Blog",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "dashboard": "Panel",
+    "settings": "Configuración",
+    "profile": "Perfil"
+  },
+  "landing": {
+    "badge": "Planificación de recursos empresariales, reinventada",
+    "heroTitle1": "El ERP completo para",
+    "heroTitle2": "los negocios modernos",
+    "heroSubtitle": "17 módulos integrados. 13 preajustes de industria. Diseñado para equipos que exigen precisión, velocidad y claridad en todos los niveles de operación.",
+    "ctaTrial": "Prueba gratuita de 14 días",
+    "ctaSignIn": "Iniciar sesión"
+  }
+}

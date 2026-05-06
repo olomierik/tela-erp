@@ -13,6 +13,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
 import UserCountWidget from '@/components/ui/UserCountWidget';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 import heroImg from '@/assets/hero-dashboard.png';
 import telaLogo from '@/assets/tela-erp-logo.png';
 
@@ -66,6 +68,7 @@ const faqs = [
 export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -82,16 +85,17 @@ export default function Landing() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-            <Link to="/modules" className="hover:text-foreground transition-colors">Modules</Link>
-            <Link to="/features" className="hover:text-foreground transition-colors">Features</Link>
-            <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
-            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
-            <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
+            <Link to="/modules" className="hover:text-foreground transition-colors">{t('nav.modules')}</Link>
+            <Link to="/features" className="hover:text-foreground transition-colors">{t('nav.features')}</Link>
+            <Link to="/pricing" className="hover:text-foreground transition-colors">{t('nav.pricing')}</Link>
+            <Link to="/blog" className="hover:text-foreground transition-colors">{t('nav.blog')}</Link>
+            <Link to="/about" className="hover:text-foreground transition-colors">{t('nav.about')}</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" asChild><Link to="/login">Sign In</Link></Button>
-            <Button className="gradient-primary" asChild><Link to="/signup">Get Started</Link></Button>
+            <LanguageSwitcher variant="compact" />
+            <Button variant="ghost" asChild><Link to="/login">{t('common.signIn')}</Link></Button>
+            <Button className="gradient-primary" asChild><Link to="/signup">{t('common.getStarted')}</Link></Button>
           </div>
 
           <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -123,21 +127,21 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <motion.div className="flex-1 text-center lg:text-left" initial="hidden" animate="visible" variants={fadeUp} custom={0}>
             <Badge variant="secondary" className="mb-4 px-3 py-1 text-xs font-medium">
-              Enterprise Resource Planning, Reimagined
+              {t('landing.badge')}
             </Badge>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] mb-6">
-              The Complete ERP for{' '}
-              <span className="text-gradient">Modern Business</span>
+              {t('landing.heroTitle1')}{' '}
+              <span className="text-gradient">{t('landing.heroTitle2')}</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              17 integrated modules. 13 industry presets. Built for teams that demand precision, speed, and clarity at every level of operation.
+              {t('landing.heroSubtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <Button size="lg" className="gradient-primary text-base px-8" asChild>
-                <Link to="/signup">Start 14-Day Free Trial <ArrowRight className="w-4 h-4 ml-2" /></Link>
+                <Link to="/signup">{t('landing.ctaTrial')} <ArrowRight className="w-4 h-4 ml-2" /></Link>
               </Button>
               <Button size="lg" variant="outline" className="text-base px-8" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/login">{t('landing.ctaSignIn')}</Link>
               </Button>
             </div>
             <div className="mt-6 flex justify-center lg:justify-start">

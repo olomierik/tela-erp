@@ -1,0 +1,40 @@
+{
+  "common": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "getStarted": "立即开始",
+    "signUp": "注册",
+    "search": "搜索...",
+    "language": "语言",
+    "loading": "加载中...",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "create": "创建",
+    "submit": "提交",
+    "back": "返回",
+    "next": "下一步",
+    "yes": "是",
+    "no": "否"
+  },
+  "nav": {
+    "modules": "模块",
+    "features": "功能",
+    "pricing": "价格",
+    "blog": "博客",
+    "about": "关于",
+    "contact": "联系我们",
+    "dashboard": "仪表板",
+    "settings": "设置",
+    "profile": "个人资料"
+  },
+  "landing": {
+    "badge": "重新定义的企业资源规划",
+    "heroTitle1": "现代企业的",
+    "heroTitle2": "完整 ERP 解决方案",
+    "heroSubtitle": "17 个集成模块。13 个行业预设。专为追求精准、速度和清晰运营的团队而打造。",
+    "ctaTrial": "开始 14 天免费试用",
+    "ctaSignIn": "登录"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "common": {
+    "signIn": "Connexion",
+    "signOut": "Déconnexion",
+    "getStarted": "Commencer",
+    "signUp": "S'inscrire",
+    "search": "Rechercher...",
+    "language": "Langue",
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "submit": "Soumettre",
+    "back": "Retour",
+    "next": "Suivant",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "nav": {
+    "modules": "Modules",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "blog": "Blog",
+    "about": "À propos",
+    "contact": "Contact",
+    "dashboard": "Tableau de bord",
+    "settings": "Paramètres",
+    "profile": "Profil"
+  },
+  "landing": {
+    "badge": "La planification des ressources d'entreprise, réinventée",
+    "heroTitle1": "L'ERP complet pour",
+    "heroTitle2": "l'entreprise moderne",
+    "heroSubtitle": "17 modules intégrés. 13 préréglages sectoriels. Conçu pour les équipes qui exigent précision, rapidité et clarté à chaque niveau d'opération.",
+    "ctaTrial": "Essai gratuit de 14 jours",
+    "ctaSignIn": "Connexion"
+  }
+}

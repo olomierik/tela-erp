@@ -19,6 +19,7 @@ import CommandPalette from '@/components/ui/CommandPalette';
 import CompanySwitcher from '@/components/company/CompanySwitcher';
 import PeriodSelector from '@/components/layout/PeriodSelector';
 import { NetworkStatusIndicator } from '@/components/layout/NetworkStatusIndicator';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -242,6 +243,9 @@ export default function TopBar({ title, subtitle }: TopBarProps) {
           <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-manipulation text-muted-foreground" onClick={() => setCmdOpen(true)}>
             <Search className="w-[17px] h-[17px]" />
           </Button>
+
+          {/* Language switcher */}
+          <LanguageSwitcher />
 
           {/* Dark/light toggle */}
           <Button
