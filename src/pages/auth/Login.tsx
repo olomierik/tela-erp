@@ -45,8 +45,10 @@ export default function Login() {
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setOauthLoading(provider);
     try {
+      const redirect_uri = `${window.location.origin}/dashboard`;
       const { error } = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri,
+        extraParams: provider === 'google' ? { prompt: 'select_account' } : undefined,
       });
       if (error) toast.error((error as any).message || `${provider} sign-in failed`);
     } catch {
