@@ -158,7 +158,7 @@ export default function Billing() {
                     <Button
                       className="w-full gradient-primary"
                       disabled={loading === 'premium_monthly'}
-                      onClick={() => handleCheckout('premium_monthly', 'premium_monthly')}
+                      onClick={() => handleCheckout('premium_monthly')}
                     >
                       {loading === 'premium_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $12 / month
@@ -167,7 +167,7 @@ export default function Billing() {
                       variant="outline"
                       className="w-full"
                       disabled={loading === 'premium_yearly'}
-                      onClick={() => handleCheckout('premium_yearly', 'premium_yearly')}
+                      onClick={() => handleCheckout('premium_yearly')}
                     >
                       {loading === 'premium_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $99 / year
@@ -191,7 +191,7 @@ export default function Billing() {
                     className="w-full"
                     variant={tier === 'premium' ? 'default' : 'outline'}
                     disabled={loading === 'enterprise_monthly'}
-                    onClick={() => handleCheckout('enterprise_monthly', 'enterprise_monthly')}
+                    onClick={() => handleCheckout('enterprise_monthly')}
                   >
                     {loading === 'enterprise_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $29 / month
@@ -200,7 +200,7 @@ export default function Billing() {
                     variant="outline"
                     className="w-full"
                     disabled={loading === 'enterprise_yearly'}
-                    onClick={() => handleCheckout('enterprise_yearly', 'enterprise_yearly')}
+                    onClick={() => handleCheckout('enterprise_yearly')}
                   >
                     {loading === 'enterprise_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $249 / year
