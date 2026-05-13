@@ -1,234 +1,117 @@
-import { useState } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
-import {
-  CreditCard, Zap, Shield, CheckCircle, Clock, ArrowUpRight,
-  ChevronRight, RefreshCw, Crown, Star,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import AppLayout from '@/components/layout/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { useModules, TIER_LABELS, type SubscriptionTier } from '@/contexts/ModulesContext';
-import { supabase } from '@/lib/supabase';
-import { usePaypalCheckout, type PaypalPlanKey } from '@/hooks/usePaypalCheckout';
+import { useState } from "react";
+import AppLayout from "@/components/layout/AppLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Check, Zap, Shield } from "lucide-react";
+import PayPalSubscribeButton from "@/components/billing/PayPalSubscribeButton";
 
-const PLAN_INFO: Record<SubscriptionTier, { icon: typeof Star; color: string; description: string }> = {
-  starter:    { icon: Zap,    color: 'text-muted-foreground', description: 'Sales & Inventory only, 1 user' },
-  premium:    { icon: Star,   color: 'text-primary',          description: 'All 17 modules, up to 5 users' },
-  enterprise: { icon: Crown,  color: 'text-amber-500',        description: 'Unlimited users, white-label, API access' },
+const PLANS = {
+  growth: {
+    name: "Growth",
+    description: "For growing businesses that need the full suite.",
+    monthly: { price: "$29/mo", planId: import.meta.env.VITE_PAYPAL_PLAN_GROWTH_MONTHLY as string },
+    annual:  { price: "$23/mo · billed $276/yr", planId: import.meta.env.VITE_PAYPAL_PLAN_GROWTH_ANNUAL as string },
+    features: ["25 users", "All 15 modules", "5 warehouses", "AI CFO Assistant", "Multi-currency", "API access"],
+    icon: Zap,
+    badge: "Most popular",
+  },
+  enterprise: {
+    name: "Enterprise",
+    description: "Unlimited scale with white-labeling and reseller tools.",
+    monthly: { price: "$99/mo", planId: import.meta.env.VITE_PAYPAL_PLAN_ENTERPRISE_MONTHLY as string },
+    annual:  { price: "$79/mo · billed $948/yr", planId: import.meta.env.VITE_PAYPAL_PLAN_ENTERPRISE_ANNUAL as string },
+    features: ["Unlimited users", "All 15 modules", "Unlimited warehouses", "White-label branding", "Priority support (4h SLA)", "Reseller portal"],
+    icon: Shield,
+    badge: "Full power",
+  },
 };
 
-function daysUntil(iso: string | null | undefined): number | null {
-  if (!iso) return null;
-  const diff = new Date(iso).getTime() - Date.now();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
 export default function Billing() {
-  const { user, tenant, isDemo, refreshProfile } = useAuth();
-  const { tier } = useModules();
-  const [loading, setLoading] = useState<string | null>(null);
-  const { startCheckout, cancelSubscription } = usePaypalCheckout();
-
-  const trialDays = daysUntil((tenant as any)?.trial_ends_at);
-  const trialActive = trialDays !== null && trialDays > 0;
-  const subEnds = daysUntil((tenant as any)?.subscription_ends_at);
-  const hasActiveSub = tier === 'premium' || tier === 'enterprise';
-  const billingInterval: string = (tenant as any)?.billing_interval ?? 'month';
-
-  async function handleCheckout(planKey: PaypalPlanKey) {
-    if (isDemo) { toast.error('Sign in to subscribe'); return; }
-    setLoading(planKey);
-    try {
-      await startCheckout({
-        planKey,
-        tenantId: tenant?.id,
-        customerEmail: user?.email,
-        returnUrl: window.location.origin + '/billing?paypal=success',
-        cancelUrl: window.location.origin + '/billing?paypal=cancelled',
-      });
-    } catch (err: any) {
-      toast.error(err.message ?? 'Could not start checkout');
-      setLoading(null);
-    }
-  }
-
-  async function handleCancel() {
-    if (isDemo) { toast.error('Sign in first'); return; }
-    if (!confirm('Cancel your subscription? You will retain access until the end of the current period.')) return;
-    setLoading('cancel');
-    try {
-      await cancelSubscription();
-      toast.success('Subscription cancelled');
-    } catch (err: any) {
-      toast.error(err.message ?? 'Could not cancel subscription');
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  const PlanIcon = PLAN_INFO[tier].icon;
+  const [activeSubscription, setActiveSubscription] = useState<string | null>(null);
 
   return (
-    <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
-      <Helmet><title>Billing — TELA-ERP</title></Helmet>
+    <AppLayout title="Billing & Subscription" subtitle="Upgrade your plan to unlock more features">
+      <div className="max-w-4xl mx-auto space-y-8">
 
-      <div className="max-w-3xl mx-auto space-y-6">
-
-        {/* Current plan card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-primary" /> Current Plan
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <PlanIcon className={`w-6 h-6 ${PLAN_INFO[tier].color}`} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-bold">{TIER_LABELS[tier]}</span>
-                    {trialActive && tier === 'starter' && (
-                      <Badge variant="secondary" className="text-xs">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Trial: {trialDays}d left
-                      </Badge>
-                    )}
-                    {hasActiveSub && (
-                      <Badge className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-0">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Active
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">{PLAN_INFO[tier].description}</p>
-                  {billingInterval && hasActiveSub && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Billed {billingInterval === 'year' ? 'annually' : 'monthly'}
-                    </p>
-                  )}
-                  {subEnds !== null && subEnds > 0 && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      Subscription ends in {subEnds} day{subEnds !== 1 ? 's' : ''}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex gap-2 flex-wrap">
-                {hasActiveSub && (
-                  <Button variant="outline" size="sm" onClick={handleCancel} disabled={loading === 'cancel'}>
-                    {loading === 'cancel' ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <CreditCard className="w-3 h-3 mr-1" />}
-                    Cancel Subscription
-                  </Button>
-                )}
-                {tier !== 'enterprise' && (
-                  <Button size="sm" className="gradient-primary" asChild>
-                    <Link to="/pricing">
-                      <Zap className="w-3 h-3 mr-1" />
-                      {tier === 'starter' ? 'Upgrade Plan' : 'Go Enterprise'}
-                      <ChevronRight className="w-3 h-3 ml-1" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Upgrade cards — only show if not on enterprise */}
-        {tier !== 'enterprise' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Premium */}
-            {tier === 'starter' && (
-              <Card className="border-primary/30 ring-1 ring-primary/20">
-                <CardContent className="pt-5 pb-5">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Star className="w-5 h-5 text-primary" />
-                    <span className="font-semibold">Premium</span>
-                    <Badge className="gradient-primary text-white text-[10px] border-0 ml-auto">Most Popular</Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">All 17 modules, 5 users, AI CFO, real-time sync.</p>
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      className="w-full gradient-primary"
-                      disabled={loading === 'premium_monthly'}
-                      onClick={() => handleCheckout('premium_monthly')}
-                    >
-                      {loading === 'premium_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                      $12 / month
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      disabled={loading === 'premium_yearly'}
-                      onClick={() => handleCheckout('premium_yearly')}
-                    >
-                      {loading === 'premium_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                      $99 / year
-                      <Badge variant="secondary" className="ml-2 text-[10px]">Save $45</Badge>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Enterprise */}
-            <Card className={tier === 'premium' ? 'border-amber-500/30 ring-1 ring-amber-500/20' : ''}>
-              <CardContent className="pt-5 pb-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown className="w-5 h-5 text-amber-500" />
-                  <span className="font-semibold">Enterprise</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">Unlimited users, white-label, API access, priority support.</p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    className="w-full"
-                    variant={tier === 'premium' ? 'default' : 'outline'}
-                    disabled={loading === 'enterprise_monthly'}
-                    onClick={() => handleCheckout('enterprise_monthly')}
-                  >
-                    {loading === 'enterprise_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                    $29 / month
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    disabled={loading === 'enterprise_yearly'}
-                    onClick={() => handleCheckout('enterprise_yearly')}
-                  >
-                    {loading === 'enterprise_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
-                    $249 / year
-                    <Badge variant="secondary" className="ml-2 text-[10px]">Save $99</Badge>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        {activeSubscription && (
+          <div className="rounded-lg bg-green-50 border border-green-200 px-5 py-4 text-green-800 text-sm">
+            ✅ <strong>Subscription active!</strong> ID: <code className="font-mono text-xs">{activeSubscription}</code>
+            <p className="mt-1 text-green-700 text-xs">Your plan has been activated. Refresh to see updated access.</p>
           </div>
         )}
 
-        {/* Security note */}
-        <Card className="bg-muted/30 border-dashed">
-          <CardContent className="pt-4 pb-4 flex items-start gap-3">
-            <Shield className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Secure built-in payments</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Your card is never stored on our servers. Cancel anytime from the billing portal.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="growth" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="growth">Growth</TabsTrigger>
+            <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
+          </TabsList>
 
-        {/* Full plan comparison link */}
-        <p className="text-center text-sm text-muted-foreground">
-          Want to compare all features?{' '}
-          <Link to="/pricing" className="text-primary hover:underline font-medium">View full pricing page</Link>
+          {(Object.entries(PLANS) as [keyof typeof PLANS, typeof PLANS[keyof typeof PLANS]][]).map(([key, plan]) => {
+            const Icon = plan.icon;
+            return (
+              <TabsContent key={key} value={key}>
+                <Card className="border-2 border-primary/20">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-xl">{plan.name}</CardTitle>
+                        <Badge variant="secondary" className="text-xs mt-0.5">{plan.badge}</Badge>
+                      </div>
+                    </div>
+                    <CardDescription>{plan.description}</CardDescription>
+                    <ul className="grid grid-cols-2 gap-1.5 mt-3">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-sm text-foreground">
+                          <Check className="w-4 h-4 text-green-500 shrink-0" />
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardHeader>
+
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Monthly */}
+                      <div className="rounded-xl border p-4 space-y-3">
+                        <div>
+                          <p className="font-semibold text-lg">{plan.monthly.price}</p>
+                          <p className="text-xs text-muted-foreground">Billed monthly · cancel anytime</p>
+                        </div>
+                        <PayPalSubscribeButton
+                          planId={plan.monthly.planId}
+                          planName={`${plan.name} Monthly`}
+                          onSuccess={setActiveSubscription}
+                        />
+                      </div>
+                      {/* Annual */}
+                      <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-lg">{plan.annual.price}</p>
+                            <Badge className="text-xs bg-green-600 text-white">Save ~20%</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Billed annually</p>
+                        </div>
+                        <PayPalSubscribeButton
+                          planId={plan.annual.planId}
+                          planName={`${plan.name} Annual`}
+                          onSuccess={setActiveSubscription}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
+        </Tabs>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Payments are securely processed by PayPal. You can cancel at any time from your PayPal account.
         </p>
       </div>
     </AppLayout>
