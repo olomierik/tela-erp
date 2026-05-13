@@ -76,6 +76,7 @@ export default function Billing() {
     <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
       <Helmet><title>Billing — TELA-ERP</title></Helmet>
 
+      <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Current plan card */}
         <Card>
