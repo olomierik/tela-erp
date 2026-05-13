@@ -65,7 +65,7 @@ function buildTiers(interval: BillingInterval) {
       highlight: true,
       cta: interval === 'year' ? 'Get Premium (Annual)' : 'Get Premium',
       isStripe: true,
-      priceId: interval === 'year' ? PRICES.premium_yearly : PRICES.premium_monthly,
+      priceId: interval === 'year' ? PLAN_KEYS.premium_yearly : PLAN_KEYS.premium_monthly,
       color: 'border-primary ring-2 ring-primary/20',
       badge: 'Most Popular' as string | null,
       users: 'Up to 5 users',
