@@ -122,9 +122,9 @@ export default function Billing() {
 
               <div className="flex gap-2 flex-wrap">
                 {hasActiveSub && (
-                  <Button variant="outline" size="sm" onClick={handlePortal} disabled={loading === 'portal'}>
-                    {loading === 'portal' ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <CreditCard className="w-3 h-3 mr-1" />}
-                    Manage Billing
+                  <Button variant="outline" size="sm" onClick={handleCancel} disabled={loading === 'cancel'}>
+                    {loading === 'cancel' ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <CreditCard className="w-3 h-3 mr-1" />}
+                    Cancel Subscription
                   </Button>
                 )}
                 {tier !== 'enterprise' && (
