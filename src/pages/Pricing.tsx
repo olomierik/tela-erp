@@ -94,7 +94,7 @@ function buildTiers(interval: BillingInterval) {
       highlight: false,
       cta: interval === 'year' ? 'Get Enterprise (Annual)' : 'Get Enterprise',
       isStripe: true,
-      priceId: interval === 'year' ? PRICES.enterprise_yearly : PRICES.enterprise_monthly,
+      priceId: interval === 'year' ? PLAN_KEYS.enterprise_yearly : PLAN_KEYS.enterprise_monthly,
       color: 'border-border',
       badge: null as string | null,
       users: 'Unlimited users',
