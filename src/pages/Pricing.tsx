@@ -9,18 +9,18 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { usePaypalCheckout, type PaypalPlanKey } from '@/hooks/usePaypalCheckout';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.4 } }),
 };
 
-const PRICES = {
-  premium_monthly:    import.meta.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID ?? '',
-  premium_yearly:     import.meta.env.VITE_STRIPE_PREMIUM_YEARLY_PRICE_ID ?? '',
-  enterprise_monthly: import.meta.env.VITE_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID ?? '',
-  enterprise_yearly:  import.meta.env.VITE_STRIPE_ENTERPRISE_YEARLY_PRICE_ID ?? '',
+const PLAN_KEYS = {
+  premium_monthly:    'premium_monthly' as PaypalPlanKey,
+  premium_yearly:     'premium_yearly' as PaypalPlanKey,
+  enterprise_monthly: 'enterprise_monthly' as PaypalPlanKey,
+  enterprise_yearly:  'enterprise_yearly' as PaypalPlanKey,
 };
 
 type BillingInterval = 'month' | 'year';
@@ -65,7 +65,7 @@ function buildTiers(interval: BillingInterval) {
       highlight: true,
       cta: interval === 'year' ? 'Get Premium (Annual)' : 'Get Premium',
       isStripe: true,
-      priceId: interval === 'year' ? PRICES.premium_yearly : PRICES.premium_monthly,
+      priceId: interval === 'year' ? PLAN_KEYS.premium_yearly : PLAN_KEYS.premium_monthly,
       color: 'border-primary ring-2 ring-primary/20',
       badge: 'Most Popular' as string | null,
       users: 'Up to 5 users',
@@ -94,7 +94,7 @@ function buildTiers(interval: BillingInterval) {
       highlight: false,
       cta: interval === 'year' ? 'Get Enterprise (Annual)' : 'Get Enterprise',
       isStripe: true,
-      priceId: interval === 'year' ? PRICES.enterprise_yearly : PRICES.enterprise_monthly,
+      priceId: interval === 'year' ? PLAN_KEYS.enterprise_yearly : PLAN_KEYS.enterprise_monthly,
       color: 'border-border',
       badge: null as string | null,
       users: 'Unlimited users',
@@ -157,33 +157,27 @@ export default function Pricing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [interval, setInterval] = useState<BillingInterval>('month');
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
-  const { tenant, isDemo } = useAuth();
+  const { tenant, isDemo, user } = useAuth();
   const navigate = useNavigate();
+  const { startCheckout } = usePaypalCheckout();
 
   const TIERS = buildTiers(interval);
 
   async function handleStripeCta(tier: ReturnType<typeof buildTiers>[number]) {
     if (!tier.isStripe) { navigate('/signup'); return; }
     if (isDemo || !tenant?.id) { navigate('/signup?plan=' + tier.key); return; }
-    if (!tier.priceId) {
-      toast.error('Stripe price not configured — add VITE_STRIPE_*_PRICE_ID to .env');
-      return;
-    }
+    if (!tier.priceId) { toast.error('Plan not configured'); return; }
     setLoadingTier(tier.key);
     try {
-      const { data, error } = await supabase.functions.invoke('stripe-checkout', {
-        body: {
-          priceId: tier.priceId,
-          tenantId: tenant.id,
-          successUrl: window.location.origin,
-          cancelUrl: window.location.origin + '/pricing',
-        },
+      await startCheckout({
+        planKey: tier.priceId as PaypalPlanKey,
+        tenantId: tenant.id,
+        customerEmail: user?.email,
+        returnUrl: window.location.origin + '/billing?paypal=success',
+        cancelUrl: window.location.origin + '/pricing',
       });
-      if (error) throw error;
-      if (data?.url) window.location.href = data.url;
     } catch (err: any) {
       toast.error(err.message ?? 'Could not start checkout');
-    } finally {
       setLoadingTier(null);
     }
   }

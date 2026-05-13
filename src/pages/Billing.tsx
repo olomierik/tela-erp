@@ -13,9 +13,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModules, TIER_LABELS, type SubscriptionTier } from '@/contexts/ModulesContext';
 import { supabase } from '@/lib/supabase';
-import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
-import { getPaddleEnvironment } from '@/lib/paddle';
-import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
+import { usePaypalCheckout, type PaypalPlanKey } from '@/hooks/usePaypalCheckout';
 
 const PLAN_INFO: Record<SubscriptionTier, { icon: typeof Star; color: string; description: string }> = {
   starter:    { icon: Zap,    color: 'text-muted-foreground', description: 'Sales & Inventory only, 1 user' },
@@ -33,45 +31,40 @@ export default function Billing() {
   const { user, tenant, isDemo, refreshProfile } = useAuth();
   const { tier } = useModules();
   const [loading, setLoading] = useState<string | null>(null);
-  const { openCheckout } = usePaddleCheckout();
+  const { startCheckout, cancelSubscription } = usePaypalCheckout();
 
   const trialDays = daysUntil((tenant as any)?.trial_ends_at);
   const trialActive = trialDays !== null && trialDays > 0;
   const subEnds = daysUntil((tenant as any)?.subscription_ends_at);
-  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id || tier === 'premium' || tier === 'enterprise';
+  const hasActiveSub = tier === 'premium' || tier === 'enterprise';
   const billingInterval: string = (tenant as any)?.billing_interval ?? 'month';
 
-  async function handleCheckout(priceId: string, label: string) {
+  async function handleCheckout(planKey: PaypalPlanKey) {
     if (isDemo) { toast.error('Sign in to subscribe'); return; }
-    setLoading(label);
+    setLoading(planKey);
     try {
-      await openCheckout({
-        priceId,
+      await startCheckout({
+        planKey,
+        tenantId: tenant?.id,
         customerEmail: user?.email,
-        customData: {
-          userId: user?.id ?? '',
-          tenantId: tenant?.id ?? '',
-        },
-        successUrl: window.location.origin + '/billing?checkout=success',
+        returnUrl: window.location.origin + '/billing?paypal=success',
+        cancelUrl: window.location.origin + '/billing?paypal=cancelled',
       });
     } catch (err: any) {
       toast.error(err.message ?? 'Could not start checkout');
-    } finally {
       setLoading(null);
     }
   }
 
-  async function handlePortal() {
+  async function handleCancel() {
     if (isDemo) { toast.error('Sign in first'); return; }
-    setLoading('portal');
+    if (!confirm('Cancel your subscription? You will retain access until the end of the current period.')) return;
+    setLoading('cancel');
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        body: { environment: getPaddleEnvironment() },
-      });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, '_blank');
+      await cancelSubscription();
+      toast.success('Subscription cancelled');
     } catch (err: any) {
-      toast.error(err.message ?? 'Could not open billing portal');
+      toast.error(err.message ?? 'Could not cancel subscription');
     } finally {
       setLoading(null);
     }
@@ -83,7 +76,6 @@ export default function Billing() {
     <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
       <Helmet><title>Billing — TELA-ERP</title></Helmet>
 
-      <PaymentTestModeBanner />
       <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Current plan card */}
@@ -130,9 +122,9 @@ export default function Billing() {
 
               <div className="flex gap-2 flex-wrap">
                 {hasActiveSub && (
-                  <Button variant="outline" size="sm" onClick={handlePortal} disabled={loading === 'portal'}>
-                    {loading === 'portal' ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <CreditCard className="w-3 h-3 mr-1" />}
-                    Manage Billing
+                  <Button variant="outline" size="sm" onClick={handleCancel} disabled={loading === 'cancel'}>
+                    {loading === 'cancel' ? <RefreshCw className="w-3 h-3 animate-spin mr-1" /> : <CreditCard className="w-3 h-3 mr-1" />}
+                    Cancel Subscription
                   </Button>
                 )}
                 {tier !== 'enterprise' && (
@@ -166,7 +158,7 @@ export default function Billing() {
                     <Button
                       className="w-full gradient-primary"
                       disabled={loading === 'premium_monthly'}
-                      onClick={() => handleCheckout('premium_monthly', 'premium_monthly')}
+                      onClick={() => handleCheckout('premium_monthly')}
                     >
                       {loading === 'premium_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $12 / month
@@ -175,7 +167,7 @@ export default function Billing() {
                       variant="outline"
                       className="w-full"
                       disabled={loading === 'premium_yearly'}
-                      onClick={() => handleCheckout('premium_yearly', 'premium_yearly')}
+                      onClick={() => handleCheckout('premium_yearly')}
                     >
                       {loading === 'premium_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                       $99 / year
@@ -199,7 +191,7 @@ export default function Billing() {
                     className="w-full"
                     variant={tier === 'premium' ? 'default' : 'outline'}
                     disabled={loading === 'enterprise_monthly'}
-                    onClick={() => handleCheckout('enterprise_monthly', 'enterprise_monthly')}
+                    onClick={() => handleCheckout('enterprise_monthly')}
                   >
                     {loading === 'enterprise_monthly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $29 / month
@@ -208,7 +200,7 @@ export default function Billing() {
                     variant="outline"
                     className="w-full"
                     disabled={loading === 'enterprise_yearly'}
-                    onClick={() => handleCheckout('enterprise_yearly', 'enterprise_yearly')}
+                    onClick={() => handleCheckout('enterprise_yearly')}
                   >
                     {loading === 'enterprise_yearly' ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : null}
                     $249 / year

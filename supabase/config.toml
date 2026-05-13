@@ -16,3 +16,6 @@ verify_jwt = false
 verify_jwt = false
 [functions.translate-batch]
 verify_jwt = false
+
+[functions.paypal-webhook]
+verify_jwt = false
