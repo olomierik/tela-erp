@@ -1,8 +1,5 @@
-// PayPal REST API helpers
-const PAYPAL_SANDBOX = Deno.env.get("PAYPAL_SANDBOX") === "true";
-const PAYPAL_BASE = PAYPAL_SANDBOX
-  ? "https://api-m.sandbox.paypal.com"
-  : "https://api-m.paypal.com";
+// PayPal REST API helpers (LIVE)
+const PAYPAL_BASE = "https://api-m.paypal.com";
 
 let cachedToken: { value: string; exp: number } | null = null;
 
