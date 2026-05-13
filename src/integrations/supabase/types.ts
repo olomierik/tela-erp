@@ -519,6 +519,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider: string
           status: string
           tenant_id: string | null
           updated_at: string | null
@@ -535,6 +536,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider?: string
           status?: string
           tenant_id?: string | null
           updated_at?: string | null
@@ -551,6 +553,7 @@ export type Database = {
           paddle_subscription_id?: string
           price_id?: string
           product_id?: string
+          provider?: string
           status?: string
           tenant_id?: string | null
           updated_at?: string | null
@@ -5284,6 +5287,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      paypal_plans: {
+        Row: {
+          amount: number
+          created_at: string
+          interval_unit: string
+          paypal_plan_id: string
+          paypal_product_id: string
+          plan_key: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          interval_unit: string
+          paypal_plan_id: string
+          paypal_product_id: string
+          plan_key: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          interval_unit?: string
+          paypal_plan_id?: string
+          paypal_product_id?: string
+          plan_key?: string
+        }
+        Relationships: []
       }
       payroll_lines: {
         Row: {
