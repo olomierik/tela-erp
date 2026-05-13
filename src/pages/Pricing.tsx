@@ -9,18 +9,18 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import telaLogo from '@/assets/tela-erp-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { usePaypalCheckout, type PaypalPlanKey } from '@/hooks/usePaypalCheckout';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.1, duration: 0.4 } }),
 };
 
-const PRICES = {
-  premium_monthly:    import.meta.env.VITE_STRIPE_PREMIUM_MONTHLY_PRICE_ID ?? '',
-  premium_yearly:     import.meta.env.VITE_STRIPE_PREMIUM_YEARLY_PRICE_ID ?? '',
-  enterprise_monthly: import.meta.env.VITE_STRIPE_ENTERPRISE_MONTHLY_PRICE_ID ?? '',
-  enterprise_yearly:  import.meta.env.VITE_STRIPE_ENTERPRISE_YEARLY_PRICE_ID ?? '',
+const PLAN_KEYS = {
+  premium_monthly:    'premium_monthly' as PaypalPlanKey,
+  premium_yearly:     'premium_yearly' as PaypalPlanKey,
+  enterprise_monthly: 'enterprise_monthly' as PaypalPlanKey,
+  enterprise_yearly:  'enterprise_yearly' as PaypalPlanKey,
 };
 
 type BillingInterval = 'month' | 'year';
