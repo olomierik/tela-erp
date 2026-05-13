@@ -31,45 +31,40 @@ export default function Billing() {
   const { user, tenant, isDemo, refreshProfile } = useAuth();
   const { tier } = useModules();
   const [loading, setLoading] = useState<string | null>(null);
-  const { openCheckout } = usePaddleCheckout();
+  const { startCheckout, cancelSubscription } = usePaypalCheckout();
 
   const trialDays = daysUntil((tenant as any)?.trial_ends_at);
   const trialActive = trialDays !== null && trialDays > 0;
   const subEnds = daysUntil((tenant as any)?.subscription_ends_at);
-  const hasActiveSub = !!(tenant as any)?.stripe_subscription_id || tier === 'premium' || tier === 'enterprise';
+  const hasActiveSub = tier === 'premium' || tier === 'enterprise';
   const billingInterval: string = (tenant as any)?.billing_interval ?? 'month';
 
-  async function handleCheckout(priceId: string, label: string) {
+  async function handleCheckout(planKey: PaypalPlanKey) {
     if (isDemo) { toast.error('Sign in to subscribe'); return; }
-    setLoading(label);
+    setLoading(planKey);
     try {
-      await openCheckout({
-        priceId,
+      await startCheckout({
+        planKey,
+        tenantId: tenant?.id,
         customerEmail: user?.email,
-        customData: {
-          userId: user?.id ?? '',
-          tenantId: tenant?.id ?? '',
-        },
-        successUrl: window.location.origin + '/billing?checkout=success',
+        returnUrl: window.location.origin + '/billing?paypal=success',
+        cancelUrl: window.location.origin + '/billing?paypal=cancelled',
       });
     } catch (err: any) {
       toast.error(err.message ?? 'Could not start checkout');
-    } finally {
       setLoading(null);
     }
   }
 
-  async function handlePortal() {
+  async function handleCancel() {
     if (isDemo) { toast.error('Sign in first'); return; }
-    setLoading('portal');
+    if (!confirm('Cancel your subscription? You will retain access until the end of the current period.')) return;
+    setLoading('cancel');
     try {
-      const { data, error } = await supabase.functions.invoke('customer-portal', {
-        body: { environment: getPaddleEnvironment() },
-      });
-      if (error) throw error;
-      if (data?.url) window.open(data.url, '_blank');
+      await cancelSubscription();
+      toast.success('Subscription cancelled');
     } catch (err: any) {
-      toast.error(err.message ?? 'Could not open billing portal');
+      toast.error(err.message ?? 'Could not cancel subscription');
     } finally {
       setLoading(null);
     }
@@ -81,8 +76,6 @@ export default function Billing() {
     <AppLayout title="Billing & Subscription" subtitle="Manage your TELA-ERP plan">
       <Helmet><title>Billing — TELA-ERP</title></Helmet>
 
-      <PaymentTestModeBanner />
-      <div className="max-w-3xl mx-auto space-y-6">
 
         {/* Current plan card */}
         <Card>
