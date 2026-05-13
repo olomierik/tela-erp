@@ -13,9 +13,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useModules, TIER_LABELS, type SubscriptionTier } from '@/contexts/ModulesContext';
 import { supabase } from '@/lib/supabase';
-import { usePaddleCheckout } from '@/hooks/usePaddleCheckout';
-import { getPaddleEnvironment } from '@/lib/paddle';
-import { PaymentTestModeBanner } from '@/components/PaymentTestModeBanner';
+import { usePaypalCheckout, type PaypalPlanKey } from '@/hooks/usePaypalCheckout';
 
 const PLAN_INFO: Record<SubscriptionTier, { icon: typeof Star; color: string; description: string }> = {
   starter:    { icon: Zap,    color: 'text-muted-foreground', description: 'Sales & Inventory only, 1 user' },
