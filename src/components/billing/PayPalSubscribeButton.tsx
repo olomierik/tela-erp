@@ -32,7 +32,7 @@ export default function PayPalSubscribeButton({
       createSubscription={(_data, actions) =>
         actions.subscription.create({ plan_id: planId })
       }
-      onApprove={(data) => {
+      onApprove={async (data) => {
         const subId = data.subscriptionID ?? "";
         toast.success(`🎉 Subscribed to ${planName}! ID: ${subId}`);
         onSuccess?.(subId);
