@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, paypalFetch } from "../_shared/paypal.ts";
+import { corsHeaders, parseCustomId, paypalFetch, productIdFromPlanKey, tierFromPlanKey } from "../_shared/paypal.ts";
 
 // PayPal webhook handler. PUBLIC endpoint — verify signature via PayPal API.
 // Configure webhook in https://developer.paypal.com → Apps → Webhooks pointing to:
@@ -32,15 +32,9 @@ async function verifyWebhook(req: Request, body: string): Promise<boolean> {
   }
 }
 
-function tierFromPlanKey(planKey: string): "premium" | "enterprise" | "starter" {
-  if (planKey?.startsWith("premium")) return "premium";
-  if (planKey?.startsWith("enterprise")) return "enterprise";
-  return "starter";
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   const raw = await req.text();
   const ok = await verifyWebhook(req, raw);
@@ -67,9 +61,9 @@ Deno.serve(async (req) => {
         if (!subscriptionId) break;
         // Fetch full sub for accurate fields
         const sub = await paypalFetch(`/v1/billing/subscriptions/${subscriptionId}`);
-        const customId = sub.custom_id ? JSON.parse(sub.custom_id) : {};
+        const customId = parseCustomId(sub.custom_id);
         const planKey = customId.planKey ?? "premium_monthly";
-        const product = tierFromPlanKey(planKey) === "enterprise" ? "enterprise_plan" : "premium_plan";
+        const product = productIdFromPlanKey(planKey);
 
         await supabase.from("billing_subscriptions").upsert({
           user_id: customId.userId,
@@ -117,10 +111,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ received: true }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Webhook handler error", err);
-    return new Response("Webhook error", { status: 500 });
+    return new Response("Webhook error", { status: 500, headers: corsHeaders });
   }
 });
