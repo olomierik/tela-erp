@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type PaypalPlanKey =
@@ -10,7 +10,7 @@ export type PaypalPlanKey =
 export function usePaypalCheckout() {
   const [loading, setLoading] = useState(false);
 
-  const startCheckout = async (options: {
+  const startCheckout = useCallback(async (options: {
     planKey: PaypalPlanKey;
     tenantId?: string;
     customerEmail?: string;
@@ -34,7 +34,15 @@ export function usePaypalCheckout() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const syncSubscription = useCallback(async (subscriptionId: string) => {
+    const { data, error } = await supabase.functions.invoke("paypal-sync", {
+      body: { subscriptionId },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
 
   const cancelSubscription = async () => {
     const { data, error } = await supabase.functions.invoke("paypal-cancel", { body: {} });
@@ -42,5 +50,5 @@ export function usePaypalCheckout() {
     return data;
   };
 
-  return { startCheckout, cancelSubscription, loading };
+  return { startCheckout, syncSubscription, cancelSubscription, loading };
 }

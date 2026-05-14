@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, ensurePlanId, paypalFetch, type PlanKey } from "../_shared/paypal.ts";
+import { corsHeaders, ensurePlanId, isPlanKey, productIdFromPlanKey, type PlanKey } from "../_shared/paypal.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -38,14 +38,33 @@ Deno.serve(async (req) => {
       customerEmail?: string;
     };
 
-    const valid = ["premium_monthly", "premium_yearly", "enterprise_monthly", "enterprise_yearly"];
-    if (!planKey || !valid.includes(planKey)) {
+    if (!isPlanKey(planKey)) {
       return new Response(JSON.stringify({ error: "Invalid planKey" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabase = createClient(supabaseUrl, service);
+    if (tenantId) {
+      const { data: membership } = await supabase
+        .from("user_companies")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .maybeSingle();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (!membership && !profile) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const planId = await ensurePlanId(supabase, planKey);
 
     const origin = returnUrl?.split("/").slice(0, 3).join("/") ||
@@ -68,7 +87,7 @@ Deno.serve(async (req) => {
           return_url: returnUrl || `${origin}/billing?paypal=success`,
           cancel_url: cancelUrl || `${origin}/billing?paypal=cancelled`,
         },
-        custom_id: JSON.stringify({ userId: user.id, tenantId: tenantId ?? null, planKey }),
+        custom_id: JSON.stringify({ u: user.id, t: tenantId ?? null, p: planKey }),
       }),
     });
 
@@ -78,7 +97,7 @@ Deno.serve(async (req) => {
       tenant_id: tenantId ?? null,
       paddle_subscription_id: subscription.id,
       paddle_customer_id: subscription.id, // payer ID unknown until activated
-      product_id: planKey.startsWith("premium") ? "premium_plan" : "enterprise_plan",
+      product_id: productIdFromPlanKey(planKey),
       price_id: planKey,
       status: "pending",
       environment: "live",

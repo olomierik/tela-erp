@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import PageHeader from '@/components/erp/PageHeader';
-import { User, Lock, Bell, Shield, Save, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, Lock, Bell, Shield, Save, Eye, EyeOff, Loader2, CreditCard } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,6 +89,7 @@ export default function Profile() {
         <Tabs defaultValue="profile">
           <TabsList className="mb-6">
             <TabsTrigger value="profile" className="gap-1.5"><User className="w-3.5 h-3.5" /> Profile</TabsTrigger>
+            <TabsTrigger value="billing" className="gap-1.5"><CreditCard className="w-3.5 h-3.5" /> Billing</TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5"><Lock className="w-3.5 h-3.5" /> Security</TabsTrigger>
             <TabsTrigger value="notifications" className="gap-1.5"><Bell className="w-3.5 h-3.5" /> Notifications</TabsTrigger>
           </TabsList>
@@ -128,6 +130,22 @@ export default function Profile() {
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? 'Saving...' : 'Save Changes'}
                 </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="billing">
+            <Card className="border-border rounded-xl">
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-foreground">Upgrade subscription</h3>
+                    <p className="text-sm text-muted-foreground">Manage Premium and Enterprise upgrades with live PayPal checkout.</p>
+                  </div>
+                  <Button asChild className="gap-1.5 shrink-0">
+                    <Link to="/billing"><CreditCard className="w-4 h-4" /> Open Billing</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

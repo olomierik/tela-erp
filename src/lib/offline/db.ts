@@ -109,6 +109,10 @@ export interface SyncMetaEntry {
 // ─── DB ─────────────────────────────────────────────────────────────────────
 
 class TelaOfflineDB extends Dexie {
+  declare transaction: any;
+  declare tables: any;
+  declare version: any;
+
   // Core tables
   sales_orders!: Table<any, string>;
   inventory_items!: Table<any, string>;

@@ -49,6 +49,42 @@ export type PlanKey =
   | "enterprise_monthly"
   | "enterprise_yearly";
 
+export const VALID_PLAN_KEYS: PlanKey[] = [
+  "premium_monthly",
+  "premium_yearly",
+  "enterprise_monthly",
+  "enterprise_yearly",
+];
+
+export function isPlanKey(value: unknown): value is PlanKey {
+  return typeof value === "string" && (VALID_PLAN_KEYS as string[]).includes(value);
+}
+
+export function productIdFromPlanKey(planKey: PlanKey): "premium_plan" | "enterprise_plan" {
+  return planKey.startsWith("enterprise") ? "enterprise_plan" : "premium_plan";
+}
+
+export function tierFromPlanKey(planKey: string): "premium" | "enterprise" | "starter" {
+  if (planKey?.startsWith("premium")) return "premium";
+  if (planKey?.startsWith("enterprise")) return "enterprise";
+  return "starter";
+}
+
+export function parseCustomId(value: unknown): { userId?: string; tenantId?: string | null; planKey?: PlanKey } {
+  if (!value || typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    const planKey = isPlanKey(parsed.planKey ?? parsed.p) ? (parsed.planKey ?? parsed.p) : undefined;
+    return {
+      userId: parsed.userId ?? parsed.u,
+      tenantId: parsed.tenantId ?? parsed.t ?? null,
+      planKey,
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
 export const PLAN_CATALOG: Record<PlanKey, {
   productId: string;
   productName: string;
@@ -171,5 +207,5 @@ export async function ensurePlanId(
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, paypal-auth-algo, paypal-cert-url, paypal-transmission-id, paypal-transmission-sig, paypal-transmission-time",
 };
